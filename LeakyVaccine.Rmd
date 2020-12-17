@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # Load deSolve library
 ```{r}
 library(deSolve)
-library(EpiModel)
+#library(EpiModel)
 ```
 
 # Set up the model
@@ -85,7 +85,10 @@ sol <- lsoda(init, t, su_ode, par)
 
 # Plot the epidemic
 ```{r Plot all compartments}
-plot(t, sol[,1], type = "l", col = "blue", ylim=c(0, 1), ylab = "Proportion")
+plot(t, sol[,1], type = "l", col = "blue", 
+     ylim=c(0, 1), 
+     xlab = "time in years (t)",
+     ylab = "Proportion")
 lines(t, sol[,2], col = "green")
 lines(t, sol[,3], col = "red")
 lines(t, sol[,4], col = "orange") 
@@ -98,9 +101,10 @@ legend(1, 1, legend = c("Unexposed placebo",
                          lty=1, cex=0.8)
 ```
 
-Survival curves
+#Survival curves
 ```{r survival, eval=FALSE, include=FALSE}
 
+#To do
 
 ```
 
