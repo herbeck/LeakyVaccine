@@ -54,9 +54,9 @@ dYdt <- vector(length = 3)
 #[4] Susceptible vaccine dSvdt = -r*(1-f)*Sv + r*f*Uv - (rho*theta)(1-epsilon*t*Sv)
 
 dYdt[1] = r*(1-f)*Sp - r*f*Up
-dYdt[2] = -r*(1-f)*Sp + r*f*Up - rho*theta*Sp
+dYdt[2] = -r*(1-f)*Sp + r*f*Up - Sp*(1-(1-rho)^theta) #rho*theta*Sp
 dYdt[3] = r*(1-f)*Sv - r*f*Uv
-dYdt[4] = -r*(1-f)*Sv + r*f*Uv - (rho*theta)*(1-(epsilon*t*Sv))
+dYdt[4] = -r*(1-f)*Sv + r*f*Uv - Sv*   #(rho*theta)*(1-(epsilon*Sv))
 
   return(list(dYdt))
 }
@@ -67,13 +67,13 @@ dYdt[4] = -r*(1-f)*Sv + r*f*Uv - (rho*theta)*(1-(epsilon*t*Sv))
 ## Scenario 1
 ```{r parameter values}
 rho <-      0.03  #par[1]    
-epsilon <-  0.54  #par[2]
+epsilon <-  0.54  #par[2] #Pass as vector for years 1 and 2 and 0.54 and 0.28
 f <-        0.02  #par[3]      
 r <-        0.03  #par[4]      
 theta <-    48    #par[5]  
 
 init  <- c(0.25, 0.25, 0.25, 0.25)
-t     <- seq(0, 3)
+t     <- seq(0, 3, 0.1)
 par   <- c(rho, epsilon, f, r, theta)
 ```
 
