@@ -17,7 +17,7 @@ library(deSolve)
 
 # Set up the model
 
-This is just following directly from James Moore and Dobromir Dimitrov, "Overwhelming of the vaccine efficacy in HVTN 702 by repeated exposure."
+This is just following directly from Mia Moore and Dobromir Dimitrov, "Overwhelming of the vaccine efficacy in HVTN 702 by repeated exposure."
 
 ##Parameters
 
