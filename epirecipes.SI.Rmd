@@ -1,8 +1,8 @@
 ---
 title: "SI model of a vaccine trial"
-author: "Josh Herbeck, revising a model by Simon Frost"
+author: "Josh Herbeck"
 date: '`r Sys.Date()`'
-output: github_document
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -11,38 +11,34 @@ library(reshape2)
 library(ggplot2)
 ```
 
-We consider a closed population of N initially susceptible people who are assumed to be mixing randomly with contact rate c.
+We are modeling a closed population SI model meant to simulate a vaccine trial. We are not modeling infections from I to S but rather only from the outside population, with infection rate based on the population prevalence `Prev`, the exposure rate (serodiscordant sexual contacts per time) `c`, and the transmission rate (per contact) `p`. The per contact effect of vaccination is `epsilon`.
 
-## simecol ODE model
+p = transmission rate (per contact)  
+c = exposure rate (serodiscordant sexual contacts per time)  
+Prev = prevalence  
+lambda = p * c * Prev  
+epsilon = per contact vaccine efficacy; vaccine-induced reduction in the risk of HIV infection from a single exposure
 
-dS/dt = -lambda*S
-dI/dt = lambda*S
+## Model setup
 
-Sp = susceptible placebo
-Ip = infected placebo
+`dS/dt = -lambda*S`  
+`dI/dt = lambda*S`
 
-Sv = susceptible vaccinated
+Sp = susceptible placebo  
+Ip = infected placebo  
+Sv = susceptible vaccinated  
 Iv = infected vaccinated
 
-Svh = susceptible vaccinated high exposure
-SvL = susceptible vaccinated low exposure
-Ivh = infected vaccinated high exposure
+Svh = susceptible vaccinated high exposure  
+SvL = susceptible vaccinated low exposure  
+Ivh = infected vaccinated high exposure  
 Ivl = infected vaccinated low exposure
-
-p = transmission rate (per contact)
-c = exposure rate (serodiscordant sexual contacts per time)
-#beta = p*c
-Prev = prevalence
-#lambda = beta * Prev
-epsilon = per contact vaccine efficacy; vaccine-induced reduction in the risk of HIV infection from a single exposure
 
 ```{r}
 p = 0.01   #transmission rate (per contact)
 c = 0.3   #contact rate (contacts per time)
-beta <- p*c
 Prev <- 0.20
-
-lambda <- beta*Prev
+lambda <- p*c*Prev
 epsilon <- 0.50 #per act vaccine efficacy
 risk <- 3.0 #risk multiplier
 
@@ -80,11 +76,11 @@ sir_out <- lsoda(init, times, sir_ode, parms)
 
 ```{r}
 sir_out_long <- melt(as.data.frame(sir_out), "time")
-sir_out_long <- sir_out_long[sir_out_long$variable %in% c('Iv', 'Ip','Ivl','Ivh'),]
+sir_out_inf <- sir_out_long[sir_out_long$variable %in% c('Iv', 'Ip','Ivl','Ivh'),]
 ```
 
 ```{r}
-ggplot(sir_out_long, aes(x=time/365, y=value, color=variable, group=variable))+
+ggplot(sir_out_inf, aes(x=time/365, y=value, color=variable, group=variable))+
   #Add line
   geom_line(lwd=2) +
   #Add labels
