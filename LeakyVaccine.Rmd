@@ -17,7 +17,7 @@ library(deSolve)
 
 # Set up the model
 
-This is just following directly from Mia Moore and Dobromir Dimitrov, "Overwhelming of the vaccine efficacy in HVTN 702 by repeated exposure."
+This is just following from Mia Moore and Dobromir Dimitrov, "Overwhelming of the vaccine efficacy in HVTN 702 by repeated exposure."
 
 ##Parameters
 
@@ -72,7 +72,7 @@ f <-        0.02  #par[3]
 r <-        0.03  #par[4]      
 theta <-    48    #par[5]  
 
-init  <- c(0.25, 0.25, 0.25, 0.25)
+init  <- c(0.25, 0.25, 0.25)
 t     <- seq(0, 3, 0.1)
 par   <- c(rho, epsilon, f, r, theta)
 ```
