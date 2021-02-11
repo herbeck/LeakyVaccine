@@ -11,11 +11,11 @@ library(reshape2)
 library(ggplot2)
 ```
 
-We are modeling a closed population SI model meant to simulate a vaccine trial. We are not modeling infections from I to S but rather only from the outside population, with infection rate based on the population prevalence `Prev`, the exposure rate (serodiscordant sexual contacts per time) `c`, and the transmission rate (per contact) `p`. The per contact effect of vaccination is `epsilon`.
+We are modeling a closed population SI model meant to simulate a vaccine trial. We are not modeling infections from I to S but rather only from the outside population, with infection rate based on the population prevalence `Prev` (of viremic individuals), the exposure rate (serodiscordant sexual contacts per time) `c`, and the transmission rate (per contact) `p`. The per contact effect of vaccination is `epsilon`.
 
 p = transmission rate (per contact)  
 c = exposure rate (serodiscordant sexual contacts per time)  
-Prev = prevalence  
+Prev = prevalence  (This should probably be prevalence of viremic individuals)
 lambda = p * c * Prev  
 epsilon = per contact vaccine efficacy; vaccine-induced reduction in the risk of HIV infection from a single exposure
 
