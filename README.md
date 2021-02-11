@@ -1,3 +1,7 @@
-# LeakyVaccine
+Leaky vaccine 
+=============
 
-First step at trying to recreate and then revise James Moore and Dobromir Dimitrov's HVTN702 leaky vaccine model.
+Leaky vaccines and effect on VE of multiple exposures on VE
+
+December 2020
+
