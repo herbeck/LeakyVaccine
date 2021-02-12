@@ -6,19 +6,20 @@
 library("deSolve")
 library("tidyverse")
 
-p = 0.01   #transmission rate (per contact)
-c = 0.3   #contact rate (contacts per time)
-Prev <- 0.20
-lambda <- p*c*Prev
+# Parameters
+p <- 0.01   #transmission rate (per contact)
+c <- 0.3   #contact rate (contacts per time)
+prev <- 0.20
+
+lambda <- p*c*prev
 epsilon <- 0.50 #per act vaccine efficacy
 risk <- 3.0 #risk multiplier
 
-#parms <- c(lambda, epsilon, risk)
-init <- c(Sv=1000,Iv=1,Sp=1000,Ip=1,Svh=500,Ivh=1,Svl=500,Ivl=1)
-times <- seq(from=1, to=365*3, by=1)
+#init <- c(Sv=1000,Iv=1,Sp=1000,Ip=1,Svh=500,Ivh=1,Svl=500,Ivl=1)
+#times <- seq(from=1, to=365*3, by=1)
 
-sir_ode <- function(times, init, parms){
-  with(as.list(c(init, parms)), {
+si_ode <- function(times, init, param){
+  with(as.list(c(init, param)), {
     
     # Flows
     SIp.flow <- lambda*Sp
@@ -27,26 +28,26 @@ sir_ode <- function(times, init, parms){
     SIvl.flow <- lambda*(1-epsilon)*Svl
     
     # ODEs
-    #placebo
-    #Np = Sp+Ip
-    dSp <- -lambda*Sp
+    #placebo; homogeneous risk
+    dSp <- -SIp.flow
     dIp <- SIp.flow  #lambda*Sp
     
     # vaccine; homogeneous risk
-    #Nv <- Sv+Iv
-    dSv <- -lambda*epsilon*Sv
+    dSv <- -SIv.flow
     dIv <- SIv.flow  #lambda*epsilon*Sv
 
     # vaccine; heterogeneous risk
-    #Nv.risk <- Svh+Ivh+Svl+Ivl
-    dSvh <- -risk*lambda*(1-epsilon)*Svh
-    dIvh <-  SIvh.flow  #risk*lambda*(1-epsilon)*Svh
-    dSvl <- -lambda*(1-epsilon)*Svl
+    dSvh <- -SIvh.flow
+    dIvh <- SIvh.flow  #risk*lambda*(1-epsilon)*Svh
+    dSvl <- -SIvl.flow
     dIvl <- SIvl.flow  #lambda*(1-epsilon)*Svl
 
     #Output
-    list(c(dSv,dIv,dSp,dIp,dSvh,dIvh,dSvl,dIvl,SIp.flow,SIv.flow,SIvh.flow,SIvl.flow))
-    
+    list(c(dSp,dIp,
+           dSv,dIv,
+           dSvh,dIvh,
+           dSvl,dIvl,
+           SIp.flow,SIv.flow,SIvh.flow,SIvl.flow))
   })
 }
 
@@ -57,31 +58,31 @@ sir_ode <- function(times, init, parms){
 #  gather("variable", "value", -time) %>%
 #  filter(variable %in% c('Iv', 'Ip','Ivl','Ivh'))
 
-#ggplot(sir_out_inf, aes(x = time/365, y = value, color = variable)) +
-  #Add line
-#  geom_line(lwd = 2) +
-  #Add labels
-#  xlab("Years") + ylab("Infections")
-
-
 # EpiModel Conversion -----------------------------------------------------
 
 library("EpiModel")
 
-params <- param.dcm(lambda = lambda, epsilon = epsilon, risk = risk)
-inits <- init.dcm(Sv = 1000, Iv = 1, Sp = 1000, Ip = 1,
-                  Svh = 500, Ivh = 1, Svl = 500, Ivl = 1)
-controls <- control.dcm(nsteps = 365*3, new.mod = sir_ode, print.mod = T)
+param <- param.dcm(lambda = lambda, epsilon = epsilon, risk = risk)
+init <- init.dcm(Sp = 1000, Ip = 1,
+                 Sv = 1000, Iv = 1,
+                 Svh = 500, Ivh = 1, 
+                 Svl = 500, Ivl = 1,
+                 SIp.flow = 0, SIv.flow = 0, SIvh.flow = 0, SIvl.flow = 0)
 
-mod <- dcm(params, inits, controls)
+control <- control.dcm(nsteps = 365*3, new.mod = si_ode)
+
+mod <- dcm(param, init, control)
 mod
 
 par(mar = c(3,3,2,1), mgp = c(2,1,0))
 plot(mod, y = c("Iv", "Ivh", "Ip", "Ivl"), 
+     alpha = 0.8, 
+     main = "Cumulative infections",
      legend = "full")
 plot(mod, y = c("Iv", "Ivh", "Ip", "Ivl"), 
      alpha = 0.8, 
-     main = "Cumulative infections")
+     main = "Incidence",
+     legend = "full")
 
 df <- as.data.frame(mod)
 head(df, 25)
@@ -232,7 +233,7 @@ m <- matrix(c(g.hh, g.lh, g.hl, g.ll), ncol = 2, nrow = 2)
 colnames(m) <- c("h.j", "l.j"); rownames(m) <- c("h.i", "l.i")
 m
 
-# All high-risk persons can mixing with low-risk persons, but there are too
+# All high-risk persons can mix with low-risk persons, but there are too
 # many low-risk persons (given their contact rate) to mix only with
 # high-risk persons (there are excess implied partnerships). Therefore, they
 # have to partner with some low-risk persons too. The Q value associated with
