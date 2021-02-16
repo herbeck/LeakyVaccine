@@ -140,7 +140,7 @@ df <- transform(df, num.Sph.Spl.flow = Sph + Spl + SIph.flow + SIpl.flow) #all s
 #Incidence
 #SIv.flow = number of infections in one time step (one day)
 #num.Sv.flow = Sv + SIv.flow, #all susceptible and new infections in the homogeneous risk vaccinated pop in that one time step (one day)
-#SIv.flow/ (num.Sv.flow/365) = infections per person year
+#SIv.flow/(num.Sv.flow*365) = infections per person year
 
 #How many person years is in one day? num.Sv.flow/365
 
@@ -151,6 +151,9 @@ df <- transform(df, rate.Placebo.het = (SIph.flow/num.Sph.Spl.flow)*100)
 
 #number of new cases per 100 person years
 
+#VE <- 1 - RR,or
+VE <- (df$rate.Placebo - df$rate.Vaccine) / df$rate.Placebo
+VE <- (df$rate.Placebo.het - df$rate.Vaccine.het) / df$rate.Placebo.het
 ```
 
    
@@ -169,5 +172,4 @@ plot(df$years, y = df$rate.Vaccine, ylim = c(0, 0.05))
 
 ```
 
-The incidence rate per 100 person-years is given by dividing the number of newly infected participants Ij by Nj for jth time interval.
 
