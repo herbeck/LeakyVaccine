@@ -115,7 +115,7 @@ init <- init.dcm(Sp = 5000, Ip = 0,
                  Svh = 2500, Ivh = 0, 
                  Svl = 2500, Ivl = 0,
                  SIp.flow = 0, SIv.flow = 0, 
-                 SIph.flow = 0,SIpl.flow = 0,
+                 SIph.flow = 0, SIpl.flow = 0,
                  SIvh.flow = 0, SIvl.flow = 0)
 
 control <- control.dcm(nsteps = 365*3, new.mod = si_ode)
@@ -126,16 +126,10 @@ mod
   
 
 ```{r data}
-df <- as.data.frame(mod)
-#df <- lapply(df, round) #basically serves to round the daily flow counts
-head(df, 5)
-
-
-df$years <- df$time/365  #Changing to years
-df <- transform(df, num.Sp.flow = Sp + SIp.flow) #all susceptible and new infections in homogeneous risk placebo pop, at each time step
-df <- transform(df, num.Sv.flow = Sv + SIv.flow) #all susceptible and new infections in homogeneous risk vaccinated pop
-df <- transform(df, num.Svh.Svl.flow = Svh + Svl + SIvh.flow + SIvl.flow) #all susceptible and new infections in heterogeneous risk vaccine pop
-df <- transform(df, num.Sph.Spl.flow = Sph + Spl + SIph.flow + SIpl.flow) #all susceptible and new infections in heterogeneous risk placebo pop
+mod <- mutate_epi(mod, num.Sp.flow = Sp + SIp.flow) #all susceptible and new infections in homogeneous risk placebo pop, at each time step
+mod <- mutate_epi(mod, num.Sv.flow = Sv + SIv.flow) #all susceptible and new infections in homogeneous risk vaccinated pop
+mod <- mutate_epi(mod, num.Svh.Svl.flow = Svh + Svl + SIvh.flow + SIvl.flow) #all susceptible and new infections in heterogeneous risk vaccine pop
+mod <- mutate_epi(mod, num.Sph.Spl.flow = Sph + Spl + SIph.flow + SIpl.flow) #all susceptible and new infections in heterogeneous risk placebo pop
 
 #Incidence
 #SIv.flow = number of infections in one time step (one day)
@@ -144,16 +138,18 @@ df <- transform(df, num.Sph.Spl.flow = Sph + Spl + SIph.flow + SIpl.flow) #all s
 
 #How many person years is in one day? num.Sv.flow/365
 
-df <- transform(df, rate.Vaccine = (SIv.flow/num.Sv.flow)*100)
-df <- transform(df, rate.Placebo = (SIp.flow/num.Sp.flow)*100)
-df <- transform(df, rate.Vaccine.het = (SIvh.flow/num.Svh.Svl.flow)*100)
-df <- transform(df, rate.Placebo.het = (SIph.flow/num.Sph.Spl.flow)*100)
+mod <- mutate_epi(mod, rate.Vaccine = (SIv.flow/num.Sv.flow)*100)
+mod <- mutate_epi(mod, rate.Placebo = (SIp.flow/num.Sp.flow)*100)
+mod <- mutate_epi(mod, rate.Vaccine.het = (SIvh.flow/num.Svh.Svl.flow)*100)
+mod <- mutate_epi(mod, rate.Placebo.het = (SIph.flow/num.Sph.Spl.flow)*100)
 
 #number of new cases per 100 person years
 
 #VE <- 1 - RR,or
-VE <- (df$rate.Placebo - df$rate.Vaccine) / df$rate.Placebo
-VE <- (df$rate.Placebo.het - df$rate.Vaccine.het) / df$rate.Placebo.het
+mod <- mutate_epi(mod, VE1 = (rate.Placebo - rate.Vaccine) / rate.Placebo)
+mod <- mutate_epi(mod, VE2 = (rate.Placebo.het - rate.Vaccine.het) / rate.Placebo.het)
+
+mod
 ```
 
    
@@ -168,7 +164,10 @@ plot(mod, y = c("SIv.flow", "SIp.flow", "SIvh.flow", "SIvl.flow", "SIph.flow", "
      alpha = 0.8, 
      main = "Daily infections",
      legend = "full")
-plot(df$years, y = df$rate.Vaccine, ylim = c(0, 0.05))
+plot(mod, y=c("VE1", "VE2"),
+     alpha = 0.8,
+     main = "Vaccine efficacy",
+     legend = "full")
 
 ```
 
