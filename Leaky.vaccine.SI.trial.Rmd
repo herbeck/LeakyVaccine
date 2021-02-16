@@ -14,6 +14,8 @@ library(survival)
 
 We are modeling a closed population SI model meant to simulate a vaccine trial. We are not modeling infections from I to S but rather only infections from the outside population, with infection rate based on the population prevalence `prev` (of viremic individuals), the exposure rate (serodiscordant sexual contacts per time) `c`, and the transmission rate (per contact) `p`. The per contact effect of vaccination is `epsilon`, and at this iteration of the model `epsilon` is not time-varying (the per contact vaccine effect does not decay over time). 
 
+Or, AMP Trial and 703 vs 704 results; different forces of infection.
+
 `p` = transmission rate (per contact)   
 `c` = exposure rate (serodiscordant sexual contacts per time)  
 `prev` = prevalence  (prevalence of viremic individuals)  
@@ -22,7 +24,7 @@ We are modeling a closed population SI model meant to simulate a vaccine trial. 
 
 We us an initial calibration of the infection parameters borrowing from Vandormael (2018):    
 
-"We used realistic parameter values for the SIR model, based on earlier HIV studies that have been undertaken in the sub-Saharan Africa context. To this extent, we varied `c` within the range of 50 to 120 sexual acts per year based on data collected from serodiscordant couples across eastern and southern African sites. Previous research has shown considerable heterogeneity in the probability of HIV transmission per sexual contact, largely due to factors associated with the viral load level, genital ulcer disease, stage of HIV progression, condom use, circumcision and use of ART. Following a systematic review of this topic by Boily et al.,51 we selected values for β within the range of 0.003–0.008. ... Here, we chose values for v within the range of 0.15–0.35, which are slightly conservative, but supported by population-based estimates from the sub-Saharan African context"
+"We used realistic parameter values for the SIR model, based on earlier HIV studies that have been undertaken in the sub-Saharan Africa context. To this extent, we varied `c` within the range of 50 to 120 sexual acts per year based on data collected from serodiscordant couples across eastern and southern African sites. Previous research has shown considerable heterogeneity in the probability of HIV transmission per sexual contact, largely due to factors associated with the viral load level, genital ulcer disease, stage of HIV progression, condom use, circumcision and use of ART. Following a systematic review of this topic by Boily et al., we selected values for `β` within the range of 0.003–0.008. ... Here, we chose values for `v` within the range of 0.15–0.35, which are slightly conservative, but supported by population-based estimates from the sub-Saharan African context."
 
 `c` varies from 50 to 120 per year   
 `p` varies from 0.003 to 0.008  
@@ -47,12 +49,12 @@ Ivl = infected vaccinated low exposure
 
 ```{r parameters}
 
-p <- 0.005   #transmission rate (per contact)
-c <- 100/365   #contact rate (contacts per day)
-prev <- 0.25 #needs fixing
+p <- 0.004   #transmission rate (per contact)
+c <- 90/365   #contact rate (contacts per day)
+prev <- 0.10 #needs fixing
 lambda <- p*c*prev
 epsilon <- 0.50 #per act vaccine efficacy
-risk <- 3.0 #risk multiplier
+risk <- 5.0 #risk multiplier
 ```
   
   
@@ -110,10 +112,10 @@ si_ode <- function(times, init, param){
 param <- param.dcm(lambda = lambda, epsilon = epsilon, risk = risk)
 init <- init.dcm(Sp = 5000, Ip = 0,
                  Sv = 5000, Iv = 0,
-                 Sph = 2500, Iph = 0,
-                 Spl = 2500, Ipl = 0,
-                 Svh = 2500, Ivh = 0, 
-                 Svl = 2500, Ivl = 0,
+                 Sph = 500, Iph = 0,
+                 Spl = 4500, Ipl = 0,
+                 Svh = 500, Ivh = 0, 
+                 Svl = 4500, Ivl = 0,
                  SIp.flow = 0, SIv.flow = 0, 
                  SIph.flow = 0, SIpl.flow = 0,
                  SIvh.flow = 0, SIvl.flow = 0)
@@ -123,29 +125,27 @@ control <- control.dcm(nsteps = 365*3, new.mod = si_ode)
 mod <- dcm(param, init, control)
 mod
 ```
-  
+
 
 ```{r data}
-mod <- mutate_epi(mod, num.Sp.flow = Sp + SIp.flow) #all susceptible and new infections in homogeneous risk placebo pop, at each time step
-mod <- mutate_epi(mod, num.Sv.flow = Sv + SIv.flow) #all susceptible and new infections in homogeneous risk vaccinated pop
-mod <- mutate_epi(mod, num.Svh.Svl.flow = Svh + Svl + SIvh.flow + SIvl.flow) #all susceptible and new infections in heterogeneous risk vaccine pop
-mod <- mutate_epi(mod, num.Sph.Spl.flow = Sph + Spl + SIph.flow + SIpl.flow) #all susceptible and new infections in heterogeneous risk placebo pop
+mod <- mutate_epi(mod, num.Svh.Svl = Svh + Svl) #all susceptible and new infections in heterogeneous risk vaccine pop
+mod <- mutate_epi(mod, num.Sph.Spl = Sph + Spl) #all susceptible and new infections in heterogeneous risk placebo pop
 
 #Incidence
 #SIv.flow = number of infections in one time step (one day)
-#num.Sv.flow = Sv + SIv.flow, #all susceptible and new infections in the homogeneous risk vaccinated pop in that one time step (one day)
-#SIv.flow/(num.Sv.flow*365) = infections per person year
+#Sv = all susceptible in the homogeneous risk vaccinated pop in that one time step (one day)
+#SIv.flow/(Sv) = infections per person per time step (per day)
+#SIv.flow/(Sv*365) = infections per person per 1 year
+#SIv.flow/(Sv*365*100) = infections per person per 100 years
 
 #How many person years is in one day? num.Sv.flow/365
 
-mod <- mutate_epi(mod, rate.Vaccine = (SIv.flow/num.Sv.flow)*100)
-mod <- mutate_epi(mod, rate.Placebo = (SIp.flow/num.Sp.flow)*100)
-mod <- mutate_epi(mod, rate.Vaccine.het = (SIvh.flow/num.Svh.Svl.flow)*100)
-mod <- mutate_epi(mod, rate.Placebo.het = (SIph.flow/num.Sph.Spl.flow)*100)
+mod <- mutate_epi(mod, rate.Vaccine = (SIv.flow/Sv)*365*100)
+mod <- mutate_epi(mod, rate.Placebo = (SIp.flow/Sp)*365*100)
+mod <- mutate_epi(mod, rate.Vaccine.het = (SIvh.flow/num.Sph.Spl)*365*100)
+mod <- mutate_epi(mod, rate.Placebo.het = (SIph.flow/num.Sph.Spl)*365*100)
 
-#number of new cases per 100 person years
-
-#VE <- 1 - RR,or
+#VE <- 1 - RR, or: (rate.Placebo - rate.Vaccine) / rate.Placebo)
 mod <- mutate_epi(mod, VE1 = (rate.Placebo - rate.Vaccine) / rate.Placebo)
 mod <- mutate_epi(mod, VE2 = (rate.Placebo.het - rate.Vaccine.het) / rate.Placebo.het)
 
@@ -163,6 +163,11 @@ plot(mod, y = c("Iv", "Ip", "Ivh", "Ivl", "Iph", "Ivl"),
 plot(mod, y = c("SIv.flow", "SIp.flow", "SIvh.flow", "SIvl.flow", "SIph.flow", "SIpl.flow"), 
      alpha = 0.8, 
      main = "Daily infections",
+     legend = "full")
+plot(mod, y=c("rate.Vaccine", "rate.Placebo", "rate.Vaccine.het", "rate.Placebo.het"),
+     alpha = 0.8,
+     #ylim = c(0, 0.1),
+     main = "Incidence rate",
      legend = "full")
 plot(mod, y=c("VE1", "VE2"),
      alpha = 0.8,
