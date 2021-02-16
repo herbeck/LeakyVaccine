@@ -49,7 +49,7 @@ Ivl = infected vaccinated low exposure
 
 p <- 0.005   #transmission rate (per contact)
 c <- 100/365   #contact rate (contacts per day)
-prev <- 0.25
+prev <- 0.25 #needs fixing
 lambda <- p*c*prev
 epsilon <- 0.50 #per act vaccine efficacy
 risk <- 3.0 #risk multiplier
@@ -70,7 +70,6 @@ si_ode <- function(times, init, param){
     SIpl.flow <- lambda*Spl
     SIvh.flow <- risk*lambda*(1-epsilon)*Svh
     SIvl.flow <- lambda*(1-epsilon)*Svl
-    
     
     # ODEs
     # placebo; homogeneous risk
@@ -109,12 +108,12 @@ si_ode <- function(times, init, param){
 ```{r EpiModel}
 
 param <- param.dcm(lambda = lambda, epsilon = epsilon, risk = risk)
-init <- init.dcm(Sp = 5000, Ip = 1,
-                 Sv = 5000, Iv = 1,
-                 Sph = 2500, Iph = 2500,
-                 Spl = 2500, Ipl = 2500,
-                 Svh = 2500, Ivh = 1, 
-                 Svl = 2500, Ivl = 1,
+init <- init.dcm(Sp = 5000, Ip = 0,
+                 Sv = 5000, Iv = 0,
+                 Sph = 2500, Iph = 0,
+                 Spl = 2500, Ipl = 0,
+                 Svh = 2500, Ivh = 0, 
+                 Svl = 2500, Ivl = 0,
                  SIp.flow = 0, SIv.flow = 0, 
                  SIph.flow = 0,SIpl.flow = 0,
                  SIvh.flow = 0, SIvl.flow = 0)
@@ -128,7 +127,7 @@ mod
 
 ```{r data}
 df <- as.data.frame(mod)
-df <- lapply(df, round) #basically serves to round the daily flow counts
+#df <- lapply(df, round) #basically serves to round the daily flow counts
 head(df, 5)
 
 
@@ -139,10 +138,18 @@ df <- transform(df, num.Svh.Svl.flow = Svh + Svl + SIvh.flow + SIvl.flow) #all s
 df <- transform(df, num.Sph.Spl.flow = Sph + Spl + SIph.flow + SIpl.flow) #all susceptible and new infections in heterogeneous risk placebo pop
 
 #Incidence
+#SIv.flow = number of infections in one time step (one day)
+#num.Sv.flow = Sv + SIv.flow, #all susceptible and new infections in the homogeneous risk vaccinated pop in that one time step (one day)
+#SIv.flow/ (num.Sv.flow/365) = infections per person year
+
+#How many person years is in one day? num.Sv.flow/365
+
 df <- transform(df, rate.Vaccine = (SIv.flow/num.Sv.flow)*100)
 df <- transform(df, rate.Placebo = (SIp.flow/num.Sp.flow)*100)
 df <- transform(df, rate.Vaccine.het = (SIvh.flow/num.Svh.Svl.flow)*100)
 df <- transform(df, rate.Placebo.het = (SIph.flow/num.Sph.Spl.flow)*100)
+
+#number of new cases per 100 person years
 
 ```
 
@@ -150,17 +157,17 @@ df <- transform(df, rate.Placebo.het = (SIph.flow/num.Sph.Spl.flow)*100)
 ```{r plots}
 
 par(mar = c(3,3,2,1), mgp = c(2,1,0))
-plot(mod, y = c("Iv", "Ivh", "Ip", "Ivl"), 
+plot(mod, y = c("Iv", "Ip", "Ivh", "Ivl", "Iph", "Ivl"), 
      alpha = 0.8, 
      main = "Cumulative infections",
      legend = "full")
-plot(mod, y = c("SIv.flow", "SIvh.flow", "SIp.flow", "SIvl.flow"), 
+plot(mod, y = c("SIv.flow", "SIp.flow", "SIvh.flow", "SIvl.flow", "SIph.flow", "SIpl.flow"), 
      alpha = 0.8, 
      main = "Daily infections",
      legend = "full")
-plot(df$t)
+plot(df$years, y = df$rate.Vaccine, ylim = c(0, 0.05))
+
 ```
 
 The incidence rate per 100 person-years is given by dividing the number of newly infected participants Ij by Nj for jth time interval.
-
 
