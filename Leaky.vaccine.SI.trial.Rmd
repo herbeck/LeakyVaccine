@@ -12,7 +12,7 @@ library(EpiModel)
 library(survival)
 ```
 
-We are modeling a closed population SI model meant to simulate a vaccine trial. We are not modeling infections from I to S but rather only infections from the outside population, with infection rate based on the population prevalence `prev` (of viremic individuals), the exposure rate (serodiscordant sexual contacts per time) `c`, and the transmission rate (per contact) `p`. The per contact effect of vaccination is `epsilon`, and with this iteration of the model `epsilon` is not time-varying (the per contact vaccine effect does not decay over time). 
+We are modeling a closed population SI model meant to simulate a vaccine trial. We are not modeling infections from I to S but rather only infections from the outside population, with infection rate based on the population prevalence `prev` (of viremic individuals), the exposure rate (serodiscordant sexual contacts per time) `c`, and the transmission rate (per contact) `p`. The per contact effect of vaccination is `epsilon`, and with this iteration of the model `epsilon` is: 1) not time-varying (the per contact vaccine effect does not decay over time); and 2) assumes a homogeneous effect (does not vary by mark / viral genotype). This model structure also negates the possibility of indirect effects from vaccination.
 
 To do:  in the context of the AMP Trial and the different results seen in the sub-studies (703 vs 704); is this due to different forces of infection between the populations?
 
