@@ -4,11 +4,9 @@ Leaky vaccine
 An attempt to use a compartmental model to evaluate the effects of exposure risk heterogeneity on vaccine efficacy estimates in HIV vaccine trials.
 
 Josh Herbeck  
-Paul Edlefsen 
+Paul Edlefsen  
 Molly Reid  
 Sam Jenness  
 
 My model is here:  Leaky.vaccine.SI.trial.Rmd
-
-Feb 15:  I just found that Alain has done a lot of this model set up already, for his project on infection date estimation! I will probably be borrowing from his code now.
 
