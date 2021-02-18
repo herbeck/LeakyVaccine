@@ -132,9 +132,9 @@ si_ode <- function(times, init, param){
 param <- param.dcm(lambda = lambda, epsilon = epsilon, risk = risk)
 init <- init.dcm(Sp = 5000, Ip = 0,
                  Sv = 5000, Iv = 0,
-                 Sph = 500, Iph = 0,    #Susceptible, Infected, placebo, high risk
-                 Spm = 4000, Ipm = 0,   #Susceptible, Infected, placebo, medium risk
-                 Spl = 500, Ipl = 0,    #Susceptible, Infected, placebo, low risk
+                 Sph = 500, Iph = 0,    #placebo, high risk
+                 Spm = 4000, Ipm = 0,   #placebo, medium risk
+                 Spl = 500, Ipl = 0,    #placebo, low risk
                  Svh = 500, Ivh = 0,    #vaccine
                  Svm = 4000, Ivm = 0,   #vaccine
                  Svl = 500, Ivl = 0,    #vaccine
@@ -161,14 +161,31 @@ mod <- mutate_epi(mod, total.SIph.SIpm.SIpl.flow = SIph.flow + SIpm.flow + SIpl.
 
 #Incidence estimate, per 100 person years
 
+#Instantaneous incidence
 mod <- mutate_epi(mod, rate.Vaccine = (SIv.flow/Sv)*365*100)
 mod <- mutate_epi(mod, rate.Placebo = (SIp.flow/Sp)*365*100)
 mod <- mutate_epi(mod, rate.Vaccine.het = (total.SIvh.SIvm.SIvl.flow/total.Svh.Svm.Svl)*365*100)
 mod <- mutate_epi(mod, rate.Placebo.het = (total.SIph.SIpm.SIpl.flow/total.Sph.Spm.Spl)*365*100)
 
-#VE <- 1 - RR, or: (rate.Placebo - rate.Vaccine) / rate.Placebo)
-mod <- mutate_epi(mod, VE1 = (rate.Placebo - rate.Vaccine) / rate.Placebo)
-mod <- mutate_epi(mod, VE2 = (rate.Placebo.het - rate.Vaccine.het) / rate.Placebo.het)
+#Cumulative incidence
+mod <- mutate_epi(mod, cumul.Sv = cumsum(Sv))
+mod <- mutate_epi(mod, cumul.Sp = cumsum(Sp))
+mod <- mutate_epi(mod, cumul.Svh.Svm.Svl = cumsum(total.Svh.Svm.Svl))
+mod <- mutate_epi(mod, cumul.Sph.Spm.Spl = cumsum(total.Sph.Spm.Spl))
+
+mod <- mutate_epi(mod, cumul.rate.Vaccine = (Iv/cumul.Sv)*365*100)
+mod <- mutate_epi(mod, cumul.rate.Placebo = (Ip/cumul.Sp)*365*100)
+mod <- mutate_epi(mod, cumul.rate.Vaccine.het = (total.Ivh.Ivm.Ivl/cumul.Svh.Svm.Svl)*365*100)
+mod <- mutate_epi(mod, cumul.rate.Placebo.het = (total.Iph.Ipm.Ipl/cumul.Sph.Spm.Spl)*365*100)
+
+
+#VE <- 1 - Relative Risk; this is VE for instantaneous incidence
+mod <- mutate_epi(mod, VE1.inst = 1 - rate.Vaccine/rate.Placebo)
+mod <- mutate_epi(mod, VE2.inst = 1 - rate.Vaccine.het/rate.Placebo.het)
+
+#VE <- 1 - Relative Risk; this is VE from cumulative incidence
+mod <- mutate_epi(mod, VE1.cumul = 1 - cumul.rate.Vaccine/cumul.rate.Placebo)
+mod <- mutate_epi(mod, VE2.cumul = 1 - cumul.rate.Vaccine.het/cumul.rate.Placebo.het)
 
 mod
 ```
@@ -192,12 +209,18 @@ plot(mod, y = c("SIv.flow", "SIp.flow", "total.SIvh.SIvm.SIvl.flow", "total.SIph
 plot(mod, y=c("rate.Vaccine", "rate.Placebo", "rate.Vaccine.het", "rate.Placebo.het"),
      alpha = 0.8,
      #ylim = c(0, 0.1),
-     main = "Incidence rate",
+     main = "Instantaneous incidence rate",
      legend = "full")
-plot(mod, y=c("VE1", "VE2"),
+plot(mod, y=c("cumul.rate.Vaccine", "cumul.rate.Placebo", "cumul.rate.Vaccine.het", "cumul.rate.Placebo.het"),
+     alpha = 0.8,
+     #ylim = c(0, 0.1),
+     main = "Cumulative incidence rate",
+     legend = "full")
+plot(mod, y=c("VE1.inst", "VE2.inst", "VE1.cumul", "VE2.cumul"),
      alpha = 0.8,
      main = "Vaccine efficacy",
      legend = "full")
+
 
 ```
 
