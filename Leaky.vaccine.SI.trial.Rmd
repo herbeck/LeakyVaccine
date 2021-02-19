@@ -187,6 +187,9 @@ mod <- mutate_epi(mod, VE2.inst = 1 - rate.Vaccine.het/rate.Placebo.het)
 mod <- mutate_epi(mod, VE1.cumul = 1 - cumul.rate.Vaccine/cumul.rate.Placebo)
 mod <- mutate_epi(mod, VE2.cumul = 1 - cumul.rate.Vaccine.het/cumul.rate.Placebo.het)
 
+#VE again
+#mod <- mutate_epi(mod, Cumul.inc = 1 - exp(-rate.Vaccine * control$timesteps))
+
 mod
 ```
 
@@ -220,7 +223,6 @@ plot(mod, y=c("VE1.inst", "VE2.inst", "VE1.cumul", "VE2.cumul"),
      alpha = 0.8,
      main = "Vaccine efficacy",
      legend = "full")
-
 
 ```
 

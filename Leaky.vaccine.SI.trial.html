@@ -11,7 +11,7 @@
 
 <meta name="author" content />
 
-<meta name="date" content="2021-02-18" />
+<meta name="date" content="2021-02-19" />
 
 <title>SI model of an HIV vaccine trial</title>
 
@@ -412,7 +412,7 @@ summary {
 
 
 <h1 class="title toc-ignore">SI model of an HIV vaccine trial</h1>
-<h4 class="date">2021-02-18</h4>
+<h4 class="date">2021-02-19</h4>
 
 </div>
 
@@ -583,6 +583,9 @@ mod &lt;- mutate_epi(mod, VE2.inst = 1 - rate.Vaccine.het/rate.Placebo.het)
 #VE &lt;- 1 - Relative Risk; this is VE from cumulative incidence
 mod &lt;- mutate_epi(mod, VE1.cumul = 1 - cumul.rate.Vaccine/cumul.rate.Placebo)
 mod &lt;- mutate_epi(mod, VE2.cumul = 1 - cumul.rate.Vaccine.het/cumul.rate.Placebo.het)
+
+#VE again
+#mod &lt;- mutate_epi(mod, Cumul.inc = 1 - exp(-rate.Vaccine * control$timesteps))
 
 mod</code></pre>
 <pre><code>## EpiModel Simulation
