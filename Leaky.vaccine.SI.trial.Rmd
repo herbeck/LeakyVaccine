@@ -1,6 +1,6 @@
 ---
 title: "SI model of an HIV vaccine trial"
-author: ""
+author: "Josh Herbeck"
 date: '`r Sys.Date()`'
 output: html_document
 ---
@@ -22,7 +22,10 @@ To do:  in the context of the AMP Trial and the different results seen in the su
 `c` = exposure rate (serodiscordant sexual contacts per time)  
 `prev` = prevalence  (prevalence of viremic individuals)  
 `lambda = beta * c * prev`  
+`risk` = risk multiplier
 `epsilon` = per contact vaccine efficacy; vaccine-induced reduction in the risk of HIV infection from a single exposure  
+
+The risk multiplier is an amalgam of increases in transmission risk that could be due to increased transmission risk, increased exposure rate, or increased prevalence in the partners of the high risk individuals; acquisition risk can vary for these and other reasons.
 
 We use an initial set of transmission parameters for South Africa borrowing from Alain Vandormael (2018):    
 
@@ -32,7 +35,6 @@ We use an initial set of transmission parameters for South Africa borrowing from
 `beta` varies from 0.003 to 0.008  
 `prev`, which here is population prevalence of unsuppressed VL, varies from 0.15 to 0.35  
 `epsilon` can be initially parameterized using the RV144 Thai Trial results: VE = 61% at 12 months, 31% at 42 months
-
 
 ## Model setup
 
