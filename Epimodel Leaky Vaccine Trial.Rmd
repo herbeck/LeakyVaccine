@@ -1,0 +1,85 @@
+---
+title: "Epimodel SI"
+author: "Josh Herbeck"
+date: '`r Sys.Date()`'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(deSolve)
+library(reshape2)
+library(ggplot2)
+```
+
+We consider a closed population of N initially susceptible people who are assumed to be mixing randomly with contact rate c.
+
+## Model setup
+
+dS/dt = -lambda*S
+dI/dt = lambda*S
+
+Sp = susceptible placebo
+Ip = infected placebo
+
+Sv = susceptible vaccinated
+Iv = infected vaccinated
+
+Svh = susceptible vaccinated high exposure
+SvL = susceptible vaccinated low exposure
+Ivh = infected vaccinated high exposure
+Ivl = infected vaccinated low exposure
+
+p = transmission rate (per contact)
+c = exposure rate (serodiscordant sexual contacts per time)
+#beta = p*c
+Prev = prevalence
+#lambda = beta * Prev
+epsilon = per contact vaccine efficacy; vaccine-induced reduction in the risk of HIV infection from a single exposure
+
+"In param.dcm, the epidemic model parameters are entered. The inf.prob argument sets the transmission probability per act, and act.rate sets the acts per person per unit time. The init.dcm function collects the initial conditions for the model, and since this is an SI model it is necessary to specify the initial number susceptible and infected at t1. The control.dcm finally collects other structural model controls like the model type and number of time steps for the simulation."
+
+```{r}
+p = 0.01   #transmission rate (per contact)
+c = 0.3   #contact rate (contacts per time)
+beta <- p*c
+Prev <- 0.20
+lambda <- beta*Prev  #trying to remove influence of Infected compartment on incidence
+epsilon <- 0.50  #per act vaccine efficacy
+risk <- 3.0   #risk multiplier
+
+#act.rate = acts per person per unit time
+#inf.prob = transmission probability per act
+
+param <- param.dcm(inf.prob = 0.4,  inf.prob.g2 = 0.1, act.rate = 0.25, balance = "g1",
+                   a.rate = 1/100, a.rate.g2 = NA, ds.rate = 1/100, ds.rate.g2 = 1/100,
+                   di.rate = 1/50, di.rate.g2 = 1/50)
+init <- init.dcm(s.num = 1000, i.num = 1, s.num.g2 = 1000, i.num.g2 = 0)
+control <- control.dcm(type = "SI", nsteps = 365*3)
+mod <- dcm(param, init, control)
+plot(mod)
+
+
+#param <- param.dcm(lambda, epsilon, risk)
+init <- init.dcm(Sv=1000, Iv=1, Sp=1000, Ip=1, Svh=500, Ivh=1, Svl=500, Ivl=1)
+control <- control.dcm(type = "SI", nsteps = 365*3)
+
+
+  # vaccine; homogeneous risk
+  #Nv <- Sv+Iv
+  dSv <- -lambda*epsilon*Sv
+  dIv <- lambda*epsilon*Sv 
+  
+  # vaccine; heterogeneous risk
+  #Nv.risk <- Svh+Ivh+Svl+Ivl
+  dSvh <- -risk*lambda*(1-epsilon)*Svh
+  dIvh <- risk*lambda*(1-epsilon)*Svh 
+  dSvl <- -lambda*(1-epsilon)*Svl
+  dIvl <- lambda*(1-epsilon)*Svl
+
+  #placebo
+  #Np = Sp+Ip
+  dSp <- -lambda*Sp
+  dIp <- lambda*Sp
+  
+```
+

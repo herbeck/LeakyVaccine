@@ -5,7 +5,7 @@ An attempt to use a compartmental model to evaluate the effects of exposure risk
 
 Josh Herbeck  
 Paul Edlefsen  
-Molly Reid  
+Molly Reid   
 Sam Jenness  
 
 My model is here:  Leaky.vaccine.SI.trial.Rmd
