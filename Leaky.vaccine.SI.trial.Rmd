@@ -224,6 +224,15 @@ plot(mod, y=c("VE1.inst", "VE2.inst", "VE1.cumul", "VE2.cumul"),
      main = "Vaccine efficacy",
      legend = "full")
 
+# Manual plot legend example
+plot(mod, y=c("VE1.inst", "VE2.inst", "VE1.cumul", "VE2.cumul"),
+     alpha = 0.8,
+     main = "Vaccine efficacy",
+     legend = FALSE, 
+     col = 1:4)
+legend("topright", legend = c("Inst VE 1", "Inst VE 2", "Cuml VE 1", "Cuml VE 2"),
+       col = 1:4, lwd = 2, cex = 0.9, bty = "n")
+
 ```
 
 
