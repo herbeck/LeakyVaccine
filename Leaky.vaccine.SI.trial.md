@@ -1,80 +1,107 @@
----
-title: "SI model of an HIV vaccine trial"
-author: "Josh Herbeck"
-date: '`r Sys.Date()`'
-output: github_document
----
-
-```{r setup, include=FALSE}
-library(deSolve)
-library(tidyverse)
-library(EpiModel)
-library(survival)
-```
+SI model of an HIV vaccine trial
+================
+Josh Herbeck
+2021-02-22
 
 ### Using models to assess the impact of vaccine leakiness on trial vaccine efficacy measures.
 
-Why? 
+Why?
 
-It is established that exposure heterogeneity can affect efficacy estimation for leaky vaccines, but this point has perhaps not been fully considered by the HIV field.  
+It is established that exposure heterogeneity can affect efficacy
+estimation for leaky vaccines, but this point has perhaps not been fully
+considered by the HIV field.
 
-1. In acute infection studies it seems like many participants get infected early.  
+1.  In acute infection studies it seems like many participants get
+    infected early.
 
-2. Assess if this effect might contribute to the differences between the RV 144 and HVTN 702 vaccine trial outcomes.  
+2.  Assess if this effect might contribute to the differences between
+    the RV 144 and HVTN 702 vaccine trial outcomes.
 
-3. Assess if this effect might contribute to the waning efficacies seen in HIV prevention trials (including the RV 144 trial and the AMP VRC01 bnAb trial).  
+3.  Assess if this effect might contribute to the waning efficacies seen
+    in HIV prevention trials (including the RV 144 trial and the AMP
+    VRC01 bnAb trial).
 
-4. In the context of the AMP Trial and the different results seen in the sub-studies (703 vs 704); is this due to different forces of infection between the populations?  
+4.  In the context of the AMP Trial and the different results seen in
+    the sub-studies (703 vs 704); is this due to different forces of
+    infection between the populations?
 
-5. Connect this issue (well known in the vaccine trial literature) to HIV. More broadly, heterogeneous exposure risk within trial arms and different exposure risk between separate trials, might affect efficacy estimates, and we need to quantify and communicate this potential impact.  
+5.  Connect this issue (well known in the vaccine trial literature) to
+    HIV. More broadly, heterogeneous exposure risk within trial arms and
+    different exposure risk between separate trials, might affect
+    efficacy estimates, and we need to quantify and communicate this
+    potential impact.
 
-### Model setup  
+### Model setup
 
-We are modeling a closed population SI deterministic compartmental model meant to simulate a vaccine trial. We are not modeling infections from I to S but rather only infections from the outside (non-trial) population, with the infection rate based on the population prevalence `prev` (of viremic individuals), the exposure rate (serodiscordant sexual contacts per time) `c`, and the transmission rate (per contact) `p`. The per contact effect of vaccination is `epsilon`, and with this iteration of the model `epsilon` is: 1) not time-varying (the per contact vaccine effect does not decay over time); and 2) assumes a homogeneous effect (does not vary by mark / viral genotype). This model structure also removes the possibility of indirect effects from vaccination.  
+We are modeling a closed population SI deterministic compartmental model
+meant to simulate a vaccine trial. We are not modeling infections from I
+to S but rather only infections from the outside (non-trial) population,
+with the infection rate based on the population prevalence `prev` (of
+viremic individuals), the exposure rate (serodiscordant sexual contacts
+per time) `c`, and the transmission rate (per contact) `p`. The per
+contact effect of vaccination is `epsilon`, and with this iteration of
+the model `epsilon` is: 1) not time-varying (the per contact vaccine
+effect does not decay over time); and 2) assumes a homogeneous effect
+(does not vary by mark / viral genotype). This model structure also
+removes the possibility of indirect effects from vaccination.
 
-We are, as of this iteration, including three subgroups in the heterogeneous risk population: high, medium, and low risk. The correct size of these subgroups is unclear.  
+We are, as of this iteration, including three subgroups in the
+heterogeneous risk population: high, medium, and low risk. The correct
+size of these subgroups is unclear.
 
-`beta` = transmission rate (per contact)   
+`beta` = transmission rate (per contact)  
 `c` = exposure rate (serodiscordant sexual contacts per time)  
-`prev` = prevalence  (prevalence of viremic individuals)  
+`prev` = prevalence (prevalence of viremic individuals)  
 `lambda = beta * c * prev`  
-`risk` = risk multiplier
-`epsilon` = per contact vaccine efficacy; vaccine-induced reduction in the risk of HIV infection from a single exposure  
+`risk` = risk multiplier `epsilon` = per contact vaccine efficacy;
+vaccine-induced reduction in the risk of HIV infection from a single
+exposure
 
-The risk multiplier is an amalgam of increases in transmission risk that could be due to: 1) increased per contact transmission risk; 2) increased exposure rate (number of contacts); or 3) increased prevalence of HIV viremia in partners. Individual risk of infection can vary for these separately or in combination.  
+The risk multiplier is an amalgam of increases in transmission risk that
+could be due to: 1) increased per contact transmission risk; 2)
+increased exposure rate (number of contacts); or 3) increased prevalence
+of HIV viremia in partners. Individual risk of infection can vary for
+these separately or in combination.
 
-Basic functions:  
+Basic functions:
 
-`dS/dt = -lambda*S`   
-`dI/dt = lambda*S`  
+`dS/dt = -lambda*S`  
+`dI/dt = lambda*S`
 
 Sp = susceptible placebo  
 Ip = infected placebo  
 Sv = susceptible vaccinated  
-Iv = infected vaccinated  
+Iv = infected vaccinated
 
 Svh = susceptible vaccinated high exposure  
 Svm = susceptible vaccinated medium exposure  
 SvL = susceptible vaccinated low exposure (zero in this instance)  
 Ivh = infected vaccinated high exposure  
 Ivm = infected vaccinated medium exposure  
-Ivl = infected vaccinated low exposure (zero in this instance)  
+Ivl = infected vaccinated low exposure (zero in this instance)
 
-### Calibration  
+### Calibration
 
-We eyeball-calibrated the incidence to ~3.5% per 100 person years, to be reasonably consistent with HVTN 702 in South Africa. (This is as of right now, with more rigorous ABC calibration to come.) We used an initial set of transmission parameters for sub-Saharan Africa borrowing from Alain Vandormael (2018):    
+We eyeball-calibrated the incidence to \~3.5% per 100 person years, to
+be reasonably consistent with HVTN 702 in South Africa. (This is as of
+right now, with more rigorous ABC calibration to come.) We used an
+initial set of transmission parameters for sub-Saharan Africa borrowing
+from Alain Vandormael (2018):
 
-     "We used realistic parameter values for the SIR model, based on earlier HIV studies that have been undertaken in the sub-Saharan Africa context. To this extent, we varied `c` within the range of 50 to 120 sexual acts per year based on data collected from serodiscordant couples across eastern and southern African sites. Previous research has shown considerable heterogeneity in the probability of HIV transmission per sexual contact, largely due to factors associated with the viral load level, genital ulcer disease, stage of HIV progression, condom use, circumcision and use of ART. Following a systematic review of this topic by Boily et al., we selected values for `beta` within the range of 0.003–0.008. ... Here, we chose values for `v` within the range of 0.15–0.35, which are slightly conservative, but supported by population-based estimates from the sub-Saharan African context."
+``` 
+ "We used realistic parameter values for the SIR model, based on earlier HIV studies that have been undertaken in the sub-Saharan Africa context. To this extent, we varied `c` within the range of 50 to 120 sexual acts per year based on data collected from serodiscordant couples across eastern and southern African sites. Previous research has shown considerable heterogeneity in the probability of HIV transmission per sexual contact, largely due to factors associated with the viral load level, genital ulcer disease, stage of HIV progression, condom use, circumcision and use of ART. Following a systematic review of this topic by Boily et al., we selected values for `beta` within the range of 0.003–0.008. ... Here, we chose values for `v` within the range of 0.15–0.35, which are slightly conservative, but supported by population-based estimates from the sub-Saharan African context."
+```
 
-`c` varies from 50 to 120 per year   
+`c` varies from 50 to 120 per year  
 `beta` varies from 0.003 to 0.008  
-`prev`, which here is population prevalence of unsuppressed VL, varies from 0.15 to 0.35  
-`epsilon` can be initially parameterized using the RV144 Thai Trial results: VE = 61% at 12 months, 31% at 42 months  
+`prev`, which here is population prevalence of unsuppressed VL, varies
+from 0.15 to 0.35  
+`epsilon` can be initially parameterized using the RV144 Thai Trial
+results: VE = 61% at 12 months, 31% at 42 months
 
 ### Initial parameter settings
 
-```{r parameters}
-
+``` r
 beta <- 0.004   #transmission rate (per contact)
 c <- 90/365    #contact rate (contacts per day)
 prev <- 0.10   #needs some more consideration
@@ -82,11 +109,10 @@ lambda <- beta*c*prev
 epsilon <- 0.30 #per contact vaccine efficacy
 risk <- 10.0 #risk multiplier
 ```
-  
-### Model function; ODEs  
-  
-```{r ODEs}
 
+### Model function; ODEs
+
+``` r
 si_ode <- function(times, init, param){
   with(as.list(c(init, param)), {
     
@@ -146,13 +172,13 @@ si_ode <- function(times, init, param){
   })
 }
 ```
-  
-### Running the model  
 
-We are using the EpiModel framework, http://www.epimodel.org/, with help from Sam Jenness (Emory University).  
-  
-```{r EpiModel}
+### Running the model
 
+We are using the EpiModel framework, <http://www.epimodel.org/>, with
+help from Sam Jenness (Emory University).
+
+``` r
 param <- param.dcm(lambda = lambda, epsilon = epsilon, risk = risk)
 init <- init.dcm(Sp = 5000, Ip = 0,
                  Sv = 5000, Iv = 0,
@@ -172,9 +198,30 @@ mod <- dcm(param, init, control)
 mod
 ```
 
-### Data manipulation; VE estimates  
+    ## EpiModel Simulation
+    ## =======================
+    ## Model class: dcm
+    ## 
+    ## Simulation Summary
+    ## -----------------------
+    ## No. runs: 1
+    ## No. time steps: 1095
+    ## 
+    ## Model Parameters
+    ## -----------------------
+    ## lambda = 9.863014e-05
+    ## epsilon = 0.3
+    ## risk = 10
+    ## 
+    ## Model Output
+    ## -----------------------
+    ## Variables: Sp Ip Sv Iv Sph Iph Spm Ipm Spl Ipl Svh Ivh Svm 
+    ## Ivm Svl Ivl SIp.flow SIv.flow SIph.flow SIpm.flow SIpl.flow 
+    ## SIvh.flow SIvm.flow SIvl.flow
 
-```{r data}
+### Data manipulation; VE estimates
+
+``` r
 mod <- mutate_epi(mod, total.Svh.Svm.Svl = Svh + Svm + Svl) #all susceptible in heterogeneous risk vaccine pop
 mod <- mutate_epi(mod, total.Sph.Spm.Spl = Sph + Spm + Spl) #all susceptible in heterogeneous risk placebo pop
 
@@ -212,38 +259,66 @@ mod <- mutate_epi(mod, VE2.inst = 1 - rate.Vaccine.het/rate.Placebo.het)
 #VE <- 1 - Relative Risk; this is VE from cumulative incidence
 mod <- mutate_epi(mod, VE1.cumul = 1 - cumul.rate.Vaccine/cumul.rate.Placebo)
 mod <- mutate_epi(mod, VE2.cumul = 1 - cumul.rate.Vaccine.het/cumul.rate.Placebo.het)
-
 ```
 
-### Model outputs  
+### Model outputs
 
-This simple approach has at least shown that exposure heterogeneity in a vaccinated population can result in waning *realized* vaccine efficacy, even with stable per-contact vaccine efficacy. Also note the elevated incidence in the early stages of the trial, in the heterogenerous exposure population, as the high risk subgroup is depleted more quickly than the medium and low risk subgroups.  
-   
-```{r plots}
+This simple approach has at least shown that exposure heterogeneity in a
+vaccinated population can result in waning *realized* vaccine efficacy,
+even with stable per-contact vaccine efficacy. Also note the elevated
+incidence in the early stages of the trial, in the heterogenerous
+exposure population, as the high risk subgroup is depleted more quickly
+than the medium and low risk subgroups.
 
+``` r
 par(mar = c(3,3,2,1), mgp = c(2,1,0))
 plot(mod, y = c("Iv", "Ip", "total.Ivh.Ivm.Ivl", "total.Iph.Ipm.Ipl"), 
      alpha = 0.8, 
      main = "Cumulative infections",
      legend = "full")
+```
+
+![](Leaky.vaccine.SI.trial_files/figure-gfm/plots-1.png)<!-- -->
+
+``` r
 plot(mod, y = c("SIv.flow", "SIp.flow", "SIvh.flow", "SIvm.flow", "SIvl.flow", "SIph.flow", "SIpm.flow", "SIpl.flow"), 
      alpha = 0.8, 
      main = "Daily infections, w/ all risk groups shown",
      legend = "full")
+```
+
+![](Leaky.vaccine.SI.trial_files/figure-gfm/plots-2.png)<!-- -->
+
+``` r
 plot(mod, y = c("SIv.flow", "SIp.flow", "total.SIvh.SIvm.SIvl.flow", "total.SIph.SIpm.SIpl.flow"),
      alpha = 0.8, 
      main = "Daily infections, total mixed risk group",
      legend = "full")
+```
+
+![](Leaky.vaccine.SI.trial_files/figure-gfm/plots-3.png)<!-- -->
+
+``` r
 plot(mod, y=c("rate.Vaccine", "rate.Placebo", "rate.Vaccine.het", "rate.Placebo.het"),
      alpha = 0.8,
      #ylim = c(0, 0.1),
      main = "Instantaneous incidence rate",
      legend = "full")
+```
+
+![](Leaky.vaccine.SI.trial_files/figure-gfm/plots-4.png)<!-- -->
+
+``` r
 plot(mod, y=c("cumul.rate.Vaccine", "cumul.rate.Placebo", "cumul.rate.Vaccine.het", "cumul.rate.Placebo.het"),
      alpha = 0.8,
      #ylim = c(0, 0.1),
      main = "Cumulative incidence rate",
      legend = "full")
+```
+
+![](Leaky.vaccine.SI.trial_files/figure-gfm/plots-5.png)<!-- -->
+
+``` r
 plot(mod, y=c("VE1.inst", "VE2.inst", "VE1.cumul", "VE2.cumul"),
      alpha = 0.8,
      main = "Vaccine efficacy",
@@ -251,7 +326,6 @@ plot(mod, y=c("VE1.inst", "VE2.inst", "VE1.cumul", "VE2.cumul"),
      col = 1:4)
 legend("topright", legend = c("Instantanteous VE, homogeneous risk", "Inst VE, heterogeneous risk", "Cumulative VE, homogeneous risk", "Cumul VE, heterogeneous risk"),
        col = 1:4, lwd = 2, cex = 0.9, bty = "n")
-
 ```
 
-
+![](Leaky.vaccine.SI.trial_files/figure-gfm/plots-6.png)<!-- -->
