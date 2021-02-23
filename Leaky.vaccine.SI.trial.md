@@ -1,15 +1,18 @@
 SI model of an HIV vaccine trial
 ================
 Josh Herbeck
-2021-02-22
+2021-02-23
 
 ### Using models to assess the impact of vaccine leakiness on trial vaccine efficacy measures.
 
-Why?
-
-It is established that exposure heterogeneity can affect efficacy
-estimation for leaky vaccines, but this point has perhaps not been fully
-considered by the HIV field.
+It is hypothesized that exposure heterogeneity (i.e. infection risk
+heterogeneity) can affect efficacy estimation for leaky vaccines
+(e.g. Halloran et al., 1992; Halloran et al., 1996; White et al., 2010;
+O’Hagan et al.,2013; Edlefsen, 2014; Coley et al., 2016; Gomes et al.,
+2016; Kahn et al., 2018; Langwig et al., 2019). Our goal is to make a
+simple deterministic compartmental model to facilitate simulation-based
+evaluation of this process within and across populations, in the context
+of HIV prevention trials or longitudinal studies.
 
 1.  In acute infection studies it seems like many participants get
     infected early.
@@ -25,11 +28,18 @@ considered by the HIV field.
     the sub-studies (703 vs 704); is this due to different forces of
     infection between the populations?
 
-5.  Connect this issue (well known in the vaccine trial literature) to
-    HIV. More broadly, heterogeneous exposure risk within trial arms and
-    different exposure risk between separate trials, might affect
-    efficacy estimates, and we need to quantify and communicate this
-    potential impact.
+5.  Continue to connect this issue to HIV prevention trials.
+
+“This results in disease rates that decrease over time, an output that
+can be tested against time-to-event data.” *Pull time-to-event data from
+my model via survival curves*
+
+From Gomes et al., 2016: “This effect is more pronounced in the control
+group as individuals within it experience higher rates of infection
+overall. Consequently, the ratio of disease rates in vaccinated over
+control groups increases, and vaccine efficacy, as measured by simple
+rate ratios, decreases as the trial progresses. Finally, the magnitude
+of this effect increases with the intensity of transmission.”
 
 ### Model setup
 
@@ -45,9 +55,12 @@ effect does not decay over time); and 2) assumes a homogeneous effect
 (does not vary by mark / viral genotype). This model structure also
 removes the possibility of indirect effects from vaccination.
 
-We are, as of this iteration, including three subgroups in the
-heterogeneous risk population: high, medium, and low risk. The correct
-size of these subgroups is unclear.
+We are, with this early iteration, including just three subgroups in the
+heterogeneous exposure population: high, medium, and low exposure. Right
+now we do not know the correct size of these subgroups (i.e. fraction of
+the population) or their relative contribution to overall incidence.
+First pass is 10% high risk, 80% medium risk, 10% low risk (and low risk
+is set at zero risk).
 
 `beta` = transmission rate (per contact)  
 `c` = exposure rate (serodiscordant sexual contacts per time)  
@@ -96,8 +109,10 @@ from Alain Vandormael (2018):
 `beta` varies from 0.003 to 0.008  
 `prev`, which here is population prevalence of unsuppressed VL, varies
 from 0.15 to 0.35  
-`epsilon` can be initially parameterized using the RV144 Thai Trial
-results: VE = 61% at 12 months, 31% at 42 months
+`epsilon` could be parameterized using the RV144 Thai Trial results: VE
+= 61% at 12 months, 31% at 42 months, but below we start with 30% and
+not waning. Duration is not needed because we are only modeling a 3 year
+trial without boosters.
 
 ### Initial parameter settings
 
@@ -111,6 +126,11 @@ risk <- 10.0 #risk multiplier
 ```
 
 ### Model function; ODEs
+
+Right now this includes just two vaccine trial populations, each with a
+vaccine arm and a placebo arm. One population has homogeneous exposure /
+risk of infection; the other population includes exposure heterogeneity,
+and this heterogeneity is the same in both trial arms.
 
 ``` r
 si_ode <- function(times, init, param){
@@ -252,7 +272,7 @@ mod <- mutate_epi(mod, cumul.rate.Placebo.het = (total.Iph.Ipm.Ipl/cumul.Sph.Spm
 
 #Vaccine efficacy (VE) estimates
 
-#VE <- 1 - Relative Risk; this is VE for instantaneous incidence
+#VE <- 1 - Relative Risk; this is VE for instantaneous incidence / hazard
 mod <- mutate_epi(mod, VE1.inst = 1 - rate.Vaccine/rate.Placebo)
 mod <- mutate_epi(mod, VE2.inst = 1 - rate.Vaccine.het/rate.Placebo.het)
 
@@ -263,12 +283,13 @@ mod <- mutate_epi(mod, VE2.cumul = 1 - cumul.rate.Vaccine.het/cumul.rate.Placebo
 
 ### Model outputs
 
-This simple approach has at least shown that exposure heterogeneity in a
-vaccinated population can result in waning *realized* vaccine efficacy,
-even with stable per-contact vaccine efficacy. Also note the elevated
-incidence in the early stages of the trial, in the heterogenerous
-exposure population, as the high risk subgroup is depleted more quickly
-than the medium and low risk subgroups.
+This hypothetical example has shows that exposure heterogeneity in a
+simplified HIV vaccine trial can result in waning *realized* vaccine
+efficacy, even as the per-contact vaccine efficacy remains stable. Also
+note that exposure heterogeneity in a longitudinal study population may
+result in elevated incidence in the early stages of the study, as the
+high risk subgroup is depleted more quickly than the medium and low risk
+subgroups.
 
 ``` r
 par(mar = c(3,3,2,1), mgp = c(2,1,0))
