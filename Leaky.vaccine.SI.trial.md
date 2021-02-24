@@ -1,16 +1,27 @@
 SI model of an HIV vaccine trial
 ================
 Josh Herbeck
+<<<<<<< HEAD
 2021-02-24
+=======
+2021-02-23
+>>>>>>> 4828bdd21750e60bbd5c5615fda0624bbde0e3ff
 
 ### Using models to assess the impact of vaccine leakiness on trial vaccine efficacy measures.
 
 It is hypothesized that exposure heterogeneity (i.e. infection risk
 heterogeneity) can affect efficacy estimation for leaky vaccines
+<<<<<<< HEAD
 (e.g. Halloran et al., 1992; White et al., 2010; O’Hagan et al.,2013;
 Edlefsen, 2014; Coley et al., 2016; Gomes et al., 2016; Kahn et al.,
 2018; Langwig et al., 2019). Our goal is to make a simple deterministic
 compartmental model to facilitate straightforward simulation-based
+=======
+(e.g. Halloran et al., 1992; Halloran et al., 1996; White et al., 2010;
+O’Hagan et al.,2013; Edlefsen, 2014; Coley et al., 2016; Gomes et al.,
+2016; Kahn et al., 2018; Langwig et al., 2019). Our goal is to make a
+simple deterministic compartmental model to facilitate simulation-based
+>>>>>>> 4828bdd21750e60bbd5c5615fda0624bbde0e3ff
 evaluation of this process within and across populations, in the context
 of HIV prevention trials or longitudinal studies.
 
@@ -30,9 +41,17 @@ of HIV prevention trials or longitudinal studies.
     the sub-studies (703 vs 704); is this due to different forces of
     infection between the populations?
 
+<<<<<<< HEAD
 5.  Continue to raise awareness of this issue to HIV prevention trials,
     with the ultimate goal of better design and interpretation of
     efficacy outcomes.
+=======
+5.  Continue to connect this issue to HIV prevention trials.
+
+“This results in disease rates that decrease over time, an output that
+can be tested against time-to-event data.” *Pull time-to-event data from
+my model via survival curves*
+>>>>>>> 4828bdd21750e60bbd5c5615fda0624bbde0e3ff
 
 From Gomes et al., 2016: “This effect is more pronounced in the control
 group as individuals within it experience higher rates of infection
