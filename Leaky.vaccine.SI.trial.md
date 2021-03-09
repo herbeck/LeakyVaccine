@@ -436,6 +436,8 @@ priors  <- list(#c("unif", 0.003, 0.008),      # beta
                 #c("unif", 0.15, 0.35)        # prev
 ```
 
+\<\<\<\<\<\<\< HEAD
+
 ``` r
 fit <- ABC_rejection(model = f,
                      prior = priors,

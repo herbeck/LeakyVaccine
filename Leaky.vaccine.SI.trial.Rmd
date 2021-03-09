@@ -321,6 +321,7 @@ priors  <- list(#c("unif", 0.003, 0.008),      # beta
 ```
 
 
+<<<<<<< HEAD
 ```{r eval=FALSE, include=FALSE}
 
 fit <- ABC_sequential(method = "Lenormand",
@@ -372,6 +373,7 @@ legend("topright", legend = c("Prior", "Posterior", "Truth"),
 Examples from Sam
 
 ### Use the mean of the parameters for model selection
+
 ms <- colMeans(fit3$param)
 
 param <- param.dcm(tau = ms[1], c = ms[2], D = 7)
@@ -386,7 +388,9 @@ arrows(myDat$time, myDat$uci, myDat$time, myDat$lci,
 points(myDat$time, myDat$sampPrev, col = "black", pch = 16, cex = 1)
 
 
+
 ### Or use the full posterior distribution, as before
+
 param <- param.dcm(tau = fit3$param[, 1], c = fit3$param[, 2], D = 7)
 sim <- dcm(param, init, control)
 
