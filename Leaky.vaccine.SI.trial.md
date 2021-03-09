@@ -1,7 +1,7 @@
 SI model of an HIV vaccine trial
 ================
 Josh Herbeck
-2021-02-24
+2021-03-09
 
 ### Using models to assess the impact of vaccine leakiness on trial vaccine efficacy measures.
 
@@ -119,10 +119,10 @@ trial without boosters.
 ``` r
 beta <- 0.004   #transmission rate (per contact)
 c <- 90/365    #contact rate (contacts per day)
-prev <- 0.10   #needs some more consideration
+prev <- 0.10    #needs some more consideration
 lambda <- beta*c*prev
-epsilon <- 0.30 #per contact vaccine efficacy
-risk <- 10.0 #risk multiplier
+epsilon <- 0.30  #per contact vaccine efficacy
+risk <- 10.0   #risk multiplier
 ```
 
 ### Model function; ODEs
@@ -352,3 +352,142 @@ legend("topright", legend = c("Instantanteous VE, homogeneous risk", "Inst VE, h
 ![](Leaky.vaccine.SI.trial_files/figure-gfm/plots-6.png)<!-- -->
 
 *To do: time-to-event data from my model via survival curves*
+
+### Model calibration with ABC
+
+What follows is code to run approximate Bayesian computation to
+calibrate our SI vaccine trial model for: RV144 Thai vaccine trial; HVTN
+702 South Africa vaccine trial; AMP trials of the VRC01 bnAb.
+
+In a regular epidemic modeling scenario (e.g. not a vaccine trial) we
+would be calibrating the parameters for which we don’t have exact/great
+empirical estimates; for this SI model that would include the risk
+multiplier and the initial conditions that describe the subgroup
+frequencies by risk group. But with this experiment, one of our main
+goals is to identify a level of exposure heterogeneity in an HIV
+population that is consistent with some frailty VE results (e.g. either
+the \~0% VE in HVTN 702 or the waning PE in the AMP bnAB trials).
+
+Now, to do that we have to set target stats for the calibration. I
+propose we need to set target stats for the placebo and vaccine arms
+separately. i.e. We first calibrate the model to the placebo arms, using
+incidence as the single target stat, and we vary only the `beta` and `c`
+parameters (the transmission rate per contact and the contact rate,
+respectively). We get value for `beta` and `c` from the placebo
+calibrations that we then *set* for the vaccine calibrations, and in the
+vaccine calibrations we calibrate to the `risk multiplier` and the
+`initial conditions` (i.e., the %s of the population that are high and
+low risk, specifically.)
+
+Specify the target stats. First we are just using incidence in the
+placebo arm.
+
+``` r
+time <- c(180,360,540,720,900,1080)  # every 6 months
+incidence <- rep(3.5, 6)    # flat incidence of 3.5% per 100 person years; adjust accordingly
+target.stats <- data.frame(time, incidence)
+```
+
+Set up the function to wrap the EpiModel functions and make the
+incidence output file.
+
+``` r
+f <- function(x) {
+  param <- param.dcm(beta = 0.004, 
+                     c = 90/365,
+                     prev = 0.10,    
+                     #lambda = beta*c*prev,
+                     lambda = x[1],
+                     epsilon = epsilon, 
+                     risk = risk)
+  init <- init.dcm(Sp = 5000, Ip = 0,
+                 Sv = 5000, Iv = 0,
+                 Sph = 500, Iph = 0,    #placebo, high risk
+                 Spm = 4000, Ipm = 0,   #placebo, medium risk
+                 Spl = 500, Ipl = 0,    #placebo, low risk
+                 Svh = 500, Ivh = 0,    #vaccine
+                 Svm = 4000, Ivm = 0,   #vaccine
+                 Svl = 500, Ivl = 0,    #vaccine
+                 SIp.flow = 0, SIv.flow = 0, 
+                 SIph.flow = 0, SIpm.flow = 0, SIpl.flow = 0,
+                 SIvh.flow = 0, SIvm.flow = 0, SIvl.flow = 0)
+  control <- control.dcm(nsteps = 365*3, new.mod = si_ode)
+  sim <- dcm(param, init, control)
+  sim <- mutate_epi(sim, rate.Placebo = (SIp.flow/Sp)*365*100)
+  sim <- as.data.frame(sim)
+  matchedTimes <- sim$time %in% target.stats$time
+  out <- sim$rate.Placebo[matchedTimes]
+  return(out)
+}
+```
+
+## Specify priors for parameters (or initial conditions)
+
+The `beta` and `c` parameters are the transmission rate per contact and
+the contact rate, respectively. For now we keep these together in the
+`lambda` parameter, due to non-identifiability. Below we just set priors
+for `lambda`. We also will want to set priors for some of the initial
+conditions eventually.
+
+``` r
+priors  <- list(#c("unif", 0.003, 0.008),      # beta
+                #c("unif", 60/365, 120/365))    # c 
+                c("unif", 0.00007, 0.0009))   # lambda
+                #c("unif", 0.15, 0.35)        # prev
+```
+
+``` r
+fit <- ABC_rejection(model = f,
+                     prior = priors,
+                     nb_simul = 1000,
+                     summary_stat_target = target.stats$incidence,
+                     tol = 0.5,
+                     progress_bar = TRUE)
+```
+
+``` r
+par(mfrow = c(1, 2))
+
+plot(density(fit$param[, 1], from = 0.00007,  to = 0.0009),
+     main = "density plot for lambda", 
+     xlim = c(0.00006, 0.001),
+     xaxis = c(0.00006, 0.001),
+     ylim = c(0, 1000))
+lines(density(fit$param[, 1], from = 0.00007,  to = 0.0009), col = 2)
+abline(v = 0.00007, lty = 2, col = 1)
+legend("topright", legend = c("Prior", "Posterior", "Truth"),
+       lty = c(1, 1, 2), col = 1:2, lwd = 2)
+
+#plot(density(fit$param[, 2], from = 1, to = 2),
+#     main = "density plot for c", ylim = c(0, 2))
+#lines(density(fit3$param[, 2], from = 1, to = 2), col = 2)
+#abline(v = 1.5, lty = 2)
+#legend("topright", legend = c("Prior", "Posterior", "Truth"),
+#       lty = c(1, 1, 2), col = 1:2, lwd = 2)
+```
+
+Examples from Sam
+
+### Use the mean of the parameters for model selection
+
+ms \<- colMeans(fit3$param)
+
+param \<- param.dcm(tau = ms\[1\], c = ms\[2\], D = 7) init \<-
+init.dcm(s.num = 9999, i.num = 1, si.flow = 0, is.flow = 0) control \<-
+control.dcm(nsteps = 104, new.mod = SISmod) sim \<- dcm(param, init,
+control)
+
+par(mfrow = c(1,1)) plot(sim, y = “P”) arrows(myDat\(time, myDat\)uci,
+myDat\(time, myDat\)lci, col = “grey”, len = 0.025, angle = 90, code =
+3) points(myDat\(time, myDat\)sampPrev, col = “black”, pch = 16, cex =
+1)
+
+### Or use the full posterior distribution, as before
+
+param \<- param.dcm(tau = fit3\(param[, 1], c = fit3\)param\[, 2\], D =
+7) sim \<- dcm(param, init, control)
+
+plot(sim, y = “P”) arrows(myDat\(time, myDat\)uci,
+myDat\(time, myDat\)lci, col = “grey”, len = 0.025, angle = 90, code =
+3) points(myDat\(time, myDat\)sampPrev, col = “black”, pch = 16, cex =
+1)
