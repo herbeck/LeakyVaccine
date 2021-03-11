@@ -5,11 +5,13 @@ date: '`r Sys.Date()`'
 output: github_document  
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=TRUE}
+
 library(deSolve)
 library(tidyverse)
 library(EpiModel)
 library(survival)
+library(EasyABC)
 ```
 
 ### Using models to assess the impact of vaccine leakiness on trial vaccine efficacy measures.
@@ -60,9 +62,9 @@ Ivh = infected vaccinated high exposure
 Ivm = infected vaccinated medium exposure  
 Ivl = infected vaccinated low exposure (zero in this instance)  
 
-### Calibration  
+### Calibration, first step
 
-We eyeball-calibrated the incidence to ~3.5% per 100 person years, to be reasonably consistent with HVTN 702 in South Africa. (This is as of right now, with more rigorous ABC calibration to come.) We used an initial set of transmission parameters for sub-Saharan Africa borrowing from Alain Vandormael (2018):    
+AT this stage we just eyeball-calibrated the incidence to ~3.5% per 100 person years, to be reasonably consistent with HVTN 702 in South Africa. (More quantitative ABC calibration is below.) We used an initial set of transmission parameters for sub-Saharan Africa borrowing from Alain Vandormael (2018):    
 
      "We used realistic parameter values for the SIR model, based on earlier HIV studies that have been undertaken in the sub-Saharan Africa context. To this extent, we varied `c` within the range of 50 to 120 sexual acts per year based on data collected from serodiscordant couples across eastern and southern African sites. Previous research has shown considerable heterogeneity in the probability of HIV transmission per sexual contact, largely due to factors associated with the viral load level, genital ulcer disease, stage of HIV progression, condom use, circumcision and use of ART. Following a systematic review of this topic by Boily et al., we selected values for `beta` within the range of 0.003–0.008. ... Here, we chose values for `v` within the range of 0.15–0.35, which are slightly conservative, but supported by population-based estimates from the sub-Saharan African context."
 
@@ -179,10 +181,8 @@ mod
 ```{r data}
 mod <- mutate_epi(mod, total.Svh.Svm.Svl = Svh + Svm + Svl) #all susceptible in heterogeneous risk vaccine pop
 mod <- mutate_epi(mod, total.Sph.Spm.Spl = Sph + Spm + Spl) #all susceptible in heterogeneous risk placebo pop
-
 mod <- mutate_epi(mod, total.Ivh.Ivm.Ivl = Ivh + Ivm + Ivl) #all infected in heterogeneous risk vaccine pop
 mod <- mutate_epi(mod, total.Iph.Ipm.Ipl = Iph + Ipm + Ipl) #all infected in heterogeneous risk placebo pop
-
 mod <- mutate_epi(mod, total.SIvh.SIvm.SIvl.flow = SIvh.flow + SIvm.flow + SIvl.flow) #all infections per day in heterogeneous risk vaccine pop
 mod <- mutate_epi(mod, total.SIph.SIpm.SIpl.flow = SIph.flow + SIpm.flow + SIpl.flow) #all infections in heterogeneous risk placebo pop
 
@@ -199,7 +199,6 @@ mod <- mutate_epi(mod, cumul.Sv = cumsum(Sv))
 mod <- mutate_epi(mod, cumul.Sp = cumsum(Sp))
 mod <- mutate_epi(mod, cumul.Svh.Svm.Svl = cumsum(total.Svh.Svm.Svl))
 mod <- mutate_epi(mod, cumul.Sph.Spm.Spl = cumsum(total.Sph.Spm.Spl))
-
 mod <- mutate_epi(mod, cumul.rate.Vaccine = (Iv/cumul.Sv)*365*100)
 mod <- mutate_epi(mod, cumul.rate.Placebo = (Ip/cumul.Sp)*365*100)
 mod <- mutate_epi(mod, cumul.rate.Vaccine.het = (total.Ivh.Ivm.Ivl/cumul.Svh.Svm.Svl)*365*100)
@@ -260,7 +259,7 @@ legend("topright", legend = c("Instantanteous VE, homogeneous risk", "Inst VE, h
 
 ### Model calibration with ABC
 
-What follows is code to run approximate Bayesian computation to calibrate our SI vaccine trial model for:  RV144 Thai vaccine trial; HVTN 702 South Africa vaccine trial; AMP trials of the VRC01 bnAb.
+Now we start to calibrate with approximate Bayesian computation. Our goal is to calibrate our SI vaccine trial model to the:  RV144 Thai vaccine trial; HVTN 702 South Africa vaccine trial; AMP trials of the VRC01 bnAb, and then use these calibrations to explore the parameter space that can lead to waning efficacy (within a trial) or different VE (between two trials).
 
 In a regular epidemic modeling scenario (e.g. not a vaccine trial) we would be calibrating the parameters for which we don’t have exact/great empirical estimates; for this SI model that would include the risk multiplier and the initial conditions that describe the subgroup frequencies by risk group. But with this experiment, one of our main goals is to identify a level of exposure heterogeneity in an HIV population that is consistent with some frailty VE results (e.g. either the ~0% VE in HVTN 702 or the waning PE in the AMP bnAB trials).  
 
@@ -286,7 +285,7 @@ f <- function(x) {
                      #lambda = beta*c*prev,
                      lambda = x[1],
                      epsilon = epsilon, 
-                     risk = risk)
+                     risk = x[2])
   init <- init.dcm(Sp = 5000, Ip = 0,
                  Sv = 5000, Iv = 0,
                  Sph = 500, Iph = 0,    #placebo, high risk
@@ -316,20 +315,19 @@ The `beta` and `c` parameters are the transmission rate per contact and the cont
 
 priors  <- list(#c("unif", 0.003, 0.008),      # beta
                 #c("unif", 60/365, 120/365))    # c 
-                c("unif", 0.00007, 0.0009))   # lambda
-                #c("unif", 0.15, 0.35)        # prev
+                c("unif", 0.00005, 0.0002),  # lambda
+                c("unif", 5, 20))            # risk multiplier
 ```
 
 
-<<<<<<< HEAD
 ```{r eval=FALSE, include=FALSE}
 
-fit <- ABC_sequential(method = "Lenormand",
+fit.seq <- ABC_sequential(method = "Lenormand",
                        model = f,
                        prior = priors,
                        summary_stat_target = target.stats$incidence,
-                       nb_simul = 50,
-                       p_acc = 0.05,
+                       nb_simul = 10,
+                       p_acc = 0.10,
                        alpha = 0.5,
                        progress_bar = TRUE)
 
@@ -338,11 +336,11 @@ fit <- ABC_sequential(method = "Lenormand",
 
 ```{r eval=FALSE, include=TRUE}
 
-fit <- ABC_rejection(model = f,
+fit.rej <- ABC_rejection(model = f,
                      prior = priors,
                      nb_simul = 1000,
                      summary_stat_target = target.stats$incidence,
-                     tol = 0.5,
+                     tol = 0.10,
                      progress_bar = TRUE)
 
 ```
@@ -352,19 +350,18 @@ fit <- ABC_rejection(model = f,
 
 par(mfrow = c(1, 2))
 
-plot(density(fit$param[, 1], from = 0.00007,  to = 0.0009),
+plot(density(fit$param[, 1], from = 0.00001,  to = 0.0001),
      main = "density plot for lambda", 
-     xlim = c(0.00006, 0.001),
-     xaxis = c(0.00006, 0.001),
+     xlim = c(0.000008, 0.0001),
      ylim = c(0, 1000))
-lines(density(fit$param[, 1], from = 0.00007,  to = 0.0009), col = 2)
-abline(v = 0.00007, lty = 2, col = 1)
-legend("topright", legend = c("Prior", "Posterior", "Truth"),
-       lty = c(1, 1, 2), col = 1:2, lwd = 2)
+#lines(density(fit$param[, 1], from = 0.00007,  to = 0.0001), col = 2)
+#abline(v = 0.00009, lty = 2, col = 1)
+#legend("topright", legend = c("Prior", "Posterior", "Truth"),
+#      lty = c(1, 1, 2), col = 1:2, lwd = 2)
 
-#plot(density(fit$param[, 2], from = 1, to = 2),
-#     main = "density plot for c", ylim = c(0, 2))
-#lines(density(fit3$param[, 2], from = 1, to = 2), col = 2)
+plot(density(fit$param[, 2], from = 1, to = 20),
+     main = "density plot for risk multiplier", ylim = c(0, 2))
+#lines(density(fit3$param[, 2], from = 1, to = 20), col = 2)
 #abline(v = 1.5, lty = 2)
 #legend("topright", legend = c("Prior", "Posterior", "Truth"),
 #       lty = c(1, 1, 2), col = 1:2, lwd = 2)
@@ -386,8 +383,6 @@ plot(sim, y = "P")
 arrows(myDat$time, myDat$uci, myDat$time, myDat$lci,
        col = "grey", len = 0.025, angle = 90, code = 3)
 points(myDat$time, myDat$sampPrev, col = "black", pch = 16, cex = 1)
-
-
 
 ### Or use the full posterior distribution, as before
 
