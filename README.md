@@ -10,6 +10,21 @@ Sam Jenness
 
 The model is here:  Leaky.vaccine.SI.trial.Rmd
 
+It is hypothesized that exposure heterogeneity (i.e. infection risk heterogeneity) can affect efficacy estimation for leaky vaccines (e.g. Halloran et al., 1992; White et al., 2010; O'Hagan et al.,2013; Edlefsen, 2014; Coley et al., 2016; Gomes et al., 2016; Kahn et al., 2018; Langwig et al., 2019). Our goal is to make a simple deterministic compartmental model to facilitate straightforward simulation-based evaluation of this process within and across populations, in the context of HIV prevention trials or longitudinal studies.  
+
+1. In acute infection studies it seems like many participants get infected early. What is the magnitude of this effect that might be due to frailty bias? 
+
+2. Assess if this effect might contribute to the differences between the RV 144 and HVTN 702 vaccine trial outcomes.  (There has been a couple of analyses of this, and we can build on this and make future analyses of other trial results more straightforward to evaluate.)
+
+3. Assess if this effect might contribute to the waning efficacies seen in HIV prevention trials (specifically the AMP VRC01 bnAb trial).  
+
+4. In the context of the AMP Trial and the different results seen in the sub-studies (703 vs 704); is this due to different forces of infection between the populations?    
+
+5. Continue to raise awareness of this issue to HIV prevention trials, with the ultimate goal of better design and interpretation of efficacy outcomes.   
+
+From Gomes et al., 2016:  "This effect is more pronounced in the control group as individuals within it experience higher rates of infection overall. Consequently, the ratio of disease rates in vaccinated over control groups increases, and vaccine efficacy, as measured by simple rate ratios, decreases as the trial progresses. Finally, the magnitude of this effect increases with the intensity of transmission." 
+
+---
 
 The goal of this little project is to assess the impact of exposure heterogeneity on vaccine efficacy measurements. We know that exposure heterogeneity (EH) can lead to waning efficacy… but we don’t know how much EH has an appreciable (noticeable?) impact in HIV prevention trials. 
 
