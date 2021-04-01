@@ -231,7 +231,6 @@ mod <- mod.manipulate(mod)
 ### Model plots  
 
 First let's show the cumulative infections in a (placebo) population with no exposure heterogeneity, over the course of a standard 3 year trial. The population size is 10000.  
-
 ```{r}
 
 plot(mod, y = c("Ip"), 
@@ -370,7 +369,7 @@ plot(mod, y=c("VE1.inst", "VE2.inst"),
 legend("topright", legend = c("VE, homogeneous risk", "VE, heterogeneous risk"), col = c("blue", "red"), lwd = 2, cex = 0.9, bty = "n")
 ```
 
-This hypothetical example shows that exposure heterogeneity in a simplified HIV vaccine trial can result in waning *realized* vaccine efficacy, even as the per-contact vaccine efficacy (`epsilon`) remains the same. Also note that exposure heterogeneity in a longitudinal study population may result in elevated incidence in the early stages of the study, as the high risk subgroup is depleted more quickly than the medium and low risk subgroups.  
+This simple example shows that exposure heterogeneity in a simplified HIV vaccine trial can result in waning *realized* vaccine efficacy, even as the per-contact vaccine efficacy (`epsilon`) remains the same. Also note that exposure heterogeneity in a longitudinal study population may result in elevated incidence in the early stages of the study, as the high risk subgroup is depleted more quickly than the medium and low risk subgroups.  
    
 
 
@@ -390,7 +389,7 @@ But, now I am thinking that we just do a rough first calibration of `lambda` to 
 
 So first specify the target stat.
 
-```{r target stats}
+```{r target.stats, eval=FALSE, include=TRUE}
 
 time <- c(180,360,540,720,900,1080)  # every 6 months for 3 years
 placebo.incidence <- rep(0.3, 6)    # flat incidence of 3.5% per 100 person years; adjust accordingly
@@ -398,32 +397,11 @@ VE.target <- rep(0.3, 6)
 target.stats <- data.frame(time, placebo.incidence, VE.target)
 ```
 
-### Function to get output VE for each simulation
-
-```{r function for VE}
-
-VE.from.sim <- function(mod){
-
-mod <- mutate_epi(mod, total.Svh.Svm.Svl = Svh + Svm + Svl) #all susceptible in heterogeneous risk vaccine pop
-mod <- mutate_epi(mod, total.Sph.Spm.Spl = Sph + Spm + Spl) #all susceptible in heterogeneous risk placebo pop
-
-mod <- mutate_epi(mod, total.SIvh.SIvm.SIvl.flow = SIvh.flow + SIvm.flow + SIvl.flow) #all infections per day in heterogeneous risk vaccine pop
-mod <- mutate_epi(mod, total.SIph.SIpm.SIpl.flow = SIph.flow + SIpm.flow + SIpl.flow) #all infections in heterogeneous risk placebo pop
-
-mod <- mutate_epi(mod, rate.Vaccine.het = (total.SIvh.SIvm.SIvl.flow/total.Svh.Svm.Svl)*365*100)
-mod <- mutate_epi(mod, rate.Placebo.het = (total.SIph.SIpm.SIpl.flow/total.Sph.Spm.Spl)*365*100)
-
-mod <- mutate_epi(mod, VE.inst = 1 - rate.Vaccine.het/rate.Placebo.het)
-
-return(out)
-}
-```
-
 ### Calibration input model
 
 Set up the function to wrap the EpiModel functions and make the incidence output file.  
 
-```{r easyABC.input.model}
+```{r easyABC.input.model, eval=FALSE, include=TRUE}
 
 f <- function(x) {
   param <- param.dcm(beta = 0.004, 
@@ -450,14 +428,12 @@ f <- function(x) {
   control <- control.dcm(nsteps = 365*3, new.mod = si_ode)
   mod <- dcm(param, init, control)
   
-  mod <- mutate_epi(mod, rate.Placebo = (SIp.flow/Sp)*365*100) #Incidence, placebo
-  #mod <- mutate_epi(mod, rate.Placebo.het = (SIp.flow/Sp)*365*100) #Incidence, placebo
+  mod <- mod.manipulate(mod)
   
-  sim.ve <- VE.from.sim(mod)
-  sim.ve <- as.data.frame(sim.ve)
-  matchedTimes <- sim.ve$time %in% target.stats$time
-  out <- sim.ve$VE.inst[matchedTimes]
-  #out <- sim.ve$rate.Placebo.het[matchedTimes]
+  mod <- as.data.frame(mod)
+  matchedTimes <- mod$time %in% target.stats$time
+  out <- mod$VE.inst[matchedTimes]
+  #out <- mod$rate.Placebo.het[matchedTimes]
   return(out)
 }
 ```
@@ -466,7 +442,7 @@ f <- function(x) {
 
 The `beta` and `c` parameters are the transmission rate per contact and the contact rate, respectively. For now we keep these together in the `lambda` parameter, due to non-identifiability. Below we just set priors for `lambda`. We also will want to set priors for some of the initial conditions eventually. 
 
-```{r priors}
+```{r priors, eval=FALSE, include=TRUE}
 
 priors  <- list(#c("unif", 0.003, 0.008),      # beta
                 #c("unif", 60/365, 120/365))    # c 
@@ -531,7 +507,7 @@ Other examples from Sam
 
 ### Use the mean of the parameters for model selection
 
-```{r}
+```{r eval=FALSE, include=TRUE}
 
 ms <- colMeans(fit$param)
 param <- param.dcm(tau = ms[1], c = ms[2], D = 7)
