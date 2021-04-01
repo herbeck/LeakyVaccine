@@ -1,12 +1,9 @@
----
-title: "SI model of an HIV vaccine trial"  
-author: "Josh Herbeck"  
-date: '`r Sys.Date()`'  
-output: github_document  
----
+SI model of an HIV vaccine trial
+================
+Josh Herbeck
+2021-04-01
 
-```{r setup, message=FALSE}
-
+``` r
 library(deSolve)
 library(tidyverse)
 library(EpiModel)
@@ -16,69 +13,125 @@ library(EasyABC)
 
 ### Using models to assess the impact of vaccine leakiness on trial vaccine efficacy measures.
 
-It is hypothesized that exposure heterogeneity (i.e. infection risk heterogeneity) can affect efficacy estimation for leaky vaccines (e.g. Halloran et al., 1992; White et al., 2010; O'Hagan et al.,2013; Edlefsen, 2014; Coley et al., 2016; Gomes et al., 2016; Kahn et al., 2018; Langwig et al., 2019). Our goal is to make a simple deterministic compartmental model to facilitate straightforward simulation-based evaluation of this process within and across populations, in the context of HIV prevention trials or longitudinal studies.  
+It is hypothesized that exposure heterogeneity (i.e. infection risk
+heterogeneity) can affect efficacy estimation for leaky vaccines
+(e.g. Halloran et al., 1992; White et al., 2010; O’Hagan et al.,2013;
+Edlefsen, 2014; Coley et al., 2016; Gomes et al., 2016; Kahn et al.,
+2018; Langwig et al., 2019). Our goal is to make a simple deterministic
+compartmental model to facilitate straightforward simulation-based
+evaluation of this process within and across populations, in the context
+of HIV prevention trials or longitudinal studies.
 
-1. In acute infection studies it seems like many participants get infected early. What is the magnitude of this effect that might be due to frailty bias? 
+1.  In acute infection studies it seems like many participants get
+    infected early. What is the magnitude of this effect that might be
+    due to frailty bias?
 
-2. Assess if this effect might contribute to the differences between the RV 144 and HVTN 702 vaccine trial outcomes.  (There has been a couple of analyses of this, and we can build on this and make future analyses of other trial results more straightforward to evaluate.)
+2.  Assess if this effect might contribute to the differences between
+    the RV 144 and HVTN 702 vaccine trial outcomes. (There has been a
+    couple of analyses of this, and we can build on this and make future
+    analyses of other trial results more straightforward to evaluate.)
 
-3. Assess if this effect might contribute to the waning efficacies seen in HIV prevention trials (specifically the AMP VRC01 bnAb trial).  
+3.  Assess if this effect might contribute to the waning efficacies seen
+    in HIV prevention trials (specifically the AMP VRC01 bnAb trial).
 
-4. In the context of the AMP Trial and the different results seen in the sub-studies (703 vs 704); is this due to different forces of infection between the populations?    
+4.  In the context of the AMP Trial and the different results seen in
+    the sub-studies (703 vs 704); is this due to different forces of
+    infection between the populations?
 
-5. Continue to raise awareness of this issue to HIV prevention trials, with the ultimate goal of better design and interpretation of efficacy outcomes.   
+5.  Continue to raise awareness of this issue to HIV prevention trials,
+    with the ultimate goal of better design and interpretation of
+    efficacy outcomes.
 
-From Gomes et al., 2016:  "This effect is more pronounced in the control group as individuals within it experience higher rates of infection overall. Consequently, the ratio of disease rates in vaccinated over control groups increases, and vaccine efficacy, as measured by simple rate ratios, decreases as the trial progresses. Finally, the magnitude of this effect increases with the intensity of transmission."  
+From Gomes et al., 2016: “This effect is more pronounced in the control
+group as individuals within it experience higher rates of infection
+overall. Consequently, the ratio of disease rates in vaccinated over
+control groups increases, and vaccine efficacy, as measured by simple
+rate ratios, decreases as the trial progresses. Finally, the magnitude
+of this effect increases with the intensity of transmission.”
 
-### Model setup  
+### Model setup
 
-We are modeling a closed population SI deterministic compartmental model meant to simulate a vaccine trial. We are not modeling infections from I to S but rather only infections from the outside (non-trial) population, with the infection rate based on the population prevalence `prev` (of viremic individuals), the exposure rate (serodiscordant sexual contacts per time) `c`, and the transmission rate (per contact) `p`. The per contact effect of vaccination is `epsilon`, and with this iteration of the model `epsilon` is: 1) not time-varying (the per contact vaccine effect does not decay over time); and 2) assumes a homogeneous effect (does not vary by mark / viral genotype). This model structure also removes the possibility of indirect effects from vaccination.  
+We are modeling a closed population SI deterministic compartmental model
+meant to simulate a vaccine trial. We are not modeling infections from I
+to S but rather only infections from the outside (non-trial) population,
+with the infection rate based on the population prevalence `prev` (of
+viremic individuals), the exposure rate (serodiscordant sexual contacts
+per time) `c`, and the transmission rate (per contact) `p`. The per
+contact effect of vaccination is `epsilon`, and with this iteration of
+the model `epsilon` is: 1) not time-varying (the per contact vaccine
+effect does not decay over time); and 2) assumes a homogeneous effect
+(does not vary by mark / viral genotype). This model structure also
+removes the possibility of indirect effects from vaccination.
 
-We are, with this early iteration, including just three subgroups in the heterogeneous exposure population: high, medium, and low exposure. Right now we do not know the correct size of these subgroups (i.e. fraction of the population) or their relative contribution to overall incidence. First pass is 10% high risk, 80% medium risk, 10% low risk (and low risk is set at zero risk), as this, in combination with a 10% `risk` multiplier, results in 3.5% incidence in a putative population with no vaccine (placebo arm) and no exposure heterogeneity.  
+We are, with this early iteration, including just three subgroups in the
+heterogeneous exposure population: high, medium, and low exposure. Right
+now we do not know the correct size of these subgroups (i.e. fraction of
+the population) or their relative contribution to overall incidence.
+First pass is 10% high risk, 80% medium risk, 10% low risk (and low risk
+is set at zero risk), as this, in combination with a 10% `risk`
+multiplier, results in 3.5% incidence in a putative population with no
+vaccine (placebo arm) and no exposure heterogeneity.
 
-`beta` = transmission rate (per contact)   
+`beta` = transmission rate (per contact)  
 `c` = exposure rate (serodiscordant sexual contacts per time)  
-`prev` = prevalence  (prevalence of viremic individuals)  
+`prev` = prevalence (prevalence of viremic individuals)  
 `lambda = beta * c * prev`  
-`risk` = risk multiplier
-`epsilon` = per contact vaccine efficacy; vaccine-induced reduction in the risk of HIV infection from a single exposure  
+`risk` = risk multiplier `epsilon` = per contact vaccine efficacy;
+vaccine-induced reduction in the risk of HIV infection from a single
+exposure
 
-The risk multiplier is an amalgam of increases in transmission risk that could be due to: 1) increased per contact transmission risk; 2) increased exposure rate (number of contacts); or 3) increased prevalence of HIV viremia in partners. Individual risk of infection can vary for these separately or in combination.  
+The risk multiplier is an amalgam of increases in transmission risk that
+could be due to: 1) increased per contact transmission risk; 2)
+increased exposure rate (number of contacts); or 3) increased prevalence
+of HIV viremia in partners. Individual risk of infection can vary for
+these separately or in combination.
 
-Basic functions:  
+Basic functions:
 
-`dS/dt = -lambda*S`   
-`dI/dt = lambda*S`  
+`dS/dt = -lambda*S`  
+`dI/dt = lambda*S`
 
 Sp = susceptible placebo  
 Ip = infected placebo  
 Sv = susceptible vaccinated  
-Iv = infected vaccinated  
+Iv = infected vaccinated
 
 Svh = susceptible vaccinated high exposure  
 Svm = susceptible vaccinated medium exposure  
 SvL = susceptible vaccinated low exposure (zero in this instance)  
 Ivh = infected vaccinated high exposure  
 Ivm = infected vaccinated medium exposure  
-Ivl = infected vaccinated low exposure (zero in this instance)  
+Ivl = infected vaccinated low exposure (zero in this instance)
 
 ### Calibration, first step
 
-AT this stage we just eyeball-calibrated the incidence to ~3.5% per 100 person years, to be reasonably consistent with HVTN 702 in South Africa. (More quantitative ABC calibration is below.) We used an initial set of transmission parameters for sub-Saharan Africa borrowing from Alain Vandormael (2018):    
+AT this stage we just eyeball-calibrated the incidence to \~3.5% per 100
+person years, to be reasonably consistent with HVTN 702 in South Africa.
+(More quantitative ABC calibration is below.) We used an initial set of
+transmission parameters for sub-Saharan Africa borrowing from Alain
+Vandormael (2018):
 
-     "We used realistic parameter values for the SIR model, based on earlier HIV studies that have been undertaken in the sub-Saharan Africa context. To this extent, we varied `c` within the range of 50 to 120 sexual acts per year based on data collected from serodiscordant couples across eastern and southern African sites. Previous research has shown considerable heterogeneity in the probability of HIV transmission per sexual contact, largely due to factors associated with the viral load level, genital ulcer disease, stage of HIV progression, condom use, circumcision and use of ART. Following a systematic review of this topic by Boily et al., we selected values for `beta` within the range of 0.003–0.008. ... Here, we chose values for `v` within the range of 0.15–0.35, which are slightly conservative, but supported by population-based estimates from the sub-Saharan African context."
+``` 
+ "We used realistic parameter values for the SIR model, based on earlier HIV studies that have been undertaken in the sub-Saharan Africa context. To this extent, we varied `c` within the range of 50 to 120 sexual acts per year based on data collected from serodiscordant couples across eastern and southern African sites. Previous research has shown considerable heterogeneity in the probability of HIV transmission per sexual contact, largely due to factors associated with the viral load level, genital ulcer disease, stage of HIV progression, condom use, circumcision and use of ART. Following a systematic review of this topic by Boily et al., we selected values for `beta` within the range of 0.003–0.008. ... Here, we chose values for `v` within the range of 0.15–0.35, which are slightly conservative, but supported by population-based estimates from the sub-Saharan African context."
+```
 
-`c` varies from 50 to 120 per year   
+`c` varies from 50 to 120 per year  
 `beta` varies from 0.003 to 0.008  
-`prev`, which here is population prevalence of unsuppressed VL, varies from 0.15 to 0.35  
-`epsilon` could be parameterized using the RV144 Thai Trial results: VE = 61% at 12 months, 31% at 42 months, but below we start with 30% and no waning efficacy. Duration is not needed because we are only modeling a 3 year trial without boosters.   
+`prev`, which here is population prevalence of unsuppressed VL, varies
+from 0.15 to 0.35  
+`epsilon` could be parameterized using the RV144 Thai Trial results: VE
+= 61% at 12 months, 31% at 42 months, but below we start with 30% and no
+waning efficacy. Duration is not needed because we are only modeling a 3
+year trial without boosters.
 
-### Model function; ODEs  
+### Model function; ODEs
 
-Right now this includes just two vaccine trial populations, each with a vaccine arm and a placebo arm. One population has homogeneous exposure / risk of infection; the other population includes exposure heterogeneity, and this heterogeneity is the same in both trial arms.  
-  
-```{r ODEs}
+Right now this includes just two vaccine trial populations, each with a
+vaccine arm and a placebo arm. One population has homogeneous exposure /
+risk of infection; the other population includes exposure heterogeneity,
+and this heterogeneity is the same in both trial arms.
 
+``` r
 si_ode <- function(times, init, param){
   with(as.list(c(init, param)), {
     
@@ -139,12 +192,13 @@ si_ode <- function(times, init, param){
 }
 ```
 
-### Data manipulation; VE estimates  
+### Data manipulation; VE estimates
 
-This function just takes the model output (a `mod` file) and uses the data to create other data (e.g. incidence and VE estimates) for plotting.
+This function just takes the model output (a `mod` file) and uses the
+data to create other data (e.g. incidence and VE estimates) for
+plotting.
 
-```{r data}
-
+``` r
 mod.manipulate <- function(mod){
   
 mod <- mutate_epi(mod, total.Svh.Svm.Svl = Svh + Svm + Svl) #all susceptible in heterogeneous risk vaccine pop
@@ -186,8 +240,7 @@ mod <- mutate_epi(mod, VE2.cumul = 1 - cumul.rate.Vaccine.het/cumul.rate.Placebo
 
 ### Initial parameter settings
 
-```{r parameters}
-
+``` r
 beta <- 0.004   #transmission rate (per contact)
 c <- 90/365    #contact rate (contacts per day)
 prev <- 0.10    #needs some more consideration
@@ -198,14 +251,17 @@ epsilon <- 0.30  #per contact vaccine efficacy
 risk <- 10.0   #risk multiplier
 ```
 
-### Running the model  
+### Running the model
 
-We are using the EpiModel framework, http://www.epimodel.org/, with help from Sam Jenness (Emory University).  
+We are using the EpiModel framework, <http://www.epimodel.org/>, with
+help from Sam Jenness (Emory University).
 
-Note that this code chunk includes the model initiation piece, in which among other things we initialize the population size and the size of any subpopulations defined by exposure risk. Right now we have 10% high risk, 80% medium risk, and 10% no (zero) risk.
-  
-```{r EpiModel}
+Note that this code chunk includes the model initiation piece, in which
+among other things we initialize the population size and the size of any
+subpopulations defined by exposure risk. Right now we have 10% high
+risk, 80% medium risk, and 10% no (zero) risk.
 
+``` r
 param <- param.dcm(lambda = lambda, epsilon = epsilon, risk = risk)
 init <- init.dcm(Sp = 10000, Ip = 0,
                  Sv = 10000, Iv = 0,
@@ -222,17 +278,46 @@ init <- init.dcm(Sp = 10000, Ip = 0,
 control <- control.dcm(nsteps = 365*3, new.mod = si_ode)
 mod <- dcm(param, init, control)
 mod
-
-mod <- mod.manipulate(mod)
-
 ```
 
+    ## EpiModel Simulation
+    ## =======================
+    ## Model class: dcm
+    ## 
+    ## Simulation Summary
+    ## -----------------------
+    ## No. runs: 1
+    ## No. time steps: 1095
+    ## 
+    ## Model Parameters
+    ## -----------------------
+    ## lambda = 9.863014e-05
+    ## epsilon = 0.3
+    ## risk = 10
+    ## 
+    ## Model Output
+    ## -----------------------
+    ## Variables: Sp Ip Sv Iv Sph Iph Spm Ipm Spl Ipl Svh Ivh Svm 
+    ## Ivm Svl Ivl SIp.flow SIv.flow SIph.flow SIpm.flow SIpl.flow 
+    ## SIvh.flow SIvm.flow SIvl.flow
 
-### Model plots  
+``` r
+mod <- mod.manipulate(mod)
+```
 
-First let's show the cumulative infections in a (placebo) population with no exposure heterogeneity, over the course of a standard 3 year trial. The population size is 10000. Next let's show add cumulative infections in another (placebo) population, this one with exposure heterogeneity. This exposure heterogeneity is set (first pass, qualitatively calibrated) to include 10% high risk (n=1000), with 10x risk multiplier (not specifying whether this risk is elevated due to individual contact rate, the per-contact transmission probability, or the prevalence of viremia in the contacts of the high risk individuals).  
-```{r}
+### Model plots
 
+First let’s show the cumulative infections in a (placebo) population
+with no exposure heterogeneity, over the course of a standard 3 year
+trial. The population size is 10000. Next let’s show add cumulative
+infections in another (placebo) population, this one with exposure
+heterogeneity. This exposure heterogeneity is set (first pass,
+qualitatively calibrated) to include 10% high risk (n=1000), with 10x
+risk multiplier (not specifying whether this risk is elevated due to
+individual contact rate, the per-contact transmission probability, or
+the prevalence of viremia in the contacts of the high risk individuals).
+
+``` r
 par(mfrow = c(1, 2))
 
 plot(mod, y = c("Ip"), 
@@ -253,10 +338,11 @@ plot(mod, y = c("Ip", "total.Iph.Ipm.Ipl"),
 legend("bottomright", legend = c("homogeneous risk", "heterogeneous risk"), col = c("blue", "red"), lwd = 2, cex = 0.9, bty = "n")
 ```
 
-Let's just plot incidence in these two populations.  
+![](Leaky.analysis.flow_files/figure-gfm/unnamed-chunk-1-1.png)<!-- -->
 
-```{r}
+Let’s just plot incidence in these two populations.
 
+``` r
 #mod <- mod.manipulate(mod)
 par(mfrow = c(1, 2))
 
@@ -279,14 +365,18 @@ plot(mod, y=c("rate.Placebo", "rate.Placebo.het"),
      legend = FALSE,
      col = c("blue", "red"))
 legend("bottomright", legend = c("homogen. risk", "heterogen. risk"), col = c("blue", "red"), lwd = 2, cex = 0.9, bty = "n")
+```
 
+![](Leaky.analysis.flow_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
+
+``` r
 par(mfrow=c(1,1))
 ```
 
-Now we roll out a vaccine, first in the population with homogeneous exposure.  
+Now we roll out a vaccine, first in the population with homogeneous
+exposure.
 
-```{r}
-
+``` r
 mod <- mod.manipulate(mod)
 
 plot(mod, y=c("cumul.rate.Placebo", "cumul.rate.Vaccine"),
@@ -300,10 +390,12 @@ plot(mod, y=c("cumul.rate.Placebo", "cumul.rate.Vaccine"),
 legend("bottomright", legend = c("placebo", "vaccine"), col = c("blue", "green"), lwd = 2, cex = 0.9, bty = "n")
 ```
 
-Vaccine now in the heterogeneous risk population, added to the above plot
+![](Leaky.analysis.flow_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
 
-```{r}
+Vaccine now in the heterogeneous risk population, added to the above
+plot
 
+``` r
 mod <- mod.manipulate(mod)
 
 plot(mod, y=c("cumul.rate.Placebo", "cumul.rate.Vaccine", "cumul.rate.Placebo.het", "cumul.rate.Vaccine.het"),
@@ -317,9 +409,11 @@ plot(mod, y=c("cumul.rate.Placebo", "cumul.rate.Vaccine", "cumul.rate.Placebo.he
 legend("bottomright", legend = c("placebo, homogeneous risk", "vaccine, homogeneous risk", "placebo, heterogeneous risk", "vaccine, heterogeneous risk"), col = c("blue", "green", "red", "orange"), lwd = 2, cex = 0.9, bty = "n")
 ```
 
+![](Leaky.analysis.flow_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+
 Instantaneous incidence / hazard, for the same comparison
 
-```{r}
+``` r
 mod <- mod.manipulate(mod)
 
 plot(mod, y=c("rate.Placebo", "rate.Vaccine"),
@@ -333,10 +427,11 @@ plot(mod, y=c("rate.Placebo", "rate.Vaccine"),
 legend("bottomright", legend = c("placebo", "vaccine"), col = c("blue", "green"), lwd = 2, cex = 0.9, bty = "n")
 ```
 
+![](Leaky.analysis.flow_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+
 Vaccine now in the heterogeneous risk
 
-```{r}
-
+``` r
 mod <- mod.manipulate(mod)
 
 plot(mod, y=c("rate.Placebo", "rate.Vaccine", "rate.Placebo.het", "rate.Vaccine.het"),
@@ -350,10 +445,12 @@ plot(mod, y=c("rate.Placebo", "rate.Vaccine", "rate.Placebo.het", "rate.Vaccine.
 legend("bottomright", legend = c("placebo, homogeneous risk", "vaccine, homogeneous risk", "placebo, heterogeneous risk", "vaccine, heterogeneous risk"), col = c("blue", "green", "red", "orange"), lwd = 2, cex = 0.9, bty = "n")
 ```
 
-Now we can move to vaccine efficacy estimates. We use hazard (instantaneous incidence) rather than cumulative incidence.
+![](Leaky.analysis.flow_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
 
-```{r}
+Now we can move to vaccine efficacy estimates. We use hazard
+(instantaneous incidence) rather than cumulative incidence.
 
+``` r
 plot(mod, y=c("VE1.inst", "VE2.inst"),
      alpha = 0.8,
      main = "Vaccine efficacy",
@@ -364,28 +461,59 @@ plot(mod, y=c("VE1.inst", "VE2.inst"),
 legend("topright", legend = c("VE, homogeneous risk", "VE, heterogeneous risk"), col = c("blue", "red"), lwd = 2, cex = 0.9, bty = "n")
 ```
 
-This simple example shows that exposure heterogeneity in a simplified HIV vaccine trial can result in waning *realized* vaccine efficacy, even as the per-contact vaccine efficacy (`epsilon`) remains the same. Also note that exposure heterogeneity in a longitudinal study population may result in elevated incidence in the early stages of the study, as the high risk subgroup is depleted more quickly than the medium and low risk subgroups.  
-   
+![](Leaky.analysis.flow_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
 
+This simple example shows that exposure heterogeneity in a simplified
+HIV vaccine trial can result in waning *realized* vaccine efficacy, even
+as the per-contact vaccine efficacy (`epsilon`) remains the same. Also
+note that exposure heterogeneity in a longitudinal study population may
+result in elevated incidence in the early stages of the study, as the
+high risk subgroup is depleted more quickly than the medium and low risk
+subgroups.
 
-*Maybe add: time-to-event data from my model via survival curves* 
+*Maybe add: time-to-event data from my model via survival curves*
 
 ### Model calibration with ABC
 
-Now we start to calibrate with calibrating our model to some real populations, with the goal of using to assess the impact of exposure heterogeneity on VE estimates. Our goal is to calibrate our SI vaccine trial model to the:  RV144 Thai vaccine trial; HVTN 702 South Africa vaccine trial; AMP trials of the VRC01 bnAb, and then use these calibrations to explore the parameter space that can lead to waning efficacy (within a trial) or different VE (between two trials).
+Now we start to calibrate with calibrating our model to some real
+populations, with the goal of using to assess the impact of exposure
+heterogeneity on VE estimates. Our goal is to calibrate our SI vaccine
+trial model to the: RV144 Thai vaccine trial; HVTN 702 South Africa
+vaccine trial; AMP trials of the VRC01 bnAb, and then use these
+calibrations to explore the parameter space that can lead to waning
+efficacy (within a trial) or different VE (between two trials).
 
-In a regular epidemic modeling scenario (e.g. not a vaccine trial) we would be calibrating the parameters for which we don’t have exact/good empirical estimates; for this SI model that would include the risk multiplier and the subgroup frequencies of each risk group. But with this experiment one of our main goals is to identify a level of exposure heterogeneity in an HIV population that is consistent with some frailty VE results (e.g. either the ~0% VE in HVTN 702 or the waning PE in the AMP bnAB trials).  
+In a regular epidemic modeling scenario (e.g. not a vaccine trial) we
+would be calibrating the parameters for which we don’t have exact/good
+empirical estimates; for this SI model that would include the risk
+multiplier and the subgroup frequencies of each risk group. But with
+this experiment one of our main goals is to identify a level of exposure
+heterogeneity in an HIV population that is consistent with some frailty
+VE results (e.g. either the \~0% VE in HVTN 702 or the waning PE in the
+AMP bnAB trials).
 
-Now, to do that we have to set target stats for the calibration. I first thought that we needed to set target stats for the placebo and vaccine arms separately. i.e. We first calibrate the model to the placebo arms, using incidence as the single target stat, and we vary only the `lambda` parameter. We get a value for `lambda` from the placebo calibrations that we then *set* for the vaccine calibrations, and in the vaccine calibrations we calibrate to the `risk multiplier` and the `initial conditions` (i.e., the %s of the population that are high and low risk, specifically.)
+Now, to do that we have to set target stats for the calibration. I first
+thought that we needed to set target stats for the placebo and vaccine
+arms separately. i.e. We first calibrate the model to the placebo arms,
+using incidence as the single target stat, and we vary only the `lambda`
+parameter. We get a value for `lambda` from the placebo calibrations
+that we then *set* for the vaccine calibrations, and in the vaccine
+calibrations we calibrate to the `risk multiplier` and the `initial
+conditions` (i.e., the %s of the population that are high and low risk,
+specifically.)
 
-But, now I am thinking that we just do a rough first calibration of `lambda` to the placebo arm, then go straight to the parameter exploration on exposure heterogeneity and `epsilon` with VE as the target stat. The question then is, What parameter value combinations of `risk`, `high risk subgroup frequency`, and `epsilon` are consistent with some output value of VE.
+But, now I am thinking that we just do a rough first calibration of
+`lambda` to the placebo arm, then go straight to the parameter
+exploration on exposure heterogeneity and `epsilon` with VE as the
+target stat. The question then is, What parameter value combinations of
+`risk`, `high risk subgroup frequency`, and `epsilon` are consistent
+with some output value of VE.
 
 ### Target stat
 
 So first specify the target stat.
 
-```{r target.stats, eval=FALSE, include=TRUE}
-
+``` r
 time <- c(180,360,540,720,900,1080)  # every 6 months for 3 years
 placebo.incidence <- rep(0.3, 6)    # flat incidence of 3.5% per 100 person years; adjust accordingly
 VE.target <- rep(0.3, 6)
@@ -394,10 +522,10 @@ target.stats <- data.frame(time, placebo.incidence, VE.target)
 
 ### Calibration input model
 
-Set up the function to wrap the EpiModel functions and make the incidence output file.  
+Set up the function to wrap the EpiModel functions and make the
+incidence output file.
 
-```{r easyABC.input.model, eval=FALSE, include=TRUE}
-
+``` r
 f <- function(x) {
   param <- param.dcm(beta = 0.004, 
                      c = 90/365,
@@ -435,10 +563,13 @@ f <- function(x) {
 
 ### Specify priors for parameters (or initial conditions)
 
-The `beta` and `c` parameters are the transmission rate per contact and the contact rate, respectively. For now we keep these together in the `lambda` parameter, due to non-identifiability. Below we just set priors for `lambda`. We also will want to set priors for some of the initial conditions eventually. 
+The `beta` and `c` parameters are the transmission rate per contact and
+the contact rate, respectively. For now we keep these together in the
+`lambda` parameter, due to non-identifiability. Below we just set priors
+for `lambda`. We also will want to set priors for some of the initial
+conditions eventually.
 
-```{r priors, eval=FALSE, include=TRUE}
-
+``` r
 priors  <- list(#c("unif", 0.003, 0.008),      # beta
                 #c("unif", 60/365, 120/365))    # c 
                 #c("unif", 0.000005, 0.0001))  # lambda
@@ -446,35 +577,16 @@ priors  <- list(#c("unif", 0.003, 0.008),      # beta
                 #c("unif", 1, 20))            # risk multiplier
 ```
 
-
-```{r eval=FALSE, include=FALSE}
-
-fit.seq <- ABC_sequential(method = "Lenormand",
-                       model = f,
-                       prior = priors,
-                       summary_stat_target = target.stats$placebo.incidence,
-                       nb_simul = 10,
-                       p_acc = 0.10,
-                       alpha = 0.5,
-                       progress_bar = TRUE)
-
-```
-
-
-```{r eval=FALSE, include=TRUE}
-
+``` r
 fit.rej <- ABC_rejection(model = f,
                      prior = priors,
                      nb_simul = 1000,
                      summary_stat_target = target.stats$placebo.incidence,
                      tol = 0.25,
                      progress_bar = TRUE)
-
 ```
 
-
-```{r eval=FALSE, include=TRUE}
-
+``` r
 par(mfrow = c(1, 2))
 
 fit <- fit.rej
@@ -502,8 +614,7 @@ Other examples from Sam
 
 ### Use the mean of the parameters for model selection
 
-```{r eval=FALSE, include=TRUE}
-
+``` r
 ms <- colMeans(fit$param)
 param <- param.dcm(tau = ms[1], c = ms[2], D = 7)
 init <- init.dcm(s.num = 9999, i.num = 1, si.flow = 0, is.flow = 0)
@@ -526,4 +637,3 @@ arrows(myDat$time, myDat$uci, myDat$time, myDat$lci,
        col = "grey", len = 0.025, angle = 90, code = 3)
 points(myDat$time, myDat$sampPrev, col = "black", pch = 16, cex = 1)
 ```
-
