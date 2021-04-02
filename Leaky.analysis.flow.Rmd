@@ -231,6 +231,7 @@ mod <- mod.manipulate(mod)
 ### Model plots  
 
 First let's show the cumulative infections in a (placebo) population with no exposure heterogeneity, over the course of a standard 3 year trial. The population size is 10000. Next let's show add cumulative infections in another (placebo) population, this one with exposure heterogeneity. This exposure heterogeneity is set (first pass, qualitatively calibrated) to include 10% high risk (n=1000), with 10x risk multiplier (not specifying whether this risk is elevated due to individual contact rate, the per-contact transmission probability, or the prevalence of viremia in the contacts of the high risk individuals).  
+ 
 ```{r}
 
 par(mfrow = c(1, 2))

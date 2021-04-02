@@ -6,11 +6,170 @@ Josh Herbeck
 ``` r
 library(deSolve)
 library(tidyverse)
+<<<<<<< HEAD
 library(EpiModel)
+=======
+```
+
+    ## ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.0 ──
+
+    ## ✓ ggplot2 3.3.2     ✓ purrr   0.3.4
+    ## ✓ tibble  3.0.4     ✓ dplyr   1.0.2
+    ## ✓ tidyr   1.1.2     ✓ stringr 1.4.0
+    ## ✓ readr   1.4.0     ✓ forcats 0.5.0
+
+    ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+    ## x dplyr::filter() masks stats::filter()
+    ## x dplyr::lag()    masks stats::lag()
+
+``` r
+library(EpiModel)
+```
+
+    ## Loading required package: networkDynamic
+
+    ## Loading required package: network
+
+    ## network: Classes for Relational Data
+    ## Version 1.16.1 created on 2020-10-06.
+    ## copyright (c) 2005, Carter T. Butts, University of California-Irvine
+    ##                     Mark S. Handcock, University of California -- Los Angeles
+    ##                     David R. Hunter, Penn State University
+    ##                     Martina Morris, University of Washington
+    ##                     Skye Bender-deMoll, University of Washington
+    ##  For citation information, type citation("network").
+    ##  Type help("network-package") to get started.
+
+    ## 
+    ## networkDynamic: version 0.10.1, created on 2020-01-16
+    ## Copyright (c) 2020, Carter T. Butts, University of California -- Irvine
+    ##                     Ayn Leslie-Cook, University of Washington
+    ##                     Pavel N. Krivitsky, University of Wollongong
+    ##                     Skye Bender-deMoll, University of Washington
+    ##                     with contributions from
+    ##                     Zack Almquist, University of California -- Irvine
+    ##                     David R. Hunter, Penn State University
+    ##                     Li Wang
+    ##                     Kirk Li, University of Washington
+    ##                     Steven M. Goodreau, University of Washington
+    ##                     Jeffrey Horner
+    ##                     Martina Morris, University of Washington
+    ## Based on "statnet" project software (statnet.org).
+    ## For license and citation information see statnet.org/attribution
+    ## or type citation("networkDynamic").
+
+    ## Loading required package: tergm
+
+    ## Loading required package: ergm
+
+    ## 
+    ## ergm: version 3.11.0, created on 2020-10-14
+    ## Copyright (c) 2020, Mark S. Handcock, University of California -- Los Angeles
+    ##                     David R. Hunter, Penn State University
+    ##                     Carter T. Butts, University of California -- Irvine
+    ##                     Steven M. Goodreau, University of Washington
+    ##                     Pavel N. Krivitsky, UNSW Sydney
+    ##                     Martina Morris, University of Washington
+    ##                     with contributions from
+    ##                     Li Wang
+    ##                     Kirk Li, University of Washington
+    ##                     Skye Bender-deMoll, University of Washington
+    ##                     Chad Klumb
+    ##                     Michał Bojanowski, Kozminski University
+    ##                     Ben Bolker
+    ## Based on "statnet" project software (statnet.org).
+    ## For license and citation information see statnet.org/attribution
+    ## or type citation("ergm").
+
+    ## NOTE: Versions before 3.6.1 had a bug in the implementation of the bd()
+    ## constraint which distorted the sampled distribution somewhat. In
+    ## addition, Sampson's Monks datasets had mislabeled vertices. See the
+    ## NEWS and the documentation for more details.
+
+    ## NOTE: Some common term arguments pertaining to vertex attribute and
+    ## level selection have changed in 3.10.0. See terms help for more
+    ## details. Use 'options(ergm.term=list(version="3.9.4"))' to use old
+    ## behavior.
+
+    ## 
+    ## tergm: version 3.7.0, created on 2020-10-15
+    ## Copyright (c) 2020, Pavel N. Krivitsky, UNSW Sydney
+    ##                     Mark S. Handcock, University of California -- Los Angeles
+    ##                     with contributions from
+    ##                     David R. Hunter, Penn State University
+    ##                     Steven M. Goodreau, University of Washington
+    ##                     Martina Morris, University of Washington
+    ##                     Nicole Bohme Carnegie, New York University
+    ##                     Carter T. Butts, University of California -- Irvine
+    ##                     Ayn Leslie-Cook, University of Washington
+    ##                     Skye Bender-deMoll
+    ##                     Li Wang
+    ##                     Kirk Li, University of Washington
+    ##                     Chad Klumb
+    ## Based on "statnet" project software (statnet.org).
+    ## For license and citation information see statnet.org/attribution
+    ## or type citation("tergm").
+
+    ## Loading required package: tergmLite
+
+    ## EpiModel NOTE: EpiModel 2.0 implements significant changes to the
+    ## EpiModel application programming interface (API), which may require
+    ## updates to model code written under EpiModel 1.x. See
+    ## https://epimodel.org/ for migration guidance.
+
+``` r
+>>>>>>> 60120468d304f9cb1a15abb185ee84b0ac989ebf
 library(survival)
 library(EasyABC)
 ```
 
+<<<<<<< HEAD
+=======
+    ## Loading required package: abc
+
+    ## Loading required package: abc.data
+
+    ## Loading required package: nnet
+
+    ## Loading required package: quantreg
+
+    ## Loading required package: SparseM
+
+    ## 
+    ## Attaching package: 'SparseM'
+
+    ## The following object is masked from 'package:base':
+    ## 
+    ##     backsolve
+
+    ## 
+    ## Attaching package: 'quantreg'
+
+    ## The following object is masked from 'package:survival':
+    ## 
+    ##     untangle.specials
+
+    ## Loading required package: MASS
+
+    ## 
+    ## Attaching package: 'MASS'
+
+    ## The following object is masked from 'package:dplyr':
+    ## 
+    ##     select
+
+    ## Loading required package: locfit
+
+    ## locfit 1.5-9.4    2020-03-24
+
+    ## 
+    ## Attaching package: 'locfit'
+
+    ## The following object is masked from 'package:purrr':
+    ## 
+    ##     none
+
+>>>>>>> 60120468d304f9cb1a15abb185ee84b0ac989ebf
 ### Using models to assess the impact of vaccine leakiness on trial vaccine efficacy measures.
 
 It is hypothesized that exposure heterogeneity (i.e. infection risk
@@ -309,6 +468,7 @@ mod <- mod.manipulate(mod)
 
 First let’s show the cumulative infections in a (placebo) population
 with no exposure heterogeneity, over the course of a standard 3 year
+<<<<<<< HEAD
 trial. The population size is 10000. Next let’s show add cumulative
 infections in another (placebo) population, this one with exposure
 heterogeneity. This exposure heterogeneity is set (first pass,
@@ -320,6 +480,11 @@ the prevalence of viremia in the contacts of the high risk individuals).
 ``` r
 par(mfrow = c(1, 2))
 
+=======
+trial. The population size is 10000.
+
+``` r
+>>>>>>> 60120468d304f9cb1a15abb185ee84b0ac989ebf
 plot(mod, y = c("Ip"), 
      alpha = 0.8, 
      main = "Cumulative infections",
@@ -328,6 +493,22 @@ plot(mod, y = c("Ip"),
      xlab = "days",
      col = c("blue"))
 legend("bottomright", legend = c("homogeneous risk"), col = c("blue"), lwd = 2, cex = 0.9, bty = "n")
+<<<<<<< HEAD
+=======
+```
+
+![](Leaky.analysis.flow_files/figure-gfm/unnamed-chunk-1-1.png)<!-- -->
+
+Next let’s show add cumulative infections in another (placebo)
+population, this one with exposure heterogeneity. This exposure
+heterogeneity is set (first pass, qualitatively calibrated) to include
+10% high risk (n=1000), with 10x risk multiplier (not specifying whether
+this risk is elevated due to individual contact rate, the per-contact
+transmission probability, or the prevalence of viremia in the contacts
+of the high risk individuals).
+
+``` r
+>>>>>>> 60120468d304f9cb1a15abb185ee84b0ac989ebf
 plot(mod, y = c("Ip", "total.Iph.Ipm.Ipl"), 
      alpha = 0.8, 
      main = "Cumulative infections",
@@ -338,12 +519,20 @@ plot(mod, y = c("Ip", "total.Iph.Ipm.Ipl"),
 legend("bottomright", legend = c("homogeneous risk", "heterogeneous risk"), col = c("blue", "red"), lwd = 2, cex = 0.9, bty = "n")
 ```
 
+<<<<<<< HEAD
 ![](Leaky.analysis.flow_files/figure-gfm/unnamed-chunk-1-1.png)<!-- -->
+=======
+![](Leaky.analysis.flow_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
+>>>>>>> 60120468d304f9cb1a15abb185ee84b0ac989ebf
 
 Let’s just plot incidence in these two populations.
 
 ``` r
 #mod <- mod.manipulate(mod)
+<<<<<<< HEAD
+=======
+
+>>>>>>> 60120468d304f9cb1a15abb185ee84b0ac989ebf
 par(mfrow = c(1, 2))
 
 plot(mod, y=c("cumul.rate.Placebo", "cumul.rate.Placebo.het"),
@@ -367,7 +556,11 @@ plot(mod, y=c("rate.Placebo", "rate.Placebo.het"),
 legend("bottomright", legend = c("homogen. risk", "heterogen. risk"), col = c("blue", "red"), lwd = 2, cex = 0.9, bty = "n")
 ```
 
+<<<<<<< HEAD
 ![](Leaky.analysis.flow_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
+=======
+![](Leaky.analysis.flow_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
+>>>>>>> 60120468d304f9cb1a15abb185ee84b0ac989ebf
 
 ``` r
 par(mfrow=c(1,1))
@@ -390,7 +583,11 @@ plot(mod, y=c("cumul.rate.Placebo", "cumul.rate.Vaccine"),
 legend("bottomright", legend = c("placebo", "vaccine"), col = c("blue", "green"), lwd = 2, cex = 0.9, bty = "n")
 ```
 
+<<<<<<< HEAD
 ![](Leaky.analysis.flow_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
+=======
+![](Leaky.analysis.flow_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+>>>>>>> 60120468d304f9cb1a15abb185ee84b0ac989ebf
 
 Vaccine now in the heterogeneous risk population, added to the above
 plot
@@ -409,7 +606,11 @@ plot(mod, y=c("cumul.rate.Placebo", "cumul.rate.Vaccine", "cumul.rate.Placebo.he
 legend("bottomright", legend = c("placebo, homogeneous risk", "vaccine, homogeneous risk", "placebo, heterogeneous risk", "vaccine, heterogeneous risk"), col = c("blue", "green", "red", "orange"), lwd = 2, cex = 0.9, bty = "n")
 ```
 
+<<<<<<< HEAD
 ![](Leaky.analysis.flow_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+=======
+![](Leaky.analysis.flow_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+>>>>>>> 60120468d304f9cb1a15abb185ee84b0ac989ebf
 
 Instantaneous incidence / hazard, for the same comparison
 
@@ -427,7 +628,11 @@ plot(mod, y=c("rate.Placebo", "rate.Vaccine"),
 legend("bottomright", legend = c("placebo", "vaccine"), col = c("blue", "green"), lwd = 2, cex = 0.9, bty = "n")
 ```
 
+<<<<<<< HEAD
 ![](Leaky.analysis.flow_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+=======
+![](Leaky.analysis.flow_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
+>>>>>>> 60120468d304f9cb1a15abb185ee84b0ac989ebf
 
 Vaccine now in the heterogeneous risk
 
@@ -445,7 +650,11 @@ plot(mod, y=c("rate.Placebo", "rate.Vaccine", "rate.Placebo.het", "rate.Vaccine.
 legend("bottomright", legend = c("placebo, homogeneous risk", "vaccine, homogeneous risk", "placebo, heterogeneous risk", "vaccine, heterogeneous risk"), col = c("blue", "green", "red", "orange"), lwd = 2, cex = 0.9, bty = "n")
 ```
 
+<<<<<<< HEAD
 ![](Leaky.analysis.flow_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
+=======
+![](Leaky.analysis.flow_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+>>>>>>> 60120468d304f9cb1a15abb185ee84b0ac989ebf
 
 Now we can move to vaccine efficacy estimates. We use hazard
 (instantaneous incidence) rather than cumulative incidence.
@@ -461,7 +670,11 @@ plot(mod, y=c("VE1.inst", "VE2.inst"),
 legend("topright", legend = c("VE, homogeneous risk", "VE, heterogeneous risk"), col = c("blue", "red"), lwd = 2, cex = 0.9, bty = "n")
 ```
 
+<<<<<<< HEAD
 ![](Leaky.analysis.flow_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+=======
+![](Leaky.analysis.flow_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+>>>>>>> 60120468d304f9cb1a15abb185ee84b0ac989ebf
 
 This simple example shows that exposure heterogeneity in a simplified
 HIV vaccine trial can result in waning *realized* vaccine efficacy, even
