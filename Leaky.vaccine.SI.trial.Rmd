@@ -175,6 +175,7 @@ init <- init.dcm(Sp = 5000, Ip = 0,
 control <- control.dcm(nsteps = 365*3, new.mod = si_ode)
 mod <- dcm(param, init, control)
 mod
+
 ```
 
 ### Data manipulation; VE estimates  
@@ -302,7 +303,7 @@ mod <- mutate_epi(mod, rate.Placebo.het = (total.SIph.SIpm.SIpl.flow/total.Sph.S
 
 mod <- mutate_epi(mod, VE.inst = 1 - rate.Vaccine.het/rate.Placebo.het)
 
-return(out)
+return(mod)
 }
 ```
 
@@ -320,7 +321,6 @@ f <- function(x) {
                      #lambda = 0.000096,
                      lambda = 8e-06,
                      epsilon = x[1]) 
-                     #epsilon = x[1],
                      #risk = 10)
                      #risk = x[2])
   init <- init.dcm(Sp = 5000, Ip = 0,
@@ -337,10 +337,11 @@ f <- function(x) {
   control <- control.dcm(nsteps = 365*3, new.mod = si_ode)
   mod <- dcm(param, init, control)
   
-  mod <- mutate_epi(mod, rate.Placebo = (SIp.flow/Sp)*365*100) #Incidence, placebo
+  #mod <- mutate_epi(mod, rate.Placebo = (SIp.flow/Sp)*365*100) #Incidence, placebo
   #mod <- mutate_epi(mod, rate.Placebo.het = (SIp.flow/Sp)*365*100) #Incidence, placebo
   
-  sim.ve <- VE.from.sim(mod)
+  #sim.ve <- VE.from.sim(mod)
+  sim.ve <- mod.manipulate(mod)
   sim.ve <- as.data.frame(sim.ve)
   matchedTimes <- sim.ve$time %in% target.stats$time
   out <- sim.ve$VE.inst[matchedTimes]
