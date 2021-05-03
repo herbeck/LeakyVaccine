@@ -1,6 +1,6 @@
 ## Allen Roberts
 ## April 2021
-## Investigate waning estiamted vaccine efficacy under different levels of heterogeneity and initial conditions
+## Investigate waning estimated vaccine efficacy under different levels of heterogeneity and initial conditions
 
 rm(list = ls())
 
