@@ -3,43 +3,264 @@ library(shiny)
 library(ggplot2)
 library(plotly)
 
-source("ve_sim.R")
+library(deSolve)
+library(tidyverse)
+library(EpiModel)
+library(survival)
+library(EasyABC)
 
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# Server code
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-server <- function(input,output) {
+#------------------------------------------------------------------------------
+# Right now this includes just two vaccine trial populations, each with a 
+# vaccine arm and a placebo arm. One population has homogeneous exposure / risk
+# of infection; the other population includes exposure heterogeneity, and this 
+# heterogeneity is the same in both trial arms.
+#------------------------------------------------------------------------------
+si_ode <- function(times, init, param){
+  with(as.list(c(init, param)), {
+    
+    # Flows
+    # the number of people moving from S to I at each time step
+    #Susceptible, Infected, placebo
+    SIp.flow <- lambda*Sp
+    SIv.flow <- lambda*(1-epsilon)*Sv
+    
+    #Susceptible, Infected, placebo, high, medium, low
+    SIph.flow <- risk*lambda*Sph
+    SIpm.flow <- lambda*Spl
+    #SIpl.flow <- 0*lambda*Spl  #zero risk in the low risk group
+    SIpl.flow <- (1/risk)*lambda*Spl  #inverse risk multiplier for low risk group
+    
+    #Susceptible, Infected, vaccine, high, medium, low
+    SIvh.flow <- risk*lambda*(1-epsilon)*Svh
+    SIvm.flow <- lambda*(1-epsilon)*Spl
+    #SIvl.flow <- 0*lambda*(1-epsilon)*Svl  #zero risk in the low risk group 
+    SIvl.flow <- (1/risk)*lambda*(1-epsilon)*Svl  #inverse risk 
+    
+    # ODEs
+    # placebo; homogeneous risk
+    dSp <- -SIp.flow
+    dIp <- SIp.flow  #lambda*Sp
+    
+    # vaccine; homogeneous risk
+    dSv <- -SIv.flow
+    dIv <- SIv.flow  #lambda*epsilon*Sv
+    
+    # placebo; heterogeneous risk
+    dSph <- -SIph.flow
+    dIph <- SIph.flow  #risk*lambda*Sph
+    dSpm <- -SIpm.flow
+    dIpm <- SIpm.flow  #lambda*Spm
+    dSpl <- -SIpl.flow
+    dIpl <- SIpl.flow  #0*lambda*Spl
+    
+    # vaccine; heterogeneous risk
+    dSvh <- -SIvh.flow
+    dIvh <- SIvh.flow  #risk*lambda*(1-epsilon)*Svh
+    dSvm <- -SIvm.flow
+    dIvm <- SIvm.flow  #lambda*Svm
+    dSvl <- -SIvl.flow
+    dIvl <- SIvl.flow  #0*lambda*(1-epsilon)*Svl
+    
+    #Output
+    list(c(dSp,dIp,
+           dSv,dIv,
+           dSph,dIph,
+           dSpm,dIpm,
+           dSpl,dIpl,
+           dSvh,dIvh,
+           dSvm,dIvm,
+           dSvl,dIvl,
+           SIp.flow,SIv.flow,
+           SIph.flow,SIpm.flow,SIpl.flow,
+           SIvh.flow,SIvm.flow,SIvl.flow))
+  })
+}
+
+#------------------------------------------------------------------------------
+# This function just takes the model output (a `mod` file) and uses the data to 
+# create other data (e.g. incidence and VE estimates) for plotting.
+#------------------------------------------------------------------------------
+mod.manipulate <- function(mod){
+  
+  mod <- mutate_epi(mod, total.Svh.Svm.Svl = Svh + Svm + Svl) #all susceptible in heterogeneous risk vaccine pop
+  mod <- mutate_epi(mod, total.Sph.Spm.Spl = Sph + Spm + Spl) #all susceptible in heterogeneous risk placebo pop
+  mod <- mutate_epi(mod, total.Ivh.Ivm.Ivl = Ivh + Ivm + Ivl) #all infected in heterogeneous risk vaccine pop
+  mod <- mutate_epi(mod, total.Iph.Ipm.Ipl = Iph + Ipm + Ipl) #all infected in heterogeneous risk placebo pop
+  mod <- mutate_epi(mod, total.SIvh.SIvm.SIvl.flow = SIvh.flow + SIvm.flow + SIvl.flow) #all infections per day in heterogeneous risk vaccine pop
+  mod <- mutate_epi(mod, total.SIph.SIpm.SIpl.flow = SIph.flow + SIpm.flow + SIpl.flow) #all infections in heterogeneous risk placebo pop
+  
+  #Instantaneous ncidence (hazard) estimates, per 100 person years
+  #Instantaneous incidence / hazard
+  mod <- mutate_epi(mod, rate.Vaccine = (SIv.flow/Sv)*365*100)
+  mod <- mutate_epi(mod, rate.Placebo = (SIp.flow/Sp)*365*100)
+  mod <- mutate_epi(mod, rate.Vaccine.het = (total.SIvh.SIvm.SIvl.flow/total.Svh.Svm.Svl)*365*100)
+  mod <- mutate_epi(mod, rate.Placebo.het = (total.SIph.SIpm.SIpl.flow/total.Sph.Spm.Spl)*365*100)
+  
+  #Cumulative incidence
+  mod <- mutate_epi(mod, cumul.Sv = cumsum(Sv))
+  mod <- mutate_epi(mod, cumul.Sp = cumsum(Sp))
+  mod <- mutate_epi(mod, cumul.Svh.Svm.Svl = cumsum(total.Svh.Svm.Svl))
+  mod <- mutate_epi(mod, cumul.Sph.Spm.Spl = cumsum(total.Sph.Spm.Spl))
+  mod <- mutate_epi(mod, cumul.rate.Vaccine = (Iv/cumul.Sv)*365*100)
+  mod <- mutate_epi(mod, cumul.rate.Placebo = (Ip/cumul.Sp)*365*100)
+  mod <- mutate_epi(mod, cumul.rate.Vaccine.het = (total.Ivh.Ivm.Ivl/cumul.Svh.Svm.Svl)*365*100)
+  mod <- mutate_epi(mod, cumul.rate.Placebo.het = (total.Iph.Ipm.Ipl/cumul.Sph.Spm.Spl)*365*100)
+  
+  #Vaccine efficacy (VE) estimates
+  #VE <- 1 - Relative Risk; this is VE for hazard
+  mod <- mutate_epi(mod, VE1.inst = 1 - rate.Vaccine/rate.Placebo)
+  mod <- mutate_epi(mod, VE2.inst = 1 - rate.Vaccine.het/rate.Placebo.het)
+  
+  #VE <- 1 - Relative Risk; this is VE from cumulative incidence
+  mod <- mutate_epi(mod, VE1.cumul = 1 - cumul.rate.Vaccine/cumul.rate.Placebo)
+  mod <- mutate_epi(mod, VE2.cumul = 1 - cumul.rate.Vaccine.het/cumul.rate.Placebo.het)
+  
+  return(mod)
+}
+
+#------------------------------------------------------------------------------
+# Initial parameter settings
+#------------------------------------------------------------------------------
+# beta <- 0.004   #transmission rate (per contact)
+# c <- 90/365    #contact rate (contacts per day)
+# prev <- 0.10    #needs some consideration
+# #prev <- 0.01
+# lambda <- beta*c*prev
+# #lambda <- 0.000008398975
+# epsilon <- 0.30  #per contact vaccine efficacy
+# risk <- 10.0   #risk multiplier
+
+
+runSim <- function(param) {
+  
+  param <- param.dcm(lambda = param$beta * param$contactRate * param$prev, 
+                     epsilon = param$epsilon, 
+                     risk = param$risk)
+  init <- init.dcm(Sp = 10000, Ip = 0,
+                   Sv = 10000, Iv = 0,
+                   Sph = 1000, Iph = 0,    #placebo, high risk
+                   Spm = 7000, Ipm = 0,    #placebo, medium risk
+                   Spl = 2500, Ipl = 0,    #placebo, low risk
+                   Svh = 1000, Ivh = 0,    #vaccine, high risk
+                   Svm = 7000, Ivm = 0,    #vaccine, medium risk
+                   Svl = 2500, Ivl = 0,    #vaccine, low risk
+                   SIp.flow = 0, SIv.flow = 0, 
+                   SIph.flow = 0, SIpm.flow = 0, SIpl.flow = 0,
+                   SIvh.flow = 0, SIvm.flow = 0, SIvl.flow = 0)
+  
+  control <- control.dcm(nsteps = 365*3, new.mod = si_ode)
+  mod <- dcm(param, init, control)
+  #mod
+  
+  mod <- mod.manipulate(mod)
+  return (mod)
+}
+
+server <- function(input, output) {
+  
   reac <- reactiveValues()
   
   observe({reac$beta = input$beta})
   observe({reac$contactRate = input$contactRate})
   observe({reac$prev = input$prev})
   observe({reac$epsilon = input$epsilon})
-  observe({reac$size = input$size})
-  observe({reac$inc = input$inc})
-  observe({reac$nsteps = input$nsteps})
-  observe({reac$sampleSize = input$sampleSize})
+  observe({reac$risk = input$risk}) 
   
-  #browser()
+
+  output$plot1 <- renderPlot({
+    
+      mod <- runSim(reac)
+    
+      plot(mod, y = c("Ip", "total.Iph.Ipm.Ipl"), 
+       alpha = 0.8, 
+       main = "Cumulative infections",
+       legend = FALSE,
+       ylab = "infected",
+       xlab = "days",
+       col = c("blue", "red"))
+    
+  legend("bottomright", legend = c("homogeneous risk", "heterogeneous risk"), 
+         col = c("blue", "red"), lwd = 2, cex = 0.9, bty = "n")
+  })
   
-  output$plot1  <-  renderPlotly(runSimByPropHigh(reac))
-  output$plot2  <-  renderPlotly(runSimByInc(reac))
-  output$plot3  <-  renderPlotly(runSimByEpsilon(reac))
+  output$plot2 <- renderPlot({
+    
+    mod <- runSim(reac)
+    
+    plot(mod, y=c("rate.Placebo", "rate.Placebo.het"),
+         alpha = 0.8,
+         ylim = c(0, 4.5),
+         main = "Hazard",
+         xlab = "days",
+         ylab = "infections per 100 person yrs",
+         legend = FALSE,
+         col = c("blue", "red"))
+    legend("bottomright", legend = c("homogen. risk", "heterogen. risk"), col = c("blue", "red"), lwd = 2, cex = 0.9, bty = "n")
+    
+    par(mfrow=c(1,1))
+  })
   
+  #Vaccine now in the heterogeneous risk population, added to the above plot
+  
+  
+  output$plot3 <- renderPlot({
+    
+    mod <- runSim(reac)
+    
+    #mod <- mod.manipulate(mod)
+      
+    plot(mod, y=c("cumul.rate.Placebo", "cumul.rate.Vaccine"),
+         alpha = 0.8,
+         ylim = c(0, 4.5),
+         main = "Cumulative incidence",
+         xlab = "days",
+         ylab = "infections per 100 person yrs",
+         legend = FALSE,
+         col = c("blue", "green"))
+    legend("bottomright", legend = c("placebo", "vaccine"), col = c("blue", "green"), lwd = 2, cex = 0.9, bty = "n")
+  })
+  
+  #Instantaneous incidence / hazard, for the same comparison
+  
+  output$plot4 <- renderPlot({
+    mod <- runSim(reac)
+
+    plot(mod, y=c("rate.Placebo", "rate.Vaccine"),
+         alpha = 0.8,
+         ylim = c(0, 4.5),
+         main = "Hazard",
+         xlab = "days",
+         ylab = "infections per 100 person yrs",
+         legend = FALSE,
+         col = c("blue", "green"))
+    legend("bottomright", legend = c("placebo", "vaccine"), col = c("blue", "green"), lwd = 2, cex = 0.9, bty = "n")
+  })
+  
+  #Vaccine now in the heterogeneous risk
+  
+  output$plot5 <- renderPlot({
+    mod <- runSim(reac)
+    plot(mod, y=c("rate.Placebo", "rate.Vaccine", "rate.Placebo.het", "rate.Vaccine.het"),
+         alpha = 0.8,
+         ylim = c(0, 4.5),
+         main = "Hazard",
+         xlab = "days",
+         ylab = "infections per 100 person yrs",
+         legend = FALSE,
+         col = c("blue", "green", "red", "orange"))
+    legend("bottomright", legend = c("placebo, homogeneous risk", "vaccine, homogeneous risk", 
+          "placebo, heterogeneous risk", "vaccine, heterogeneous risk"), 
+            col = c("blue", "green", "red", "orange"), lwd = 2, cex = 0.9, bty = "n")
+  })
   
 }
 
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# UI layout ----
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-ui <- fluidPage(
- 
+ui <- fluidPage (
   tags$head(
     tags$link(rel = "stylesheet", type = "text/css", href = "styles.css")
   ),
   
   titlePanel(htmlTemplate("header.html")),
-
   sidebarLayout(
     sidebarPanel(  
       sliderInput('beta', 'Beta:', min=0, max=0.01,
@@ -50,28 +271,26 @@ ui <- fluidPage(
                   value=0.1, step=0.1, round=FALSE),
       sliderInput('epsilon', 'epsilon:', min=0, max=1,
                   value=0.3, step=0.1, round=FALSE),
-      sliderInput('size', 'sample size:', min=0, max=10000,
-                  value=5000, step=500, round=FALSE),
-      sliderInput('inc', 'inc:', min=0, max=1,
-                  value=0.04, step=0.01, round=-3),
-      sliderInput('sampleSize', 'Sample size:', min=0, max=10000,
-                  value=5000, step=500, round=FALSE),
-      sliderInput('nsteps', 'nsteps:', min=0, max=3650,
-                  value=365*3, step=100, round=FALSE),
+      sliderInput('risk', 'risk:', min=0, max=20,
+                  value=10, step=1, round=FALSE)
+      
     ),
     
     mainPanel(
-      
-      plotlyOutput("plot1"),
-      plotlyOutput("plot2"),
-      plotlyOutput("plot3")
-      
-    ),
+      fluidRow(
+        column(6, plotOutput("plot1")),
+        column(6, plotOutput("plot2"))),
+      fluidRow(
+        column(6, plotOutput("plot3")),
+        column(6, plotOutput("plot4"))),
+      plotOutput("plot5")
+      #plotOutput("plot6")
+    )
   ),
   titlePanel(htmlTemplate("template.html"))
-             
   
 )
+
 
 #Run ----
 shinyApp(ui = ui, server=server)
