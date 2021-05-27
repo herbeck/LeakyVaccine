@@ -15,7 +15,7 @@ server <- function(input,output) {
   observe({reac$contactRate = input$contactRate})
   observe({reac$prev = input$prev})
   observe({reac$epsilon = input$epsilon})
-  observe({reac$size = input$size})
+  #observe({reac$size = input$size})
   observe({reac$inc = input$inc})
   observe({reac$nsteps = input$nsteps})
   observe({reac$sampleSize = input$sampleSize})
@@ -42,21 +42,21 @@ ui <- fluidPage(
 
   sidebarLayout(
     sidebarPanel(  
-      sliderInput('beta', 'Beta:', min=0, max=0.01,
+      sliderInput('beta', 'beta (per contact transmission rate):', min=0, max=0.01,
                   value=0.004, step=0.001, round=-4),
-      sliderInput('contactRate', 'Contacts rate:', min=0, max=1,
+      sliderInput('contactRate', 'contact rate (contacts per day):', min=0, max=1,
                   value=25/365, step=0.01, round=FALSE),
-      sliderInput('prev', 'prev:', min=0, max=1,
+      sliderInput('prev', 'prev (prevalence):', min=0, max=1,
                   value=0.1, step=0.1, round=FALSE),
-      sliderInput('epsilon', 'epsilon:', min=0, max=1,
+      sliderInput('epsilon', 'epsilon (per contact vaccine efficacy):', min=0, max=1,
                   value=0.3, step=0.1, round=FALSE),
-      sliderInput('size', 'sample size:', min=0, max=10000,
+      #sliderInput('size', 'sample size (population size):', min=0, max=10000,
+       #           value=5000, step=500, round=FALSE),
+      sliderInput('inc', 'inc (incidence, per 100 person years:', min=0, max=0.05,
+                  value=0.04, step=0.001, round=-3),
+      sliderInput('sampleSize', 'Sample size (population size):', min=0, max=10000,
                   value=5000, step=500, round=FALSE),
-      sliderInput('inc', 'inc:', min=0, max=1,
-                  value=0.04, step=0.01, round=-3),
-      sliderInput('sampleSize', 'Sample size:', min=0, max=10000,
-                  value=5000, step=500, round=FALSE),
-      sliderInput('nsteps', 'nsteps:', min=0, max=3650,
+      sliderInput('nsteps', 'nsteps (days):', min=0, max=3650,
                   value=365*3, step=100, round=FALSE),
     ),
     
