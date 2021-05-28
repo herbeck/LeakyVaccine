@@ -328,7 +328,7 @@ ui <- navbarPage("LeakyVaccine",
           p("`prev`, which here is population prevalence of unsuppressed VL, varies from 0.15 to 0.35  "),
           p("`epsilon` could be parameterized using the RV144 Thai Trial results: VE = 61% at 12 months, 31% at 42 months, but below we start with 30% and no waning efficacy. A vaccine duration parameter is not needed because we are only modeling a 3 year trial without boosters.  "),
         ),
-        tabPanel("charts", 
+        tabPanel("Josh plots", 
                  sidebarLayout(
                    sidebarPanel(  
                      sliderInput('beta', 'Beta:', min=0, max=0.01,
@@ -354,7 +354,7 @@ ui <- navbarPage("LeakyVaccine",
                              )
                  )
         ),
-        tabPanel("Allen charts", 
+        tabPanel("Allen plots", 
                  sidebarLayout(
                    sidebarPanel(  
                      sliderInput('betaOld', 'Beta:', min=0, max=0.01,
