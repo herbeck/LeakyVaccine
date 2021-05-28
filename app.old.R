@@ -52,12 +52,12 @@ ui <- fluidPage(
                   value=0.3, step=0.1, round=FALSE),
       #sliderInput('size', 'sample size (population size):', min=0, max=10000,
        #           value=5000, step=500, round=FALSE),
-      sliderInput('inc', 'inc (incidence, per 100 person years:', min=0, max=0.05,
+      sliderInput('inc', 'inc (incidence, per 100 person years):', min=0, max=0.05,
                   value=0.04, step=0.001, round=-3),
       sliderInput('sampleSize', 'Sample size (population size):', min=0, max=10000,
                   value=5000, step=500, round=FALSE),
       sliderInput('nsteps', 'nsteps (days):', min=0, max=3650,
-                  value=365*3, step=100, round=FALSE),
+                  value=365*3, step=10, round=FALSE),
     ),
     
     mainPanel(
