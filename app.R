@@ -354,7 +354,7 @@ ui <- navbarPage("LeakyVaccine",
                              )
                  )
         ),
-        tabPanel("Old charts", 
+        tabPanel("Allen charts", 
                  sidebarLayout(
                    sidebarPanel(  
                      sliderInput('betaOld', 'Beta:', min=0, max=0.01,
