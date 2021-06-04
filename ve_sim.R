@@ -1,6 +1,6 @@
 ## Allen Roberts
 ## April 2021
-## Investigate waning estiamted vaccine efficacy under different levels of heterogeneity and initial conditions
+## Investigate waning estimated vaccine efficacy under different levels of heterogeneity and initial conditions
 
 #rm(list = ls())
 
@@ -27,7 +27,7 @@ runSimByPropHigh <- function(param) {
   lambda <- beta*c*prev
   1-exp(-lambda*365)        # Annual risk 
   epsilon <- param$epsilon  # per contact vaccine efficacy
-  n <- param$sampleSize     # Sample size
+  n <- param$sampleSize     # Population (sample) size
   inc <- param$inc          # Overall estimated annual risk to calibrate to
   nsteps <- param$nsteps  
   

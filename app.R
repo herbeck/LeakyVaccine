@@ -328,7 +328,8 @@ ui <- navbarPage("LeakyVaccine",
           p("`prev`, which here is population prevalence of unsuppressed VL, varies from 0.15 to 0.35  "),
           p("`epsilon` could be parameterized using the RV144 Thai Trial results: VE = 61% at 12 months, 31% at 42 months, but below we start with 30% and no waning efficacy. A vaccine duration parameter is not needed because we are only modeling a 3 year trial without boosters.  "),
         ),
-        tabPanel("Initial plots", 
+        
+        tabPanel("Josh plots", 
                  sidebarLayout(
                    sidebarPanel(  
                      sliderInput('beta', 'Beta:', min=0, max=0.01,
@@ -354,10 +355,11 @@ ui <- navbarPage("LeakyVaccine",
                              )
                  )
         ),
+
         tabPanel("Parameter sweeps", 
-                 sidebarLayout(
+                  sidebarLayout(
                    sidebarPanel(  
-                     sliderInput('betaOld', 'Beta:', min=0, max=0.01,
+                     sliderInput('betaOld', 'beta (per contact transmission rate):', min=0, max=0.01,
                                  value=0.004, step=0.001, round=-4),
                      sliderInput('contactRateOld', 'Contact rate:', min=0, max=1,
                                  value=25/365, step=0.01, round=FALSE),
@@ -367,9 +369,9 @@ ui <- navbarPage("LeakyVaccine",
                                  value=0.3, step=0.1, round=FALSE),
                      #sliderInput('sizeOld', 'sample size:', min=0, max=10000,
                                  #value=5000, step=500, round=FALSE),
-                     sliderInput('incOld', 'inc:', min=0, max=1,
+                     sliderInput('incOld', 'inc (cumulative incidence, per 100 person years):', min=0, max=1,
                                  value=0.04, step=0.01, round=-3),
-                     sliderInput('sampleSizeOld', 'Sample size:', min=0, max=10000,
+                     sliderInput('sampleSizeOld', 'sample size (population size):', min=0, max=10000,
                                  value=5000, step=500, round=FALSE),
                      sliderInput('nstepsOld', 'nsteps:', min=0, max=3650,
                                  value=365*3, step=100, round=FALSE),
