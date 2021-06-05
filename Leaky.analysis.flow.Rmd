@@ -252,7 +252,7 @@ plot(mod, y = c("Ip", "total.Iph.Ipm.Ipl"),
 legend("bottomright", legend = c("homogeneous risk", "heterogeneous risk"), col = c("blue", "red"), lwd = 2, cex = 0.9, bty = "n")
 ```
 
-Let's just plot hazard / instantaneous incidence in these two populations.  
+Let's just plot hazard/instantaneous incidence in these two populations.  
 
 ```{r}
 
@@ -266,7 +266,7 @@ plot(mod, y=c("rate.Placebo", "rate.Placebo.het"),
      ylab = "infections per 100 person yrs",
      legend = FALSE,
      col = c("blue", "red"))
-legend("bottomright", legend = c("homogen. risk", "heterogen. risk"), col = c("blue", "red"), lwd = 2, cex = 0.9, bty = "n")
+legend("bottomright", legend = c("homogeneous risk", "heterogeneous risk"), col = c("blue", "red"), lwd = 2, cex = 0.9, bty = "n")
 
 par(mfrow=c(1,1))
 ```

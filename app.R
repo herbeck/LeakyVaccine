@@ -359,6 +359,7 @@ ui <- navbarPage(
                      "</div>")),
           HTML("</div>")
         ),
+        
         tabPanel("Josh plots", 
                  sidebarLayout(
                    sidebarPanel(  
@@ -385,18 +386,19 @@ ui <- navbarPage(
                              )
                  )
         ),
-        tabPanel("Allen plots", 
-                 sidebarLayout(
+
+        tabPanel("Parameter sweeps", 
+                  sidebarLayout(
                    sidebarPanel(  
                      sliderInput('betaOld', 'beta (per contact transmission rate):', min=0, max=0.01,
                                  value=0.004, step=0.001, round=-4),
-                     sliderInput('contactRateOld', 'contact rate (contacts per day):', min=0, max=1,
+                     sliderInput('contactRateOld', 'Contact rate:', min=0, max=1,
                                  value=25/365, step=0.01, round=FALSE),
-                     sliderInput('prevOld', 'prev (prevalence):', min=0, max=1,
+                     sliderInput('prevOld', 'Prevalence of viremia:', min=0, max=1,
                                  value=0.1, step=0.1, round=FALSE),
-                     sliderInput('epsilonOld', 'epsilon (per contact vaccine efficacy):', min=0, max=1,
+                     sliderInput('epsilonOld', 'Epsilon (per-contact vaccine efficacy):', min=0, max=1,
                                  value=0.3, step=0.1, round=FALSE),
-                     #sliderInput('sizeOld', 'sample size (population size):', min=0, max=10000,
+                     #sliderInput('sizeOld', 'sample size:', min=0, max=10000,
                                  #value=5000, step=500, round=FALSE),
                      sliderInput('incOld', 'inc (cumulative incidence, per 100 person years):', min=0, max=1,
                                  value=0.04, step=0.01, round=-3),
