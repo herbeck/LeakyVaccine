@@ -7,7 +7,7 @@
 getIntroContent <- function() {
   return (tabPanel("Introduction",
     HTML("<div class='content'>"),
-    h3("Using models to assess the impact of vaccine leakiness on trial vaccine efficacy measures"),
+    h3("Using models to assess the impact of HIV exposure heterogeneity on trial vaccine efficacy measures"),
     p("It is hypothesized that exposure heterogeneity (i.e. infection risk heterogeneity) can affect efficacy estimation for leaky vaccines (e.g. Halloran et al., 1992; White et al., 2010; O'Hagan et al.,2013; Edlefsen, 2014; Coley et al., 2016; Gomes et al., 2016; Kahn et al., 2018). Our goal is to make a simple deterministic compartmental model to facilitate straightforward simulation-based evaluation of this process within and across populations, in the context of HIV prevention trials or longitudinal studies."),
     HTML("<ol type='1'>"),
     HTML("<li>In acute infection studies it seems like many participants get infected early. What is the magnitude of this effect that might be due to frailty bias?</li>"),
@@ -29,9 +29,9 @@ getModelSetupContent <- function() {
   
   return(tabPanel("Model setup",
            HTML("<div class='content'>"),
-           p(paste("We are modeling a closed population SI deterministic compartmental model meant to simulate a vaccine trial. ", 
-                   "We are not modeling infections from I to S but rather only infections from the outside (non-trial) population, ", 
-                   "with the infection rate based on the population prevalence `prev` (of viremic individuals), the exposure rate ",
+           p(paste("We are modeling a vaccine trial using an SI deterministic compartmental model.", 
+                   "We are not modeling infections from the I to S compartments but rather only infections from the outside (non-trial) population, ", 
+                   "with the infection rate based on the population prevalence `prev` (of viremic individuals), the exposure rate ",         "with the infection rate based on the population prevalence `prev` (of viremic individuals), the exposure rate ",
                    "(serodiscordant sexual contacts per time) `c`, and the transmission rate (per contact) `p`. The per contact ",
                    "effect of vaccination is `epsilon`, and with this iteration of the model `epsilon` is: ")),
            HTML("<ol type='1'><li> not time-varying (the per contact vaccine effect does not decay over time) and</li>  <li>assumes a homogeneous effect (does not vary by mark / viral genotype).</li></ol>"),
@@ -52,7 +52,7 @@ getModelSetupContent <- function() {
            HTML("<li>increased exposure rate (number of contacts)</li>"),
            HTML("<li>increased prevalence of HIV viremia in partners.</li></ol>"),
            HTML("<p>Individual risk of infection can vary for these separately or in combination.</p>"),
-           h4("Basic functions:"),
+           h4("Key for our model functions:"),
            HTML(paste("<div class='code'>", 
                       "<div class='flex'><div class='definition'>sp</div><div>susceptible placebo</div></div>",
                       "<div class='flex'><div class='definition'>Ip</div><div>infected placebo</div></div>",
@@ -79,24 +79,25 @@ getModelSetupContent <- function() {
 getCalibrationContent <- function() {
   tabPanel("Calibration",
            HTML("<div class='content'>"),
-           p("AT this stage we just eyeball-calibrated the incidence to ~3.5% per 100 person years, to be reasonably consistent with HVTN 702 in South Africa. (More quantitative ABC calibration is below.) We used an initial set of transmission parameters for sub-Saharan Africa borrowing from Alain Vandormael (2018):"),
-           p("We used realistic parameter values for the SIR model, based on earlier HIV studies that have been undertaken in the sub-Saharan Africa context. To this extent, we varied `c` within the range of 50 to 120 sexual acts per year based on data collected from serodiscordant couples across eastern and southern African sites. Previous research has shown considerable heterogeneity in the probability of HIV transmission per sexual contact, largely due to factors associated with the viral load level, genital ulcer disease, stage of HIV progression, condom use, circumcision and use of ART. Following a systematic review of this topic by Boily et al., we selected values for `beta` within the range of 0.003–0.008. ... Here, we chose values for `v` within the range of 0.15–0.35, which are slightly conservative, but supported by population-based estimates from the sub-Saharan African context."),
-           HTML(paste("<div class='code'>", 
-                      "<div class='flex'><div class='definition'>c</div><div>varies from 50 to 120 per year</div></div>",
-                      "<div class='flex'><div class='definition'>beta</div><div>varies from 0.003 to 0.008</div></div>",
-                      "<div class='flex'><div class='definition'>prev</div><div>which here is population prevalence of unsuppressed VL, varies from 0.15 to 0.35</div></div>",
-                      "<div class='flex'><div class='definition'>Sv</div><div>could be parameterized using the RV144 Thai Trial results: VE = 61% at 12 months, 31% at 42 months, but below we start with 30% and no waning efficacy. A vaccine duration parameter is not needed because we are only modeling a 3 year trial without boosters.</div></div>",
-                      "</div>")),
+           p("We use calibration in the following steps: 1. calibrate placebo incidence to RV144 (0.035%) At this stage we just eyeball-calibrated the incidence to ~3.5% per 100 person years, to be reasonably consistent with HVTN 702 in South Africa."),
+           p("We used an initial set of transmission parameters for sub-Saharan Africa borrowing from an SIR model from Alain Vandormael (2018): 'We used realistic parameter values for the SIR model, based on earlier HIV studies that have been undertaken in the sub-Saharan Africa context. To this extent, we varied `c` within the range of 50 to 120 sexual acts per year based on data collected from serodiscordant couples across eastern and southern African sites. Previous research has shown considerable heterogeneity in the probability of HIV transmission per sexual contact, largely due to factors associated with the viral load level, genital ulcer disease, stage of HIV progression, condom use, circumcision and use of ART. Following a systematic review of this topic by Boily et al., we selected values for `beta` within the range of 0.003–0.008. ... Here, we chose values for `v` within the range of 0.15–0.35, which are slightly conservative, but supported by population-based estimates from the sub-Saharan African context."),
+           
+          HTML(paste("<div class='code'>", 
+          "<div class='flex'><div class='definition'>c</div><div>varies from 50 to 120 per year</div></div>",
+          "<div class='flex'><div class='definition'>beta</div><div>varies from 0.003 to 0.008</div></div>",
+          "<div class='flex'><div class='definition'>prev</div><div>which here is population prevalence of unsuppressed VL, varies from 0.15 to 0.35</div></div>",
+          "<div class='flex'><div class='definition'>Sv</div><div>could be parameterized using the RV144 Thai Trial results: VE = 61% at 12 months, 31% at 42 months, but below we start with 30% and no waning efficacy. A vaccine duration parameter is not needed because we are only modeling a 3 year trial without boosters.</div></div>",
+          "</div>")),
            HTML("</div>")
   )
 }
 
 
 #------------------------------------------------------------------------------
-# for creating Josh Plot tab content
+# for creating simple Plot tab content
 #------------------------------------------------------------------------------
-getJoshPlotContent <- function() {
-  tabPanel("Josh plots", 
+getSimplePlotContent <- function() {
+  tabPanel("Simple plots", 
            sidebarLayout(
              sidebarPanel(  
                sliderInput('beta', 'Beta:', min=0, max=0.01,

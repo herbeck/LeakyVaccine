@@ -16,6 +16,7 @@ source("sim_fns.R")
 source("sim_plots.R")
 
 
+
 server <- function(input, output, session) {
   
   updateTabsetPanel(session, "page-nav", "Introduction")
@@ -28,7 +29,7 @@ server <- function(input, output, session) {
   observe({reacOld$contactRate = input$contactRateOld})
   observe({reacOld$prev = input$prevOld})
   observe({reacOld$epsilon = input$epsilonOld})
-  observe({reacOld$size = input$sizeOld})
+  #observe({reacOld$size = input$sizeOld})
   observe({reacOld$inc = input$incOld})
   observe({reacOld$nsteps = input$nstepsOld})
   observe({reacOld$sampleSize = input$sampleSizeOld})
@@ -49,13 +50,13 @@ server <- function(input, output, session) {
   observe({reac$epsilon = input$epsilon})
   observe({reac$risk = input$risk}) 
   
-
+  
   createCInfectionPlot(output, reac)
   createPlaceboRiskPlot(output,reac)
   createCIncidencePlot(output, reac)
   createPlaceboVaccinePlot(output,reac)
   createPlaceboVaccineRiskPlot(output,reac)
-
+  
 }
 
 #------------------------------------------------------------------------------
@@ -66,8 +67,7 @@ ui <- navbarPage(
   tags$head(
     tags$link(rel = "stylesheet", type = "text/css", href = "stylesContent.css"),
   ),
-  
-  title ="LeakyVaccine",
+  title ="Leaky vaccines and exposure heterogeneity",
   id = "page-nav",
   theme = shinytheme("cerulean"),
   
@@ -75,10 +75,10 @@ ui <- navbarPage(
   getIntroContent(),
   getModelSetupContent(),
   getCalibrationContent(),
-  getJoshPlotContent(),
+  getSimplePlotContent(),
   getParameterSweepContent()
   #titlePanel(htmlTemplate("template.html"))
-
+  
 )
 
 
