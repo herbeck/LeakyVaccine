@@ -35,3 +35,9 @@
   .flex {
     display: flex;
   }
+  
+  .plotPanel {
+    max-height:calc(100vh - 130px);
+    overflow: auto;
+    
+  }
