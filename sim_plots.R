@@ -101,3 +101,21 @@ createPlaceboVaccineRiskPlot <- function(output, reac) {
            col = c("blue", "green", "red", "orange"), lwd = 2, cex = 0.9, bty = "n")
   })
 }
+
+#------------------------------------------------------------------------------
+# for creating vaccine efficacy plot
+#------------------------------------------------------------------------------
+createVEPlot <- function(output, reac) {
+  output$plot5 <- renderPlot({
+    mod <- runSim(reac)
+    plot(mod, y=c("VE1.inst", "VE2.inst"),
+       alpha = 0.8,
+       main = "Vaccine efficacy",
+       legend = FALSE, 
+       xlab = "days",
+       ylab = "Vaccine efficacy",
+       col = c("blue", "red"))
+    legend("topright", legend = c("VE, homogeneous risk", "VE, heterogeneous risk"), col = c("blue", "red"), lwd = 2, cex = 0.9, bty = "n")
+  })
+  
+}
