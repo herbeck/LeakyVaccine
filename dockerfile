@@ -10,6 +10,7 @@ RUN apt-get install -y libcurl4-gnutls-dev \
 RUN R -q -e "install.packages('plotly')" && \
     R -q -e "install.packages('deSolve',repos='http://cran.rstudio.com/')" && \
     R -q -e "install.packages('tidyverse')" && \
+    R -q -e "install.packages('shinythemes')" && \
     R -q -e "install.packages('EpiModel',repos='http://cran.rstudio.com/')" && \
     R -q -e "install.packages('survival',repos='http://cran.rstudio.com/')" && \
     R -q -e "install.packages('EasyABC',repos='http://cran.rstudio.com/')" && \

@@ -6,7 +6,8 @@
 #------------------------------------------------------------------------------
 getIntroContent <- function() {
   return (tabPanel("Introduction",
-    HTML("<div class='content'>"),
+                   
+    HTML("<div class='mainPanel main'>"),
     h3("Using models to assess the impact of HIV exposure heterogeneity on trial vaccine efficacy measures"),
     p("It is hypothesized that exposure heterogeneity (i.e. infection risk heterogeneity) can affect efficacy estimation for leaky vaccines (e.g. Halloran et al., 1992; White et al., 2010; O'Hagan et al.,2013; Edlefsen, 2014; Coley et al., 2016; Gomes et al., 2016; Kahn et al., 2018). Our goal is to make a simple deterministic compartmental model to facilitate straightforward simulation-based evaluation of this process within and across populations, in the context of HIV prevention trials or longitudinal studies."),
     HTML("<ol type='1'>"),
@@ -17,7 +18,8 @@ getIntroContent <- function() {
     HTML("<li>Continue to raise awareness of this issue to HIV prevention trials, with the ultimate goal of better design and interpretation of efficacy outcomes.</li>"),
     HTML("</ol>"),
     p("From Gomes et al., 2016:  \"This effect is more pronounced in the control group as individuals within it experience higher rates of infection overall. Consequently, the ratio of disease rates in vaccinated over control groups increases, and vaccine efficacy, as measured by simple rate ratios, decreases as the trial progresses. Finally, the magnitude of this effect increases with the intensity of transmission.\"  "),
-    HTML("</div>")
+    HTML("</div>"),
+    titlePanel(htmlTemplate("template.html"))
   ))
 }
 
@@ -28,7 +30,7 @@ getIntroContent <- function() {
 getModelSetupContent <- function() {
   
   return(tabPanel("Model setup",
-           HTML("<div class='content'>"),
+           HTML("<div class='mainPanel main'>"),
            p(paste("We are modeling a vaccine trial using an SI deterministic compartmental model.", 
                    "We are not modeling infections from the I to S compartments but rather only infections from the outside (non-trial) population, ", 
                    "with the infection rate based on the population prevalence `prev` (of viremic individuals), the exposure rate ",         "with the infection rate based on the population prevalence `prev` (of viremic individuals), the exposure rate ",
@@ -66,7 +68,7 @@ getModelSetupContent <- function() {
                       "<div class='flex'><div class='definition'>Ivl</div><div>infected vaccinated low exposure (zero in this instance)</div></div>",
                       "</div><br/>")),
            HTML("</div>"),
-           
+           titlePanel(htmlTemplate("template.html"))
            
   ))
   
@@ -78,7 +80,7 @@ getModelSetupContent <- function() {
 #------------------------------------------------------------------------------
 getCalibrationContent <- function() {
   tabPanel("Calibration",
-           HTML("<div class='content'>"),
+           HTML("<div class='mainPanel main'>"),
            p("We use calibration in the following steps: 1. calibrate placebo incidence to RV144 (0.035%) At this stage we just eyeball-calibrated the incidence to ~3.5% per 100 person years, to be reasonably consistent with HVTN 702 in South Africa."),
            p("We used an initial set of transmission parameters for sub-Saharan Africa borrowing from an SIR model from Alain Vandormael (2018): 'We used realistic parameter values for the SIR model, based on earlier HIV studies that have been undertaken in the sub-Saharan Africa context. To this extent, we varied `c` within the range of 50 to 120 sexual acts per year based on data collected from serodiscordant couples across eastern and southern African sites. Previous research has shown considerable heterogeneity in the probability of HIV transmission per sexual contact, largely due to factors associated with the viral load level, genital ulcer disease, stage of HIV progression, condom use, circumcision and use of ART. Following a systematic review of this topic by Boily et al., we selected values for `beta` within the range of 0.003–0.008. ... Here, we chose values for `v` within the range of 0.15–0.35, which are slightly conservative, but supported by population-based estimates from the sub-Saharan African context."),
            
@@ -88,7 +90,9 @@ getCalibrationContent <- function() {
           "<div class='flex'><div class='definition'>prev</div><div>which here is population prevalence of unsuppressed VL, varies from 0.15 to 0.35</div></div>",
           "<div class='flex'><div class='definition'>Sv</div><div>could be parameterized using the RV144 Thai Trial results: VE = 61% at 12 months, 31% at 42 months, but below we start with 30% and no waning efficacy. A vaccine duration parameter is not needed because we are only modeling a 3 year trial without boosters.</div></div>",
           "</div>")),
-           HTML("</div>")
+           HTML("</div>"),
+          titlePanel(htmlTemplate("template.html"))
+          
   )
 }
 
@@ -98,7 +102,7 @@ getCalibrationContent <- function() {
 #------------------------------------------------------------------------------
 getSimplePlotContent <- function() {
   tabPanel("Simple plots", 
-           sidebarLayout(
+           HTML("<div class='mainPanel'>"),
              sidebarPanel(  
                sliderInput('beta', 'Beta:', min=0, max=0.01,
                            value=0.004, step=0.001, round=-4),
@@ -124,8 +128,10 @@ getSimplePlotContent <- function() {
               p("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque fringilla aliquam ex, vitae scelerisque felis semper quis. Aenean nec pharetra ligula. Mauris vulputate purus ante, id faucibus leo facilisis sit amet. Fusce vestibulum justo eu enim commodo consectetur. Fusce nisi urna, ultrices at purus at, imperdiet efficitur ligula. Curabitur quis sapien ligula. Ut non orci ullamcorper, pulvinar nibh vel, molestie velit. Morbi vulputate hendrerit mi, a mollis risus blandit eget. Cras lacinia eget massa condimentum finibus. Morbi porta lorem augue, in sagittis orci vehicula vel. Sed ipsum nisi, scelerisque quis luctus at, efficitur sed erat. Nam aliquet hendrerit laoreet. Nulla rutrum, nisi pulvinar placerat eleifend, lacus metus ornare dolor, at iaculis augue mi sit amet lorem. Aliquam sit amet turpis nec quam aliquet pretium. Maecenas leo lectus, efficitur in magna ut, gravida iaculis felis."),
               plotOutput("plot5"),
               class = "plotPanel"
-             )
-           )
+             ),
+           HTML("</div>"),
+           titlePanel(htmlTemplate("template.html"))
+           
   )
 }
 
@@ -136,7 +142,7 @@ getSimplePlotContent <- function() {
 #------------------------------------------------------------------------------
 getParameterSweepContent <- function() {
   tabPanel("Parameter sweeps", 
-           sidebarLayout(
+           HTML("<div class='mainPanel'>"),
              sidebarPanel(  
                sliderInput('betaOld', 'beta (per contact transmission rate):', min=0, max=0.01,
                            value=0.004, step=0.001, round=-4),
@@ -154,6 +160,7 @@ getParameterSweepContent <- function() {
                            value=5000, step=500, round=FALSE),
                sliderInput('nstepsOld', 'nsteps:', min=0, max=3650,
                            value=365*3, step=100, round=FALSE),
+               class = "slider"
              ),
              
              mainPanel(
@@ -165,8 +172,9 @@ getParameterSweepContent <- function() {
                plotlyOutput("plotOld3"),
                class = "plotPanel"
                
-             )
-           )
+             ),
+           HTML("</div>"),
+           titlePanel(htmlTemplate("template.html"))
            
   )
 }

@@ -66,7 +66,8 @@ server <- function(input, output, session) {
 ui <- navbarPage(
   
   tags$head(
-    tags$link(rel = "stylesheet", type = "text/css", href = "stylesContent.css"),
+    tags$link(rel = "stylesheet", type = "text/css", href = "styles.css"),
+    tags$link(rel = "stylesheet", type = "text/css", href = "stylesContent.css")
   ),
   title ="Leaky vaccines and exposure heterogeneity",
   id = "page-nav",

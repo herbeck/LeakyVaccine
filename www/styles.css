@@ -12,7 +12,7 @@
 		max-height: 65px;
 		margin-top: 20px;
 	}
-	.header {
+/*	.header {
 	  padding-top: 0px;
 	  color:#ffff80;
 	  display:flex;
@@ -21,8 +21,8 @@
 	  background-color: #24323c;
 	  width: 100% !important;
 	  margin-bottom: 20px;
-	}
-	.nav {
+	} */
+	.navFooter {
 		-ms-flexbox: 1;
 		display: flex;
 		-webkit-box-pack: justify;
@@ -30,8 +30,10 @@
 		-ms-flex-pack: justify;
 		justify-content: space-between;
 		width: 100%;
-		background-color: #24323c
+		background-color: #24323c;
+		background-image: linear-gradient(#24323c, #3e5261);
 	}
+	
 	.cite
 		{
 			display: flex;
@@ -127,7 +129,51 @@
   
   
   /* for content */
-  .paramLabel {
+  /*.paramLabel {
     display:"inline";
     min-width: 100px;
+  }*/
+  
+  .main {
+    margin:0px auto;
+    width: 700px;
+    padding: 0 20px;
   }
+  
+  
+  @media (min-width: 0px) {
+    .mainPanel {
+      height:calc(100vh - 406px);
+      overflow-y:auto;
+    }
+  }
+  
+  @media (min-width: 768px) {
+    .mainPanel {
+      height:calc(100vh - 206px);
+      overflow-y:auto;
+    }
+  }
+  
+  @media (min-width: 973px) {
+    .mainPanel {
+      height:calc(100vh - 156px);
+      overflow-y:auto;
+    }
+  }
+  
+  /* for header nav */
+  
+  .navbar {
+    padding-left:10px;
+  }
+  .navbar-brand {
+    color:#ffa93d!important;
+  }
+  .navbar-default {
+    background-image: linear-gradient(#24323c, #405b6e);
+    background-color: #24323c;
+  }
+  
+  
+
