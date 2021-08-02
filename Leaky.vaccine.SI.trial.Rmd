@@ -95,7 +95,9 @@ si_ode <- function(times, init, param){
     
     #Susceptible, Infected, vaccine, high, medium, low
     SIvh.flow <- risk*lambda*(1-epsilon)*Svh
-    SIvm.flow <- lambda*(1-epsilon)*Spl
+    ### Paul found this line has a bug:
+    ### SIvm.flow <- lambda*(1-epsilon)*Spl
+    SIvm.flow <- lambda*(1-epsilon)*Svl
     SIvl.flow <- 0*lambda*(1-epsilon)*Svl  #0 to give this group zero exposures
     
     # ODEs
@@ -344,8 +346,8 @@ f <- function(x) {
   sim.ve <- mod.manipulate(mod)
   sim.ve <- as.data.frame(sim.ve)
   matchedTimes <- sim.ve$time %in% target.stats$time
-  out <- sim.ve$VE.inst[matchedTimes]
-  #out <- sim.ve$rate.Placebo.het[matchedTimes]
+  #out <- sim.ve$VE.inst[matchedTimes]
+  out <- sim.ve$rate.Placebo.het[matchedTimes]
   return(out)
 }
 ```
@@ -355,7 +357,7 @@ f <- function(x) {
 The `beta` and `c` parameters are the transmission rate per contact and the contact rate, respectively. For now we keep these together in the `lambda` parameter, due to non-identifiability. Below we just set priors for `lambda`. We also will want to set priors for some of the initial conditions eventually. 
 
 ```{r priors}
-
+# In order of "x" in the above function.
 priors  <- list(#c("unif", 0.003, 0.008),      # beta
                 #c("unif", 60/365, 120/365))    # c 
                 #c("unif", 0.000005, 0.0001))  # lambda
@@ -370,6 +372,7 @@ fit.seq <- ABC_sequential(method = "Lenormand",
                        model = f,
                        prior = priors,
                        summary_stat_target = target.stats$placebo.incidence,
+#                       summary_stat_target = target.stats$VE.target,
                        nb_simul = 10,
                        p_acc = 0.10,
                        alpha = 0.5,
