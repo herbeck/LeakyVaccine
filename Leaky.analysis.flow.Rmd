@@ -261,7 +261,7 @@ Let's just plot hazard/instantaneous incidence in these two populations.
 plot(mod, y=c("rate.Placebo", "rate.Placebo.het"),
      alpha = 0.8,
      ylim = c(0, 4.5),
-     main = "Hazard",
+     main = "Instantaneous incidence",
      xlab = "days",
      ylab = "infections per 100 person yrs",
      legend = FALSE,
