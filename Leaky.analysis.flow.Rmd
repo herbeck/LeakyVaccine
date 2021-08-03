@@ -98,7 +98,9 @@ si_ode <- function(times, init, param){
     
     #Susceptible, Infected, vaccine, high, medium, low
     SIvh.flow <- risk*lambda*(1-epsilon)*Svh
-    SIvm.flow <- lambda*(1-epsilon)*Spl
+    # Paul fixed this bug:
+    #SIvm.flow <- lambda*(1-epsilon)*Spl
+    SIvm.flow <- lambda*(1-epsilon)*Svl
     #SIvl.flow <- 0*lambda*(1-epsilon)*Svl  #zero risk in the low risk group 
     SIvl.flow <- (1/risk)*lambda*(1-epsilon)*Svl  #inverse risk 
     

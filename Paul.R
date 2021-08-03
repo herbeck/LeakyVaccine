@@ -1,3 +1,4 @@
+## First, you will need to install these packages:
 library(deSolve)
 library(tidyverse)
 library(EpiModel)
@@ -161,7 +162,7 @@ run.and.compute.run.stats <- function (
 } # run.and.compute.run.stats (..)
 
 # So for example in the heterogeneous model you can get to the 3% placebo incidence and 40% VE with the following parameters, if the other things are at their defaults (10x risk for high risk group, and risk group distribution counts).
-run.and.compute.run.stats( epsilon = 0.61, lambda = 1.2*lambda )
+run.and.compute.run.stats( epsilon = 0.61, lambda = 1.2*beta*c*prev )
 #                  het.VE het.meanPlaceboIncidence 
 #                0.297827                 2.982687 
 
@@ -185,7 +186,12 @@ make.optim.fn <- function ( target ) {
 
 lower.bounds <- sapply( bounds, function ( .bounds.for.x ) { .bounds.for.x[ 1 ] } );
 upper.bounds <- sapply( bounds, function ( .bounds.for.x ) { .bounds.for.x[ 2 ] } );
-optim( c( epsilon, lambda, risk ), .f, lower = lower.bounds, upper = upper.bounds, method = "L-BFGS-B" )
+
+# lambda <- beta*c*prev
+# epsilon <- 0.30  #per contact vaccine efficacy
+# risk <- 10.0   #risk multiplier
+
+# optim( c( epsilon = 0.30, lambda = beta*c*prev, risk = 10 ), .f, lower = lower.bounds, upper = upper.bounds, method = "L-BFGS-B" )
 
 # With three params, optim fails here, presumably because it is nonconvex (multiple optima, saddles, as I have suspected; a potential option is reparameterization, I will think on that, but here we are going with ABC as suggested by Sam.
 
