@@ -9,11 +9,14 @@ library(EpiModel)
 library(survival)
 library(EasyABC)
 library(shinythemes)
+library(shinycssloaders)
+
 
 source("ve_sim.R")
 source("tabContent.R")
 source("sim_fns.R")
 source("sim_plots.R")
+source("Paul-visualization.R")
 
 
 
@@ -43,12 +46,17 @@ server <- function(input, output, session) {
   #------------------
   
   reac <- reactiveValues()
+
   
   observe({reac$beta = input$beta})
   observe({reac$contactRate = input$contactRate})
   observe({reac$prev = input$prev})
   observe({reac$epsilon = input$epsilon})
   observe({reac$risk = input$risk}) 
+  observe({reac$lambdaTest = input$lambdaTest})  
+  observe({reac$epsilonTest = input$epsilonTest}) 
+  observe({reac$riskTest = input$riskTest}) 
+  observe({reac$numExecution = input$numExecution}) 
   
   
   createCInfectionPlot(output, reac)
@@ -57,6 +65,8 @@ server <- function(input, output, session) {
   createPlaceboVaccinePlot(output,reac)
   createPlaceboVaccineRiskPlot(output,reac)
   createVEPlot(output,reac)
+  
+  createVisualization(output,reac)
   
 }
 
@@ -78,8 +88,8 @@ ui <- navbarPage(
   getModelSetupContent(),
   getCalibrationContent(),
   getSimplePlotContent(),
-  getParameterSweepContent()
-  #titlePanel(htmlTemplate("template.html"))
+  getParameterSweepContent(),
+  getTestTab()
   
 )
 
