@@ -118,15 +118,15 @@ getSimplePlotContent <- function() {
              ),
              mainPanel(
               p("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque fringilla aliquam ex, vitae scelerisque felis semper quis. Aenean nec pharetra ligula. Mauris vulputate purus ante, id faucibus leo facilisis sit amet. Fusce vestibulum justo eu enim commodo consectetur. Fusce nisi urna, ultrices at purus at, imperdiet efficitur ligula. Curabitur quis sapien ligula. Ut non orci ullamcorper, pulvinar nibh vel, molestie velit. Morbi vulputate hendrerit mi, a mollis risus blandit eget. Cras lacinia eget massa condimentum finibus. Morbi porta lorem augue, in sagittis orci vehicula vel. Sed ipsum nisi, scelerisque quis luctus at, efficitur sed erat. Nam aliquet hendrerit laoreet. Nulla rutrum, nisi pulvinar placerat eleifend, lacus metus ornare dolor, at iaculis augue mi sit amet lorem. Aliquam sit amet turpis nec quam aliquet pretium. Maecenas leo lectus, efficitur in magna ut, gravida iaculis felis."),
-              plotOutput("plotCInfect"),
+              plotOutput("plotCInfect")  %>% withSpinner(color="#0dc5c1"),
               p("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque fringilla aliquam ex, vitae scelerisque felis semper quis. Aenean nec pharetra ligula. Mauris vulputate purus ante, id faucibus leo facilisis sit amet. Fusce vestibulum justo eu enim commodo consectetur. Fusce nisi urna, ultrices at purus at, imperdiet efficitur ligula. Curabitur quis sapien ligula. Ut non orci ullamcorper, pulvinar nibh vel, molestie velit. Morbi vulputate hendrerit mi, a mollis risus blandit eget. Cras lacinia eget massa condimentum finibus. Morbi porta lorem augue, in sagittis orci vehicula vel. Sed ipsum nisi, scelerisque quis luctus at, efficitur sed erat. Nam aliquet hendrerit laoreet. Nulla rutrum, nisi pulvinar placerat eleifend, lacus metus ornare dolor, at iaculis augue mi sit amet lorem. Aliquam sit amet turpis nec quam aliquet pretium. Maecenas leo lectus, efficitur in magna ut, gravida iaculis felis."),
-              plotOutput("plot2"),
+              plotOutput("plot2") %>% withSpinner(color="#0dc5c1"),
               p("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque fringilla aliquam ex, vitae scelerisque felis semper quis. Aenean nec pharetra ligula. Mauris vulputate purus ante, id faucibus leo facilisis sit amet. Fusce vestibulum justo eu enim commodo consectetur. Fusce nisi urna, ultrices at purus at, imperdiet efficitur ligula. Curabitur quis sapien ligula. Ut non orci ullamcorper, pulvinar nibh vel, molestie velit. Morbi vulputate hendrerit mi, a mollis risus blandit eget. Cras lacinia eget massa condimentum finibus. Morbi porta lorem augue, in sagittis orci vehicula vel. Sed ipsum nisi, scelerisque quis luctus at, efficitur sed erat. Nam aliquet hendrerit laoreet. Nulla rutrum, nisi pulvinar placerat eleifend, lacus metus ornare dolor, at iaculis augue mi sit amet lorem. Aliquam sit amet turpis nec quam aliquet pretium. Maecenas leo lectus, efficitur in magna ut, gravida iaculis felis."),
-              plotOutput("plot3"),
+              plotOutput("plot3") %>% withSpinner(color="#0dc5c1"),
               p("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque fringilla aliquam ex, vitae scelerisque felis semper quis. Aenean nec pharetra ligula. Mauris vulputate purus ante, id faucibus leo facilisis sit amet. Fusce vestibulum justo eu enim commodo consectetur. Fusce nisi urna, ultrices at purus at, imperdiet efficitur ligula. Curabitur quis sapien ligula. Ut non orci ullamcorper, pulvinar nibh vel, molestie velit. Morbi vulputate hendrerit mi, a mollis risus blandit eget. Cras lacinia eget massa condimentum finibus. Morbi porta lorem augue, in sagittis orci vehicula vel. Sed ipsum nisi, scelerisque quis luctus at, efficitur sed erat. Nam aliquet hendrerit laoreet. Nulla rutrum, nisi pulvinar placerat eleifend, lacus metus ornare dolor, at iaculis augue mi sit amet lorem. Aliquam sit amet turpis nec quam aliquet pretium. Maecenas leo lectus, efficitur in magna ut, gravida iaculis felis."),
-              plotOutput("plot4"),
+              plotOutput("plot4") %>% withSpinner(color="#0dc5c1"),
               p("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque fringilla aliquam ex, vitae scelerisque felis semper quis. Aenean nec pharetra ligula. Mauris vulputate purus ante, id faucibus leo facilisis sit amet. Fusce vestibulum justo eu enim commodo consectetur. Fusce nisi urna, ultrices at purus at, imperdiet efficitur ligula. Curabitur quis sapien ligula. Ut non orci ullamcorper, pulvinar nibh vel, molestie velit. Morbi vulputate hendrerit mi, a mollis risus blandit eget. Cras lacinia eget massa condimentum finibus. Morbi porta lorem augue, in sagittis orci vehicula vel. Sed ipsum nisi, scelerisque quis luctus at, efficitur sed erat. Nam aliquet hendrerit laoreet. Nulla rutrum, nisi pulvinar placerat eleifend, lacus metus ornare dolor, at iaculis augue mi sit amet lorem. Aliquam sit amet turpis nec quam aliquet pretium. Maecenas leo lectus, efficitur in magna ut, gravida iaculis felis."),
-              plotOutput("plot5"),
+              plotOutput("plot5") %>% withSpinner(color="#0dc5c1"),
               class = "plotPanel"
              ),
            HTML("</div>"),
@@ -165,17 +165,49 @@ getParameterSweepContent <- function() {
              
              mainPanel(
                p("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque fringilla aliquam ex, vitae scelerisque felis semper quis. Aenean nec pharetra ligula. Mauris vulputate purus ante, id faucibus leo facilisis sit amet. Fusce vestibulum justo eu enim commodo consectetur. Fusce nisi urna, ultrices at purus at, imperdiet efficitur ligula. Curabitur quis sapien ligula. Ut non orci ullamcorper, pulvinar nibh vel, molestie velit. Morbi vulputate hendrerit mi, a mollis risus blandit eget. Cras lacinia eget massa condimentum finibus. Morbi porta lorem augue, in sagittis orci vehicula vel. Sed ipsum nisi, scelerisque quis luctus at, efficitur sed erat. Nam aliquet hendrerit laoreet. Nulla rutrum, nisi pulvinar placerat eleifend, lacus metus ornare dolor, at iaculis augue mi sit amet lorem. Aliquam sit amet turpis nec quam aliquet pretium. Maecenas leo lectus, efficitur in magna ut, gravida iaculis felis."),
-               plotlyOutput("plotOld1"),
+               plotlyOutput("plotOld1") %>% withSpinner(color="#0dc5c1"),
                p("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque fringilla aliquam ex, vitae scelerisque felis semper quis. Aenean nec pharetra ligula. Mauris vulputate purus ante, id faucibus leo facilisis sit amet. Fusce vestibulum justo eu enim commodo consectetur. Fusce nisi urna, ultrices at purus at, imperdiet efficitur ligula. Curabitur quis sapien ligula. Ut non orci ullamcorper, pulvinar nibh vel, molestie velit. Morbi vulputate hendrerit mi, a mollis risus blandit eget. Cras lacinia eget massa condimentum finibus. Morbi porta lorem augue, in sagittis orci vehicula vel. Sed ipsum nisi, scelerisque quis luctus at, efficitur sed erat. Nam aliquet hendrerit laoreet. Nulla rutrum, nisi pulvinar placerat eleifend, lacus metus ornare dolor, at iaculis augue mi sit amet lorem. Aliquam sit amet turpis nec quam aliquet pretium. Maecenas leo lectus, efficitur in magna ut, gravida iaculis felis."),
-               plotlyOutput("plotOld2"),
+               plotlyOutput("plotOld2") %>% withSpinner(color="#0dc5c1"),
                p("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque fringilla aliquam ex, vitae scelerisque felis semper quis. Aenean nec pharetra ligula. Mauris vulputate purus ante, id faucibus leo facilisis sit amet. Fusce vestibulum justo eu enim commodo consectetur. Fusce nisi urna, ultrices at purus at, imperdiet efficitur ligula. Curabitur quis sapien ligula. Ut non orci ullamcorper, pulvinar nibh vel, molestie velit. Morbi vulputate hendrerit mi, a mollis risus blandit eget. Cras lacinia eget massa condimentum finibus. Morbi porta lorem augue, in sagittis orci vehicula vel. Sed ipsum nisi, scelerisque quis luctus at, efficitur sed erat. Nam aliquet hendrerit laoreet. Nulla rutrum, nisi pulvinar placerat eleifend, lacus metus ornare dolor, at iaculis augue mi sit amet lorem. Aliquam sit amet turpis nec quam aliquet pretium. Maecenas leo lectus, efficitur in magna ut, gravida iaculis felis."),
-               plotlyOutput("plotOld3"),
+               plotlyOutput("plotOld3") %>% withSpinner(color="#0dc5c1"),
                class = "plotPanel"
-               
              ),
            HTML("</div>"),
            titlePanel(htmlTemplate("template.html"))
            
   )
 }
+
+getTestTab <- function() {
+  tabPanel("Test", 
+           HTML("<div class='mainPanel'>"),
+           sidebarPanel(  
+             sliderInput('lambdaTest', 'Lambda:', min=0.000005, max=0.0001,
+                         value=0.000028, step=0.000001, round=FALSE),
+             sliderInput('epsilonTest', 'Epilson:', min=0.0, max=0.01,
+                         value=0.004, step=0.001, round=FALSE),
+             sliderInput('riskTest', 'Risk:', min=0, max=20,
+                         value=10.0, step=1, round=FALSE),
+             sliderInput('numExecution', '# of execution:', min=0, max=1000,
+                         value=100, step=50, round=FALSE),
+             class = "slider"
+           ),
+           
+           mainPanel(
+             p("test Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque fringilla aliquam ex, vitae scelerisque felis semper quis. Aenean nec pharetra ligula. Mauris vulputate purus ante, id faucibus leo facilisis sit amet. Fusce vestibulum justo eu enim commodo consectetur. Fusce nisi urna, ultrices at purus at, imperdiet efficitur ligula. Curabitur quis sapien ligula. Ut non orci ullamcorper, pulvinar nibh vel, molestie velit. Morbi vulputate hendrerit mi, a mollis risus blandit eget. Cras lacinia eget massa condimentum finibus. Morbi porta lorem augue, in sagittis orci vehicula vel. Sed ipsum nisi, scelerisque quis luctus at, efficitur sed erat. Nam aliquet hendrerit laoreet. Nulla rutrum, nisi pulvinar placerat eleifend, lacus metus ornare dolor, at iaculis augue mi sit amet lorem. Aliquam sit amet turpis nec quam aliquet pretium. Maecenas leo lectus, efficitur in magna ut, gravida iaculis felis."),
+             plotOutput("plotTestLambdaRisk")  %>% withSpinner(color="#0dc5c1"),
+             p("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque fringilla aliquam ex, vitae scelerisque felis semper quis. Aenean nec pharetra ligula. Mauris vulputate purus ante, id faucibus leo facilisis sit amet. Fusce vestibulum justo eu enim commodo consectetur. Fusce nisi urna, ultrices at purus at, imperdiet efficitur ligula. Curabitur quis sapien ligula. Ut non orci ullamcorper, pulvinar nibh vel, molestie velit. Morbi vulputate hendrerit mi, a mollis risus blandit eget. Cras lacinia eget massa condimentum finibus. Morbi porta lorem augue, in sagittis orci vehicula vel. Sed ipsum nisi, scelerisque quis luctus at, efficitur sed erat. Nam aliquet hendrerit laoreet. Nulla rutrum, nisi pulvinar placerat eleifend, lacus metus ornare dolor, at iaculis augue mi sit amet lorem. Aliquam sit amet turpis nec quam aliquet pretium. Maecenas leo lectus, efficitur in magna ut, gravida iaculis felis."),
+             plotOutput("plotTestEspilonRisk")  %>% withSpinner(color="#0dc5c1"),
+             p("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque fringilla aliquam ex, vitae scelerisque felis semper quis. Aenean nec pharetra ligula. Mauris vulputate purus ante, id faucibus leo facilisis sit amet. Fusce vestibulum justo eu enim commodo consectetur. Fusce nisi urna, ultrices at purus at, imperdiet efficitur ligula. Curabitur quis sapien ligula. Ut non orci ullamcorper, pulvinar nibh vel, molestie velit. Morbi vulputate hendrerit mi, a mollis risus blandit eget. Cras lacinia eget massa condimentum finibus. Morbi porta lorem augue, in sagittis orci vehicula vel. Sed ipsum nisi, scelerisque quis luctus at, efficitur sed erat. Nam aliquet hendrerit laoreet. Nulla rutrum, nisi pulvinar placerat eleifend, lacus metus ornare dolor, at iaculis augue mi sit amet lorem. Aliquam sit amet turpis nec quam aliquet pretium. Maecenas leo lectus, efficitur in magna ut, gravida iaculis felis."),
+             plotOutput("plotTestEpsilonLambda")  %>% withSpinner(color="#0dc5c1"),
+             class = "plotPanel"
+             
+           ),
+           HTML("</div>"),
+           titlePanel(htmlTemplate("template.html"))
+           
+  )
+}
+
+
 
