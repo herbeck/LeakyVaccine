@@ -127,25 +127,22 @@ runSim_Paul <- function(reac) {
         #beta <- reac$betaTest
         #c <- reac$contactRateTest  #90/365;    #contact rate (contacts per day)
         #prev <- reac$prevTest  #0.10;    #needs some more consideration
-        # lambdaTemp <- reac$lambdaTest;
-        # epsilonTemp <- reac$epsilonTest;
-        # riskTemp <- reac$riskTest;
-    beta <- 0.004;   #transmission rate (per contact)
-    c <- 90/365;    #contact rate (contacts per day)
-    prev <- 0.10;    #needs some more consideration
+    lambdaTemp <- reac$lambdaTest;
+    epsilonTemp <- reac$epsilonTest;
+    riskTemp <- reac$riskTest;
+    # beta <- 0.004;   #transmission rate (per contact)
+    # c <- 90/365;    #contact rate (contacts per day)
+    # prev <- 0.10;    #needs some more consideration
     
     run.and.compute.run.stats <- function (
-        # lambda = 0.000028 , # lambdaTemp,     #beta*c*prev,
-        # epsilon = 0.004, # epsilonTemp,   #per contact vaccine efficacy
-        # risk = 10 #riskTemp          #risk multiplier
-        lambda = beta*c*prev,
-        epsilon = 0.30,  #per contact vaccine efficacy
-        risk = 10.0  #risk multiplier
+        lambda = lambdaTemp,     #beta*c*prev,
+        epsilon = epsilonTemp,   #per contact vaccine efficacy
+        risk = riskTemp          #risk multiplier
+        # lambda = beta*c*prev,
+        # epsilon = 0.30,  #per contact vaccine efficacy
+        # risk = 10.0  #risk multiplier
         ) {
-#browser()
-      print(lambda)
-      print(epsilon)
-      print(risk)
+
         # Paul added the other params to this (risk):
         param <- param.dcm(lambda = lambda, epsilon = epsilon, risk = risk )
       
@@ -232,7 +229,7 @@ runSim_Paul <- function(reac) {
                          nb_simul = reac$numExecution,
                          summary_stat_target = as.numeric( target.stats[-1] ),
                          tol = 0.25,
-                         progress_bar = FALSE)
+                         progress_bar = TRUE)
 
     fit <- fit.rej
 
