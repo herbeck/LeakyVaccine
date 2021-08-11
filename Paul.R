@@ -230,7 +230,7 @@ plot(density(fit$param[, 2], from = lower.bounds[2],  to = upper.bounds[2]),
      xlim = c(lower.bounds[2], upper.bounds[2]),
      col=2)
 lines(density(fit$param[, 2], from = lower.bounds[2],  to = upper.bounds[2]), col = 2)
-abline(v = VE.target, lty = 2, col = 1)
+abline(v = VE.target, lty = 2, col = 1) # This is a bug, it plots VE target, not lambda
 legend("topright", legend = c("Truth", "Posterior"),
       lty = c(1, 2), col = 1:2, lwd = 2)
 
@@ -239,7 +239,7 @@ plot(density(fit$param[, 3], from = lower.bounds[3],  to = upper.bounds[3]),
      xlim = c(lower.bounds[3], upper.bounds[3]),
      col=2)
 lines(density(fit$param[, 3], from = lower.bounds[3],  to = upper.bounds[3]), col = 2)
-abline(v = VE.target, lty = 2, col = 1)
+abline(v = VE.target, lty = 2, col = 1) # Another bug
 legend("topright", legend = c("Truth", "Posterior"),
       lty = c(1, 2), col = 1:2, lwd = 2)
 
