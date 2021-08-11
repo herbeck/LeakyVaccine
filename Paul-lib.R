@@ -130,54 +130,54 @@ runSim_Paul <- function(reac) {
     lambdaTemp <- reac$lambdaTest;
     epsilonTemp <- reac$epsilonTest;
     riskTemp <- reac$riskTest;
-    # beta <- 0.004;   #transmission rate (per contact)
-    # c <- 90/365;    #contact rate (contacts per day)
-    # prev <- 0.10;    #needs some more consideration
+    beta <- 0.004;   #transmission rate (per contact)
+    c <- 90/365;    #contact rate (contacts per day)
+    prev <- 0.10;    #needs some more consideration
+    
     
     run.and.compute.run.stats <- function (
-        lambda = lambdaTemp,     #beta*c*prev,
-        epsilon = epsilonTemp,   #per contact vaccine efficacy
-        risk = riskTemp          #risk multiplier
-        # lambda = beta*c*prev,
-        # epsilon = 0.30,  #per contact vaccine efficacy
-        # risk = 10.0  #risk multiplier
-        ) {
-
-        # Paul added the other params to this (risk):
-        param <- param.dcm(lambda = lambda, epsilon = epsilon, risk = risk )
+      lambda = lambdaTemp,     #beta*c*prev,
+      epsilon = epsilonTemp,   #per contact vaccine efficacy
+      risk = riskTemp          #risk multiplier
+      # lambda = beta*c*prev,
+      # epsilon = 0.30,  #per contact vaccine efficacy
+      # risk = 10.0  #risk multiplier
+    ) {
       
-        init <- init.dcm(Sp = 5000, Ip = 0,
-                         Sv = 5000, Iv = 0,
-                         Sph = 500, Iph = 0,    #placebo, high risk
-                         Spm = 4000, Ipm = 0,   #placebo, medium risk
-                         Spl = 500, Ipl = 0,    #placebo, low risk
-                         Svh = 500, Ivh = 0,    #vaccine
-                         Svm = 4000, Ivm = 0,   #vaccine
-                         Svl = 500, Ivl = 0,    #vaccine
-                         SIp.flow = 0, SIv.flow = 0,
-                         SIph.flow = 0, SIpm.flow = 0, SIpl.flow = 0,
-                         SIvh.flow = 0, SIvm.flow = 0, SIvl.flow = 0)
-
-        control <- control.dcm(nsteps = 365*3, new.mod = si_odePaul)
-        mod <- dcm(param, init, control)
-        #print( mod )
-
-        mod.with.stats <- mod.manipulate( mod )
-        #print( mod.with.stats )
-        mod.with.stats.df <- as.data.frame( mod.with.stats )
-
-        # homogeneous risk:
-        #hom.VE <- mod.with.stats.df$VE1.inst[target.stats$time]
-        # heterogeneous risk:
-        het.VE <- mod.with.stats.df$VE2.inst[target.stats$time]
-
-        #out <- mod.with.stats.df$rate.Placebo.het[target.stats$time]
-        ## Paul changed the placebo incidence out stat as the mean over time up to each time in target.stats$time.
-        .x <- mod.with.stats.df$rate.Placebo.het;
-        het.meanPlaceboIncidence <-
-            sapply( target.stats$time, function( .time ) { mean( .x[ 1:.time ] ) } );
-        #out <- .x[ target.stats$time ];
-        c( het.VE = het.VE, het.meanPlaceboIncidence = het.meanPlaceboIncidence );
+      # Paul added the other params to this (risk):
+      param <- param.dcm(lambda = lambda, epsilon = epsilon, risk = risk )
+      init <- init.dcm(Sp = 5000, Ip = 0,
+                       Sv = 5000, Iv = 0,
+                       Sph = 500, Iph = 0,    #placebo, high risk
+                       Spm = 4000, Ipm = 0,   #placebo, medium risk
+                       Spl = 500, Ipl = 0,    #placebo, low risk
+                       Svh = 500, Ivh = 0,    #vaccine
+                       Svm = 4000, Ivm = 0,   #vaccine
+                       Svl = 500, Ivl = 0,    #vaccine
+                       SIp.flow = 0, SIv.flow = 0, 
+                       SIph.flow = 0, SIpm.flow = 0, SIpl.flow = 0,
+                       SIvh.flow = 0, SIvm.flow = 0, SIvl.flow = 0)
+      
+      control <- control.dcm(nsteps = 365*3, new.mod = si_odePaul)
+      mod <- dcm(param, init, control)
+      #print( mod )
+      
+      mod.with.stats <- mod.manipulate( mod )
+      #print( mod.with.stats )
+      mod.with.stats.df <- as.data.frame( mod.with.stats )
+      
+      # homogeneous risk:
+      #hom.VE <- mod.with.stats.df$VE1.inst[target.stats$time]
+      # heterogeneous risk:
+      het.VE <- mod.with.stats.df$VE2.inst[target.stats$time]
+      
+      #out <- mod.with.stats.df$rate.Placebo.het[target.stats$time]
+      ## Paul changed the placebo incidence out stat as the mean over time up to each time in target.stats$time.
+      .x <- mod.with.stats.df$rate.Placebo.het;
+      het.meanPlaceboIncidence <-
+        sapply( target.stats$time, function( .time ) { mean( .x[ 1:.time ] ) } );
+      #out <- .x[ target.stats$time ];
+      c( het.VE = het.VE, het.meanPlaceboIncidence = het.meanPlaceboIncidence );
     } # run.and.compute.run.stats (..)
 
     # So for example in the heterogeneous model you can get to the 3% placebo incidence and 40% VE with the following parameters, if the other things are at their defaults (10x risk for high risk group, and risk group distribution counts).
