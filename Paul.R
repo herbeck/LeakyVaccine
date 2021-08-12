@@ -16,14 +16,14 @@ si_ode <- function(times, init, param){
     
     #Susceptible, Infected, placebo, high, medium, low
     SIph.flow <- risk*lambda*Sph
-    SIpm.flow <- lambda*Spl
+    SIpm.flow <- lambda*Spm
     SIpl.flow <- 0*lambda*Spl  #0 to give this group zero exposures
     
     #Susceptible, Infected, vaccine, high, medium, low
     SIvh.flow <- risk*lambda*(1-epsilon)*Svh
     ### Paul found this line has a bug:
     ### SIvm.flow <- lambda*(1-epsilon)*Spl
-    SIvm.flow <- lambda*(1-epsilon)*Svl
+    SIvm.flow <- lambda*(1-epsilon)*Svm
     SIvl.flow <- 0*lambda*(1-epsilon)*Svl  #0 to give this group zero exposures
     
     # ODEs
@@ -115,9 +115,9 @@ VE.target <- rep(0.3, length( time ))
 target.stats <- data.frame(time, VE.target, placebo.incidence.target )
 
 ## Outside of a function
-    beta <- 0.004;   #transmission rate (per contact)
+    beta <- 0.002;   #transmission rate (per contact)
     c <- 90/365;    #contact rate (contacts per day)
-    prev <- 0.10;    #needs some more consideration
+    prev <- 0.01;    #needs some more consideration
 
 run.and.compute.run.stats <- function (
     lambda = beta*c*prev,
@@ -161,8 +161,8 @@ run.and.compute.run.stats <- function (
     c( het.VE = het.VE, het.meanPlaceboIncidence = het.meanPlaceboIncidence );
 } # run.and.compute.run.stats (..)
 
-# So for example in the heterogeneous model you can get to the 3% placebo incidence and 40% VE with the following parameters, if the other things are at their defaults (10x risk for high risk group, and risk group distribution counts).
-run.and.compute.run.stats( epsilon = 0.61, lambda = 1.2*beta*c*prev )
+# So for example in the heterogeneous model you can get to the 0.3% placebo incidence and 50% VE with the following parameters, if the other things are at their defaults (10x risk for high risk group, and risk group distribution counts).
+run.and.compute.run.stats( epsilon = 0.5, lambda = beta*c*prev )
 #                  het.VE het.meanPlaceboIncidence 
 #                0.297827                 2.982687 
 
@@ -230,7 +230,7 @@ plot(density(fit$param[, 2], from = lower.bounds[2],  to = upper.bounds[2]),
      xlim = c(lower.bounds[2], upper.bounds[2]),
      col=2)
 lines(density(fit$param[, 2], from = lower.bounds[2],  to = upper.bounds[2]), col = 2)
-abline(v = VE.target, lty = 2, col = 1) # This is a bug, it plots VE target, not lambda
+#abline(v = VE.target, lty = 2, col = 1) # This is a bug, it plots VE target, not lambda
 legend("topright", legend = c("Truth", "Posterior"),
       lty = c(1, 2), col = 1:2, lwd = 2)
 
@@ -239,7 +239,7 @@ plot(density(fit$param[, 3], from = lower.bounds[3],  to = upper.bounds[3]),
      xlim = c(lower.bounds[3], upper.bounds[3]),
      col=2)
 lines(density(fit$param[, 3], from = lower.bounds[3],  to = upper.bounds[3]), col = 2)
-abline(v = VE.target, lty = 2, col = 1) # Another bug
+#abline(v = VE.target, lty = 2, col = 1) # Another bug
 legend("topright", legend = c("Truth", "Posterior"),
       lty = c(1, 2), col = 1:2, lwd = 2)
 
