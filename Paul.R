@@ -108,10 +108,10 @@ mod <- mutate_epi(mod, VE2.cumul = 1 - cumul.rate.Vaccine.het/cumul.rate.Placebo
 time <- 3*365; # End of the trial.
 
 ## Note here actually want to target the average incidence over time, rather than the incidence at the end of the trial, since with multiple risk groups there is waning expected. I have changed this in the ABC function f, below.
-placebo.incidence.target <- rep( 3, length( time ) )    # flat incidence of 3.5% per 100 person years
+placebo.incidence.target <- rep( 3.5, length( time ) )    # flat incidence of 3.5% per 100 person years
 
 ### Paul notes this is not going to work, if efficacy is waning you can't match a constant efficacy over time. We should match just one time, probably duration of 702 trial.
-VE.target <- rep(0.3, length( time ))
+VE.target <- rep(0.1, length( time ))
 target.stats <- data.frame(time, VE.target, placebo.incidence.target )
 
 ## Outside of a function
@@ -121,20 +121,19 @@ target.stats <- data.frame(time, VE.target, placebo.incidence.target )
 
 run.and.compute.run.stats <- function (
     lambda = beta*c*prev,
-    epsilon = 0.30,  #per contact vaccine efficacy
+    epsilon = 0.10,  #per contact vaccine efficacy
     risk = 10.0  #risk multiplier
                    ) {
     
-    # Paul added the other params to this (risk):
     param <- param.dcm(lambda = lambda, epsilon = epsilon, risk = risk )
-    init <- init.dcm(Sp = 5000, Ip = 0,
-                     Sv = 5000, Iv = 0,
-                     Sph = 500, Iph = 0,    #placebo, high risk
-                     Spm = 4000, Ipm = 0,   #placebo, medium risk
-                     Spl = 500, Ipl = 0,    #placebo, low risk
-                     Svh = 500, Ivh = 0,    #vaccine
-                     Svm = 4000, Ivm = 0,   #vaccine
-                     Svl = 500, Ivl = 0,    #vaccine
+    init <- init.dcm(Sp = 10000, Ip = 0,
+                     Sv = 10000, Iv = 0,
+                     Sph = 1000, Iph = 0,    #placebo, high risk
+                     Spm = 7000, Ipm = 0,   #placebo, medium risk
+                     Spl = 2000, Ipl = 0,    #placebo, low risk
+                     Svh = 1000, Ivh = 0,    #vaccine
+                     Svm = 7000, Ivm = 0,   #vaccine
+                     Svl = 2000, Ivl = 0,    #vaccine
                      SIp.flow = 0, SIv.flow = 0, 
                      SIph.flow = 0, SIpm.flow = 0, SIpl.flow = 0,
                      SIvh.flow = 0, SIvm.flow = 0, SIvl.flow = 0)
@@ -162,7 +161,7 @@ run.and.compute.run.stats <- function (
 } # run.and.compute.run.stats (..)
 
 # So for example in the heterogeneous model you can get to the 0.3% placebo incidence and 50% VE with the following parameters, if the other things are at their defaults (10x risk for high risk group, and risk group distribution counts).
-run.and.compute.run.stats( epsilon = 0.5, lambda = beta*c*prev )
+run.and.compute.run.stats( epsilon = 0.10, lambda = beta*c*prev )
 #                  het.VE het.meanPlaceboIncidence 
 #                0.297827                 2.982687 
 
@@ -171,7 +170,7 @@ run.and.compute.run.stats( epsilon = 0.5, lambda = beta*c*prev )
 bounds <- list(#c(0.003, 0.008),      # beta
                 #c(60/365, 120/365))    # c 
                epsilon = c(1E-10, 1-1E-10),
-#               lambda = c(0.000005, 0.0001),  # lambda
+#              lambda = c(0.000005, 0.0001),  # lambda
                lambda = c(0.000005, 0.00001),  # lambda
                risk = c(1, 20))            # risk multiplier
 
@@ -208,7 +207,7 @@ priors  <- lapply( bounds, function( .bounds ) { c( "unif", unlist( .bounds ) ) 
 .f.abc <- make.abc.fn( target.stats[-1] )
 fit.rej <- ABC_rejection(model = .f.abc,
                      prior = priors,
-                     nb_simul = 1000,
+                     nb_simul = 10000,
                      summary_stat_target = as.numeric( target.stats[-1] ),
                      tol = 0.25,
                      progress_bar = TRUE)
@@ -243,7 +242,7 @@ lines(density(fit$param[, 3], from = lower.bounds[3],  to = upper.bounds[3]), co
 legend("topright", legend = c("Truth", "Posterior"),
       lty = c(1, 2), col = 1:2, lwd = 2)
 
-.df <- as.data.frame( fit$param )
+.df <- as.data.frame( fit$param ) #df of just the parameter combinations ABC sampled
 names( .df ) <- c( "epsilon", "lambda", "risk" )
 pdf( "lambda_risk.pdf" ); ggplot( .df, aes( x=lambda,y=risk ) ) + geom_point() + stat_density2d_filled(); dev.off()
 pdf( "epsilon_risk.pdf" ); ggplot( .df, aes( x=epsilon,y=risk ) ) + geom_point() + stat_density2d_filled(); dev.off()
