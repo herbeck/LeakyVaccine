@@ -21,8 +21,8 @@ prev <- 0.10    #needs some more consideration
 lambda <- beta*c*prev
 1-exp(-lambda*365) ## Annual risk 
 epsilon <- 0.30  #per contact vaccine efficacy
-n <- 5000 ## Sample size
-inc <- 0.04 ## Overall estimated annual risk to calibrate to
+n <- 10000 ## Sample size
+inc <- 0.03 ## Overall estimated annual risk to calibrate to
 nsteps <- 365*3
 
 ## Test different proportions in high risk group
@@ -74,7 +74,7 @@ ve_by_prop_high <- ggplot(data = out, aes(x = step, y = value, group = prop_high
 
 ## Test different incidence levels
 incs <- seq(0.01, 0.06, by = 0.005)
-prop_high <- 0.1
+prop_high <- 0.001
 
 output <- data.frame(inc = rep(incs, each = nsteps), step = 1:nsteps, cum_efficacy = NA, inst_efficacy = NA)
 
