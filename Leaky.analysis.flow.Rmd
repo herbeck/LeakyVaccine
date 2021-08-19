@@ -200,7 +200,7 @@ prev <- 0.10    #needs some consideration
 #prev <- 0.01
 lambda <- beta*c*prev
 #lambda <- 0.000008398975
-epsilon <- 0.30  #per contact vaccine efficacy
+epsilon <- 0.50  #per contact vaccine efficacy
 risk <- 10.0   #risk multiplier
 ```
 
@@ -227,7 +227,7 @@ init <- init.dcm(Sp = 10000, Ip = 0,
                  SIph.flow = 0, SIpm.flow = 0, SIpl.flow = 0,
                  SIvh.flow = 0, SIvm.flow = 0, SIvl.flow = 0)
 
-control <- control.dcm(nsteps = 365*3, new.mod = si_ode)
+control <- control.dcm(nsteps = 365*6, new.mod = si_ode)
 mod <- dcm(param, init, control)
 mod
 
