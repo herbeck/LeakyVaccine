@@ -37,6 +37,7 @@ si_ode <- function(times, init, param){
     # vaccine; homogeneous risk
     dSv <- -SIv.flow
     dIv <- SIv.flow  #lambda*epsilon*Sv
+    
     # placebo; heterogeneous risk
     dSph <- -SIph.flow
     dIph <- SIph.flow  #risk*lambda*Sph

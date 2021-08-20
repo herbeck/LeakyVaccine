@@ -53,7 +53,7 @@ runSimByPropHigh <- function(param) {
                      SIvh.flow = 0, SIvl.flow = 0)
     control <- control.dcm(nsteps = nsteps, new.mod = si_ode)
     
-
+    
     param <- param.dcm(lambda = lambda, epsilon = epsilon, inc = inc, prop_high = prop_high, risk = risk, n=n)
     print("before mod")
     mod <- dcm(param, init, control)
@@ -71,7 +71,7 @@ runSimByPropHigh <- function(param) {
   
   out <- output %>%
     pivot_longer(cols = c("cum_efficacy", "inst_efficacy"), names_to = "metric")
-    
+  
   ve_by_prop_high <- ggplot(data = out, aes(x = step, y = value, group = prop_high)) +
     geom_line(aes(color = prop_high)) +
     geom_abline(intercept = epsilon, slope = 0, linetype = "dashed") +
@@ -129,8 +129,6 @@ runSimByInc <- function(param) {
     mod
     
     mod <- mod.manipulate(mod)
-    
-    
     
     output$cum_efficacy[output$inc == inc] <- mod$epi$VE2.cumul[, 1]
     output$inst_efficacy[output$inc == inc] <- mod$epi$VE2.inst[, 1]
@@ -212,7 +210,7 @@ runSimByEpsilon <- function(param) {
     geom_abline(aes(intercept = epsilon, slope = 0, colour = epsilon), linetype = "dashed") +
     scale_color_viridis(name = "Epsilon") +
     labs(x = "Time (days)", y = "Estimated vaccine efficacy") +
-   # scale_y_continuous(limits = c(0, 0.5), breaks = seq(0, 1, by = 0.1)) +
+    # scale_y_continuous(limits = c(0, 0.5), breaks = seq(0, 1, by = 0.1)) +
     facet_wrap(~metric) +
     ggtitle(paste("Prop high = ", prop_high, "Incidence =", inc)) +
     theme_classic()
@@ -259,4 +257,3 @@ runSimByEpsilon <- function(param) {
 #      col = 1:4)
 # legend("topright", legend = c("Instantanteous VE, homogeneous risk", "Inst VE, heterogeneous risk", "Cumulative VE, homogeneous risk", "Cumul VE, heterogeneous risk"),
 #        col = 1:4, lwd = 2, cex = 0.9, bty = "n")
-
