@@ -67,8 +67,8 @@ si_odePaul <- function(times, init, param){
 }
 
 
-mod.manipulate_test <- function(mod){
-  browser()
+mod.manipulate <- function(mod){
+  #browser()
   mod <- mutate_epi(mod, total.Svh.Svm.Svl = Svh + Svm + Svl) #all susceptible in heterogeneous risk vaccine pop
   mod <- mutate_epi(mod, total.Sph.Spm.Spl = Sph + Spm + Spl) #all susceptible in heterogeneous risk placebo pop
   mod <- mutate_epi(mod, total.Ivh.Ivm.Ivl = Ivh + Ivm + Ivl) #all infected in heterogeneous risk vaccine pop
@@ -109,39 +109,23 @@ mod.manipulate_test <- function(mod){
 #------------------------------------------------------------------------------
 # sim execution
 #------------------------------------------------------------------------------
-runSim_Paul <- function(reac) {
+runSim_Paul <- function(reac = c( "numExecution" = 1000 )) {
   
     #browser()
     #time <- c(180,360,540,720,900,1080)  # every 6 months for 3 years
     time <- 3*365; # End of the trial.
 
     ## Note here actually want to target the average incidence over time, rather than the incidence at the end of the trial, since with multiple risk groups there is waning expected. I have changed this in the ABC function f, below.
-    placebo.incidence.target <- rep( 3, length( time ) )    # flat incidence of 3.5% per 100 person years
+    placebo.incidence.target <- rep( 3.5, length( time ) )    # flat incidence of 3.5% per 100 person years
 
     ### Paul notes this is not going to work, if efficacy is waning you can't match a constant efficacy over time. We should match just one time, probably duration of 702 trial.
     VE.target <- rep(0.3, length( time ))
     target.stats <- data.frame(time, VE.target, placebo.incidence.target )
 
-    ## Outside of a function
-        #beta <- 0.004;   #transmission rate (per contact)
-        #beta <- reac$betaTest
-        #c <- reac$contactRateTest  #90/365;    #contact rate (contacts per day)
-        #prev <- reac$prevTest  #0.10;    #needs some more consideration
-    lambdaTemp <- reac$lambdaTest;
-    epsilonTemp <- reac$epsilonTest;
-    riskTemp <- reac$riskTest;
-    beta <- 0.004;   #transmission rate (per contact)
-    c <- 90/365;    #contact rate (contacts per day)
-    prev <- 0.10;    #needs some more consideration
-    
-    
     run.and.compute.run.stats <- function (
-      lambda = lambdaTemp,     #beta*c*prev,
-      epsilon = epsilonTemp,   #per contact vaccine efficacy
-      risk = riskTemp          #risk multiplier
-      # lambda = beta*c*prev,
-      # epsilon = 0.30,  #per contact vaccine efficacy
-      # risk = 10.0  #risk multiplier
+      epsilon,   #per contact vaccine efficacy
+      lambda,     #beta*c*prev,
+      risk          #risk multiplier
     ) {
       
       # Paul added the other params to this (risk):
@@ -180,35 +164,26 @@ runSim_Paul <- function(reac) {
       c( het.VE = het.VE, het.meanPlaceboIncidence = het.meanPlaceboIncidence );
     } # run.and.compute.run.stats (..)
 
-    # So for example in the heterogeneous model you can get to the 3% placebo incidence and 40% VE with the following parameters, if the other things are at their defaults (10x risk for high risk group, and risk group distribution counts).
-    run.and.compute.run.stats( epsilon = 0.61, lambda = 1.2**beta*c*prev )
-    #                  het.VE het.meanPlaceboIncidence
-    #                0.297827                 2.982687
-
     # Specify bounds for the initial conditions; these are used as priors.
     # In order of "x" in the above function.
     bounds <- list(#c(0.003, 0.008),      # beta
                     #c(60/365, 120/365))    # c
-                   epsilon = c(1E-10, 1-1E-10),
+                   epsilon = c(1E-10, 1-(1E-10)),
     #               lambda = c(0.000005, 0.0001),  # lambda
-                   lambda = c(0.000005, 0.00001),  # lambda
+                   lambda = c(5E-6, 1E-4),#1E-5),  # lambda
                    risk = c(1, 20))            # risk multiplier
 
     ## Trying to use optim. Best for 2 dimensions.
-    make.optim.fn <- function ( target ) {
-        function( x ) {
-            abs( mean( run.and.compute.run.stats( epsilon = x[ 1 ], lambda = x[ 2 ], risk = x[ 3 ] ) - as.numeric( target ) ) );
-        }
-    }
-
-    .f <- make.optim.fn( target.stats[-1] )
-
-    lower.bounds <- sapply( bounds, function ( .bounds.for.x ) { .bounds.for.x[ 1 ] } );
-    upper.bounds <- sapply( bounds, function ( .bounds.for.x ) { .bounds.for.x[ 2 ] } );
-    # lambda <- beta*c*prev
-    # epsilon <- 0.30  #per contact vaccine efficacy
-    # risk <- 10.0   #risk multiplier
-    
+    # make.optim.fn <- function ( target ) {
+    #     function( x ) {
+    #         abs( mean( run.and.compute.run.stats( epsilon = x[ 1 ], lambda = x[ 2 ], risk = x[ 3 ] ) - as.numeric( target ) ) );
+    #     }
+    # }
+    # 
+    # .f <- make.optim.fn( target.stats[-1] )
+    # 
+    # lower.bounds <- sapply( bounds, function ( .bounds.for.x ) { .bounds.for.x[ 1 ] } );
+    # upper.bounds <- sapply( bounds, function ( .bounds.for.x ) { .bounds.for.x[ 2 ] } );
     # optim( c( epsilon = 0.30, lambda = beta*c*prev, risk = 10 ), .f, lower = lower.bounds, upper = upper.bounds, method = "L-BFGS-B" )
     
     # With three params, optim fails here, presumably because it is nonconvex (multiple optima, saddles, as I have suspected; a potential option is reparameterization, I will think on that, but here we are going with ABC as suggested by Sam.
@@ -226,34 +201,36 @@ runSim_Paul <- function(reac) {
     .f.abc <- make.abc.fn( target.stats[-1] )
     fit.rej <- ABC_rejection(model = .f.abc,
                          prior = priors,
-                         nb_simul = reac$numExecution,
+                         nb_simul = reac[ "numExecution" ],
                          summary_stat_target = as.numeric( target.stats[-1] ),
                          tol = 0.25,
                          progress_bar = TRUE)
 
     fit <- fit.rej
 
-    
-}
+    return( fit );
+} # runSim_Paul (..)
 
 ### Here is where Paul and Josh are working on August 23, 2021.
 ## This computes the distance as calculated internally in the abc function - but not there the distances are normalized using "normalise" which we think centralizes too (so makes each scaled stat have mean 0, sd 1) - the standard deviations are saved and included in the abc output and need to be passed into here, because after keeping only the closest X% of the samples, the remaining samples will have a different STDEV. So to get the right distances it's important to use the correct stdev. These values are not centralized before the distances are computed but this should not matter.
-calculate.abc.distance <- function ( sampled.stats.matrix, target.stats, target.stat.stdevs ) {
+# example: calculate.abc.dist( fit.rej$stats, as.numeric( target.stats[-1] ), fit.rej$stats_normalization )
+calculate.abc.dist <- function ( sampled.stats.matrix, target.stats, target.stat.stdevs ) {
     nss <- length( target.stats );
     stopifnot( ncol( sampled.stats.matrix ) == nss );
 
     scaled.sumstat <- sampled.stats.matrix;
     for (j in 1:nss) {
-        scaled.sumstat[, j] <- ( sumstat[, j] / target.stat.stdevs[ j ] );
+        scaled.sumstat[, j] <- ( sampled.stats.matrix[, j] / target.stat.stdevs[ j ] );
     }
+    scaled.target <- target.stats;
     for (j in 1:nss) {
-        target[j] <- ( target[j] / target.stat.stdevs[ j ] );
+        scaled.target[j] <- ( target.stats[j] / target.stat.stdevs[ j ] );
     }
     sum1 <- 0
     for (j in 1:nss) {
-        sum1 <- sum1 + (scaled.sumstat[, j] - target[j])^2
+        sum1 <- sum1 + (scaled.sumstat[, j] - scaled.target[j])^2
     }
     dist <- sqrt(sum1)
  
    return( dist );
-} # calculate.abc.distance ( .. )
+} # calculate.abc.dist ( .. )
