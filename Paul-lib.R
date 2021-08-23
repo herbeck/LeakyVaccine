@@ -236,3 +236,24 @@ runSim_Paul <- function(reac) {
     
 }
 
+### Here is where Paul and Josh are working on August 23, 2021.
+## This computes the distance as calculated internally in the abc function - but not there the distances are normalized using "normalise" which we think centralizes too (so makes each scaled stat have mean 0, sd 1) - the standard deviations are saved and included in the abc output and need to be passed into here, because after keeping only the closest X% of the samples, the remaining samples will have a different STDEV. So to get the right distances it's important to use the correct stdev. These values are not centralized before the distances are computed but this should not matter.
+calculate.abc.distance <- function ( sampled.stats.matrix, target.stats, target.stat.stdevs ) {
+    nss <- length( target.stats );
+    stopifnot( ncol( sampled.stats.matrix ) == nss );
+
+    scaled.sumstat <- sampled.stats.matrix;
+    for (j in 1:nss) {
+        scaled.sumstat[, j] <- ( sumstat[, j] / target.stat.stdevs[ j ] );
+    }
+    for (j in 1:nss) {
+        target[j] <- ( target[j] / target.stat.stdevs[ j ] );
+    }
+    sum1 <- 0
+    for (j in 1:nss) {
+        sum1 <- sum1 + (scaled.sumstat[, j] - target[j])^2
+    }
+    dist <- sqrt(sum1)
+ 
+   return( dist );
+} # calculate.abc.distance ( .. )
