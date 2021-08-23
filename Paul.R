@@ -120,8 +120,8 @@ target.stats <- data.frame(time, VE.target, placebo.incidence.target )
     prev <- 0.01;    #needs some more consideration
 
 run.and.compute.run.stats <- function (
-    lambda = beta*c*prev,
     epsilon = 0.10,  #per contact vaccine efficacy
+    lambda = beta*c*prev,
     risk = 10.0  #risk multiplier
                    ) {
     
@@ -157,11 +157,12 @@ run.and.compute.run.stats <- function (
     het.meanPlaceboIncidence <-
         sapply( target.stats$time, function( .time ) { mean( .x[ 1:.time ] ) } );
     #out <- .x[ target.stats$time ];
-    c( het.VE = het.VE, het.meanPlaceboIncidence = het.meanPlaceboIncidence );
+
+    return( c( het.VE = het.VE, het.meanPlaceboIncidence = het.meanPlaceboIncidence ) );
 } # run.and.compute.run.stats (..)
 
 # So for example in the heterogeneous model you can get to the 0.3% placebo incidence and 50% VE with the following parameters, if the other things are at their defaults (10x risk for high risk group, and risk group distribution counts).
-run.and.compute.run.stats( epsilon = 0.10, lambda = beta*c*prev )
+# run.and.compute.run.stats( epsilon = 0.10, lambda = beta*c*prev )
 #                  het.VE het.meanPlaceboIncidence 
 #                0.297827                 2.982687 
 
@@ -169,9 +170,9 @@ run.and.compute.run.stats( epsilon = 0.10, lambda = beta*c*prev )
 # In order of "x" in the above function.
 bounds <- list(#c(0.003, 0.008),      # beta
                 #c(60/365, 120/365))    # c 
-               epsilon = c(1E-10, 1-1E-10),
+               epsilon = c(1E-10, 1-(1E-10)),
 #              lambda = c(0.000005, 0.0001),  # lambda
-               lambda = c(0.000005, 0.00001),  # lambda
+               lambda = c(5E-6, 1E-4), #1E-5),  # lambda
                risk = c(1, 20))            # risk multiplier
 
 ## Trying to use optim. Best for 2 dimensions.
