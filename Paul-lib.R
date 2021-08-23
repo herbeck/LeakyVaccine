@@ -109,12 +109,15 @@ mod.manipulate <- function(mod){
 #------------------------------------------------------------------------------
 # sim execution
 #------------------------------------------------------------------------------
-runSim_Paul <- function(reac = c( "numExecution" = 1000 )) {
+runSim_Paul <- function(reac = c( "numExecution" = 1000, "numParams" = 3 )) {
   
+    ## Number of parameters to optimize (3, 4, or 5).
+    num.params <- reac[ "numParams" ];
+
     #browser()
     #time <- c(180,360,540,720,900,1080)  # every 6 months for 3 years
     time <- 3*365; # End of the trial.
-
+    nsteps <- time;
     ## Note here actually want to target the average incidence over time, rather than the incidence at the end of the trial, since with multiple risk groups there is waning expected. I have changed this in the ABC function f, below.
     placebo.incidence.target <- rep( 3.5, length( time ) )    # flat incidence of 3.5% per 100 person years
 
@@ -125,24 +128,41 @@ runSim_Paul <- function(reac = c( "numExecution" = 1000 )) {
     run.and.compute.run.stats <- function (
       epsilon,   #per contact vaccine efficacy
       lambda,     #beta*c*prev,
-      risk          #risk multiplier
+      risk,          #risk multiplier for high risk group
+      highRiskProportion = 0.1,
+      immuneProportion = 0.1,
+      vaccinatedProportion = 0.5,
+      trialSize = 10000
     ) {
       
-      # Paul added the other params to this (risk):
+      # Paul added the other params to this (risk here, others below):
       param <- param.dcm(lambda = lambda, epsilon = epsilon, risk = risk )
-      init <- init.dcm(Sp = 5000, Ip = 0,
-                       Sv = 5000, Iv = 0,
-                       Sph = 500, Iph = 0,    #placebo, high risk
-                       Spm = 4000, Ipm = 0,   #placebo, medium risk
-                       Spl = 500, Ipl = 0,    #placebo, low risk
-                       Svh = 500, Ivh = 0,    #vaccine
-                       Svm = 4000, Ivm = 0,   #vaccine
-                       Svl = 500, Ivl = 0,    #vaccine
+
+      Svl <- floor( immuneProportion * vaccinatedProportion * trialSize );
+      Spl <- floor( immuneProportion * ( 1.0 - vaccinatedProportion ) * trialSize );
+      Svh <- floor( highRiskProportion * vaccinatedProportion * trialSize );
+      Sph <- floor( highRiskProportion * ( 1.0 - vaccinatedProportion ) * trialSize );
+      Svm <- floor( ( 1.0 - ( immuneProportion + highRiskProportion ) ) * vaccinatedProportion * trialSize );
+      Spm <- floor( ( 1.0 - ( immuneProportion + highRiskProportion ) ) * ( 1.0 - vaccinatedProportion ) * trialSize );
+
+      Sp <- Spl + Spm + Sph;
+      Sv <- Svl + Svm + Svh;
+      if( vaccinatedProportion == 0.5 ) {
+          stopifnot( Sp == Sv );
+      }
+      init <- init.dcm(Sp = Sp, Ip = 0,
+                       Sv = Sv, Iv = 0,
+                       Sph = Sph, Iph = 0,    #placebo, high risk
+                       Spm = Spm, Ipm = 0,   #placebo, medium risk
+                       Spl = Spl, Ipl = 0,    #placebo, low risk
+                       Svh = Svh, Ivh = 0,    #vaccine
+                       Svm = Svm, Ivm = 0,   #vaccine
+                       Svl = Svl, Ivl = 0,    #vaccine
                        SIp.flow = 0, SIv.flow = 0, 
                        SIph.flow = 0, SIpm.flow = 0, SIpl.flow = 0,
                        SIvh.flow = 0, SIvm.flow = 0, SIvl.flow = 0)
       
-      control <- control.dcm(nsteps = 365*3, new.mod = si_odePaul)
+      control <- control.dcm(nsteps = nsteps, new.mod = si_odePaul)
       mod <- dcm(param, init, control)
       #print( mod )
       
@@ -166,39 +186,44 @@ runSim_Paul <- function(reac = c( "numExecution" = 1000 )) {
 
     # Specify bounds for the initial conditions; these are used as priors.
     # In order of "x" in the above function.
-    bounds <- list(#c(0.003, 0.008),      # beta
-                    #c(60/365, 120/365))    # c
+    bounds <- list(
                    epsilon = c(1E-10, 1-(1E-10)),
-    #               lambda = c(0.000005, 0.0001),  # lambda
-                   lambda = c(5E-6, 1E-4),#1E-5),  # lambda
-                   risk = c(1, 20))            # risk multiplier
-
-    ## Trying to use optim. Best for 2 dimensions.
-    # make.optim.fn <- function ( target ) {
-    #     function( x ) {
-    #         abs( mean( run.and.compute.run.stats( epsilon = x[ 1 ], lambda = x[ 2 ], risk = x[ 3 ] ) - as.numeric( target ) ) );
-    #     }
-    # }
-    # 
-    # .f <- make.optim.fn( target.stats[-1] )
-    # 
-    # lower.bounds <- sapply( bounds, function ( .bounds.for.x ) { .bounds.for.x[ 1 ] } );
-    # upper.bounds <- sapply( bounds, function ( .bounds.for.x ) { .bounds.for.x[ 2 ] } );
-    # optim( c( epsilon = 0.30, lambda = beta*c*prev, risk = 10 ), .f, lower = lower.bounds, upper = upper.bounds, method = "L-BFGS-B" )
-    
-    # With three params, optim fails here, presumably because it is nonconvex (multiple optima, saddles, as I have suspected; a potential option is reparameterization, I will think on that, but here we are going with ABC as suggested by Sam.
+                   lambda = c(1E-6, 1E-3),#1E-5),  # lambda
+                   risk = c(1, 50), # risk multiplier for high risk group
+                   highRiskProportion = c(1E-10, 1-(1E-10)),
+                   immuneProportion = c(1E-10, 1-(1E-10))
+                   );            
+    # In order of "x" in the above function.
+    priors  <- lapply( bounds, function( .bounds ) { c( "unif", unlist( .bounds ) ) } );
 
     ### ABC
-    make.abc.fn <- function ( target ) {
+    # For the three-parameter version use this one, and change above too.
+    make.abc.fn.3params <- function ( target ) {
         function( x ) {
             run.and.compute.run.stats( epsilon = x[ 1 ], lambda = x[ 2 ], risk = x[ 3 ] )
         }
     }
+    # For the four-parameter version use this one, and change above too.
+    make.abc.fn.4params <- function ( target ) {
+        function( x ) {
+            run.and.compute.run.stats( epsilon = x[ 1 ], lambda = x[ 2 ], risk = x[ 3 ], highRiskProportion = x[ 4 ] )
+        }
+    }
+    # For the five-parameter version use this one, and change above too.
+    make.abc.fn.5params <- function ( target ) {
+        function( x ) {
+            run.and.compute.run.stats( epsilon = x[ 1 ], lambda = x[ 2 ], risk = x[ 3 ], highRiskProportion = x[ 4 ], immuneProportion = x[ 5 ] )
+        }
+    }
 
-    # In order of "x" in the above function.
-    priors  <- lapply( bounds, function( .bounds ) { c( "unif", unlist( .bounds ) ) } );
-
-    .f.abc <- make.abc.fn( target.stats[-1] )
+    priors <- priors[ 1:num.params ];
+    if( num.params == 3 ) {
+        .f.abc <- make.abc.fn.3params( target.stats[-1] )
+    } else if( num.params == 4 ) {
+        .f.abc <- make.abc.fn.4params( target.stats[-1] )
+    } else {
+        .f.abc <- make.abc.fn.5params( target.stats[-1] )
+    }
     fit.rej <- ABC_rejection(model = .f.abc,
                          prior = priors,
                          nb_simul = reac[ "numExecution" ],
@@ -208,7 +233,7 @@ runSim_Paul <- function(reac = c( "numExecution" = 1000 )) {
 
     fit <- fit.rej
 
-    return( fit );
+    return( list( fit = fit, priors = priors, target.stats = target.stats, fn = .f.abc ) );
 } # runSim_Paul (..)
 
 ### Here is where Paul and Josh are working on August 23, 2021.
