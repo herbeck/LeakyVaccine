@@ -239,6 +239,7 @@ runSim_Paul <- function(reac = c( "numExecution" = 1000, "numParams" = 3 )) {
         }
     }
 
+    bounds <- bounds[ 1:num.params ];
     priors <- priors[ 1:num.params ];
     if( num.params == 3 ) {
         .f.abc <- make.abc.fn.3params( target.stats[-1] )
@@ -304,7 +305,7 @@ runSim_Paul <- function(reac = c( "numExecution" = 1000, "numParams" = 3 )) {
 
 # set.seed( 98103 );
 # .sim4 <- runSim_Paul( reac = c( "numExecution" = 10000, "numParams" = 4 ));
-# 
+
 # set.seed( 98103 );
 # .sim5 <- runSim_Paul( reac = c( "numExecution" = 10000, "numParams" = 5 ));
 
