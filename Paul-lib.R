@@ -4,6 +4,7 @@ library(EpiModel)
 library(survival)
 library(EasyABC)
 library(ggplot2)
+library(pdfCluster)
 
 si_odePaul <- function(times, init, param){
   with(as.list(c(init, param)), {
@@ -105,6 +106,28 @@ mod.manipulate <- function(mod){
   #return(mod)
 }
 
+## This computes the distance as calculated internally in the abc function - but not there the distances are normalized using "normalise" which we think centralizes too (so makes each scaled stat have mean 0, sd 1) - the standard deviations are saved and included in the abc output and need to be passed into here, because after keeping only the closest X% of the samples, the remaining samples will have a different STDEV. So to get the right distances it's important to use the correct stdev. These values are not centralized before the distances are computed but this should not matter.
+# example: calculate.abc.dist( fit.rej$stats, as.numeric( target.stats[-1] ), fit.rej$stats_normalization )
+calculate.abc.dist <- function ( sampled.stats.matrix, target.stats, target.stat.stdevs ) {
+    nss <- length( target.stats );
+    stopifnot( ncol( sampled.stats.matrix ) == nss );
+
+    scaled.sumstat <- sampled.stats.matrix;
+    for (j in 1:nss) {
+        scaled.sumstat[, j] <- ( sampled.stats.matrix[, j] / target.stat.stdevs[ j ] );
+    }
+    scaled.target <- target.stats;
+    for (j in 1:nss) {
+        scaled.target[j] <- ( target.stats[j] / target.stat.stdevs[ j ] );
+    }
+    sum1 <- 0
+    for (j in 1:nss) {
+        sum1 <- sum1 + (scaled.sumstat[, j] - scaled.target[j])^2
+    }
+    dist <- sqrt(sum1)
+ 
+   return( dist );
+} # calculate.abc.dist ( .. )
 
 #------------------------------------------------------------------------------
 # sim execution
@@ -231,31 +254,58 @@ runSim_Paul <- function(reac = c( "numExecution" = 1000, "numParams" = 3 )) {
                          tol = 0.25,
                          progress_bar = TRUE)
 
-    fit <- fit.rej
+    # Compute the distances for each retained sample
+    fit.rej.dist <-
+        calculate.abc.dist( fit.rej$stats, as.numeric( target.stats[-1] ), fit.rej$stats_normalization );
 
-    return( list( fit = fit, priors = priors, target.stats = target.stats, fn = .f.abc ) );
+    # Now find optimal points near the sampled modes.
+    
+    # Globally best sample is at this index:
+    # sample.index.minimizing.dist <- which.min( fit.rej.dist );
+    
+    cl <- pdfCluster( fit.rej$param );
+    cluster.numbers <- groups( cl );
+    # boxplot( fit.rej.dist ~ cluster.numbers )
+    
+    # Cluster-specific best sample is at this index, for each cluster:
+    cluster.member.minimizing.dist <- sapply( 1:max( cluster.numbers ), function( .cluster.number ) { cluster.indices <- which( cluster.numbers == .cluster.number ); return( cluster.indices[ which.min( fit.rej.dist[ cluster.indices ] ) ] ); } );
+    
+    make.optim.fn <- function ( target.stats, target.stat.stdevs = rep( 1, length( target.stats ) ) ) {
+        function( x ) {
+            .stats <- .f.abc( x );
+            .stats.matrix <- matrix( .stats, nrow = 1 );
+            c( dist = calculate.abc.dist( .stats.matrix, target.stats, target.stat.stdevs ) )
+        }
+    } # make.optim.fn (..)
+
+    .f <- make.optim.fn( target.stats[-1], fit.rej$stats_normalization );
+
+    # These are the original bounds, separated for use in optim:
+    lower.bounds <- sapply( bounds, function ( .bounds.for.x ) { .bounds.for.x[ 1 ] } );
+    upper.bounds <- sapply( bounds, function ( .bounds.for.x ) { .bounds.for.x[ 2 ] } );
+
+    optima.by.cluster <- sapply( cluster.member.minimizing.dist, function( .minimizer.index ) {
+        print( .minimizer.index );
+        print( fit.rej$param[ .minimizer.index, ] );
+        print( .f( fit.rej$param[ .minimizer.index, ] ) );
+        .optim.result <- optim( fit.rej$param[ .minimizer.index, ], .f, lower = lower.bounds, upper = upper.bounds, method = "L-BFGS-B" );
+        print( c( param = .optim.result$par, dist = .optim.result$value ) );
+        return( c( param = .optim.result$par, dist = .optim.result$value ) );
+    } );
+    rownames( optima.by.cluster )[ 1:length( bounds ) ] <- names( bounds );
+    optima.by.cluster.sorted <- optima.by.cluster[ , order( optima.by.cluster[ "dist", ] ), drop = FALSE ];
+
+    return( list( fit = fit.rej, priors = priors, target.stats = target.stats, fn = .f.abc, sampled.modes = optima.by.cluster.sorted ) );
 } # runSim_Paul (..)
 
-### Here is where Paul and Josh are working on August 23, 2021.
-## This computes the distance as calculated internally in the abc function - but not there the distances are normalized using "normalise" which we think centralizes too (so makes each scaled stat have mean 0, sd 1) - the standard deviations are saved and included in the abc output and need to be passed into here, because after keeping only the closest X% of the samples, the remaining samples will have a different STDEV. So to get the right distances it's important to use the correct stdev. These values are not centralized before the distances are computed but this should not matter.
-# example: calculate.abc.dist( fit.rej$stats, as.numeric( target.stats[-1] ), fit.rej$stats_normalization )
-calculate.abc.dist <- function ( sampled.stats.matrix, target.stats, target.stat.stdevs ) {
-    nss <- length( target.stats );
-    stopifnot( ncol( sampled.stats.matrix ) == nss );
+### ERE I AM testing...
+# set.seed( 98103 );
+# .sim3 <- runSim_Paul( reac = c( "numExecution" = 10000, "numParams" = 3 ));
 
-    scaled.sumstat <- sampled.stats.matrix;
-    for (j in 1:nss) {
-        scaled.sumstat[, j] <- ( sampled.stats.matrix[, j] / target.stat.stdevs[ j ] );
-    }
-    scaled.target <- target.stats;
-    for (j in 1:nss) {
-        scaled.target[j] <- ( target.stats[j] / target.stat.stdevs[ j ] );
-    }
-    sum1 <- 0
-    for (j in 1:nss) {
-        sum1 <- sum1 + (scaled.sumstat[, j] - scaled.target[j])^2
-    }
-    dist <- sqrt(sum1)
- 
-   return( dist );
-} # calculate.abc.dist ( .. )
+# set.seed( 98103 );
+# .sim4 <- runSim_Paul( reac = c( "numExecution" = 10000, "numParams" = 4 ));
+# 
+# set.seed( 98103 );
+# .sim5 <- runSim_Paul( reac = c( "numExecution" = 10000, "numParams" = 5 ));
+
+
