@@ -132,7 +132,7 @@ calculate.abc.dist <- function ( sampled.stats.matrix, target.stats, target.stat
 #------------------------------------------------------------------------------
 # sim execution
 #------------------------------------------------------------------------------
-runSim_Paul <- function(reac = c( "numExecution" = 1000, "numParams" = 3 )) {
+runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3 )) {
   
     ## Number of parameters to optimize (3, 4, or 5).
     num.params <- reac[ "numParams" ];
@@ -301,7 +301,7 @@ runSim_Paul <- function(reac = c( "numExecution" = 1000, "numParams" = 3 )) {
 
 ### ERE I AM testing...
 # set.seed( 98103 );
-# .sim3 <- runSim_Paul( reac = c( "numExecution" = 10000, "numParams" = 3 ));
+.sim3 <- runSim_Paul( reac = c( "numExecution" = 10000, "numParams" = 3 ));
 
 # set.seed( 98103 );
 # .sim4 <- runSim_Paul( reac = c( "numExecution" = 10000, "numParams" = 4 ));
@@ -309,4 +309,41 @@ runSim_Paul <- function(reac = c( "numExecution" = 1000, "numParams" = 3 )) {
 # set.seed( 98103 );
 # .sim5 <- runSim_Paul( reac = c( "numExecution" = 10000, "numParams" = 5 ));
 
+######
+
+fit <- .sim3$fit
+
+plot(density(fit$param[, 1], from = lower.bounds[1],  to = upper.bounds[1]),
+     main = "epsilon", 
+     xlim = c(lower.bounds[1], upper.bounds[1]),
+     #ylim = c(0, 10),
+     col=2)
+lines(density(fit$param[, 1], from = lower.bounds[1],  to = upper.bounds[1]), col = 2)
+abline(v = VE.target, lty = 2, col = 1)
+legend("topright", legend = c("Truth", "Posterior"),
+       lty = c(1, 2), col = 1:2, lwd = 2)
+
+plot(density(fit$param[, 2], from = lower.bounds[2],  to = upper.bounds[2]),
+     main = "lambda", 
+     xlim = c(lower.bounds[2], upper.bounds[2]),
+     col=2)
+lines(density(fit$param[, 2], from = lower.bounds[2],  to = upper.bounds[2]), col = 2)
+#abline(v = VE.target, lty = 2, col = 1) # This is a bug, it plots VE target, not lambda
+legend("topright", legend = c("Truth", "Posterior"),
+       lty = c(1, 2), col = 1:2, lwd = 2)
+
+plot(density(fit$param[, 3], from = lower.bounds[3],  to = upper.bounds[3]),
+     main = "risk", 
+     xlim = c(lower.bounds[3], upper.bounds[3]),
+     col=2)
+lines(density(fit$param[, 3], from = lower.bounds[3],  to = upper.bounds[3]), col = 2)
+#abline(v = VE.target, lty = 2, col = 1) # Another bug
+legend("topright", legend = c("Truth", "Posterior"),
+       lty = c(1, 2), col = 1:2, lwd = 2)
+
+.df <- as.data.frame( fit$param ) #df of just the parameter combinations ABC sampled
+names( .df ) <- c( "epsilon", "lambda", "risk" )
+pdf( "lambda_risk.pdf" ); ggplot( .df, aes( x=lambda,y=risk ) ) + geom_point() + stat_density2d_filled(); dev.off()
+pdf( "epsilon_risk.pdf" ); ggplot( .df, aes( x=epsilon,y=risk ) ) + geom_point() + stat_density2d_filled(); dev.off()
+pdf( "epsilon_lambda.pdf" ); ggplot( .df, aes( x=epsilon,y=lambda ) ) + geom_point() + stat_density2d_filled(); dev.off()
 
