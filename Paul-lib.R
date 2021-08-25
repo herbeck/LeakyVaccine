@@ -145,7 +145,7 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3 )) {
     placebo.incidence.target <- rep( 3.5, length( time ) )    # flat incidence of 3.5% per 100 person years
 
     ### Paul notes this is not going to work, if efficacy is waning you can't match a constant efficacy over time. We should match just one time, probably duration of 702 trial.
-    VE.target <- rep(0.3, length( time ))
+    VE.target <- rep(0.1, length( time ))
     target.stats <- data.frame(time, VE.target, placebo.incidence.target )
 
     run.and.compute.run.stats <- function (
@@ -153,7 +153,7 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3 )) {
       lambda,     #beta*c*prev,
       risk,          #risk multiplier for high risk group
       highRiskProportion = 0.1,
-      immuneProportion = 0.1,
+      immuneProportion = 0.33,
       vaccinatedProportion = 0.5,
       trialSize = 10000
     ) {
@@ -252,7 +252,7 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3 )) {
                          prior = priors,
                          nb_simul = reac[ "numExecution" ],
                          summary_stat_target = as.numeric( target.stats[-1] ),
-                         tol = 0.25,
+                         tol = 0.10,
                          progress_bar = TRUE)
 
     # Compute the distances for each retained sample
@@ -304,7 +304,7 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3 )) {
 .sim3 <- runSim_Paul( reac = c( "numExecution" = 10000, "numParams" = 3 ));
 
 # set.seed( 98103 );
-# .sim4 <- runSim_Paul( reac = c( "numExecution" = 10000, "numParams" = 4 ));
+#.sim4 <- runSim_Paul( reac = c( "numExecution" = 10000, "numParams" = 4 ));
 
 # set.seed( 98103 );
 # .sim5 <- runSim_Paul( reac = c( "numExecution" = 10000, "numParams" = 5 ));
