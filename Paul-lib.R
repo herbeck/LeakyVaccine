@@ -301,14 +301,14 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3 )) {
 ### ERE I AM testing...
 the.seed <- 98103;
 # To test replicability of the identified modes, uncomment this:
-set.seed( the.seed ); the.seed <- floor( runif( 1, max = 1E5 ) );
-# num.sims <- 1000; # Fast for debugging.
-num.sims <- 10000; # For reals.
+# set.seed( the.seed ); the.seed <- floor( runif( 1, max = 1E5 ) );
+num.sims <- 1000; # Fast for debugging.
+# num.sims <- 10000; # For reals.
 
 set.seed( the.seed );
 
 # .sim3 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 3 ));
-.sim4 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 4 ));
+# .sim4 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 4 ));
 # .sim5 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 5 ));
 
 ######
