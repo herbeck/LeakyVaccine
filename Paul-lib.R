@@ -110,26 +110,26 @@ calculate.abc.dist <- function ( sampled.stats.matrix, target.stats, target.stat
 #------------------------------------------------------------------------------
 # sim execution
 #------------------------------------------------------------------------------
-runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3 )) {
+runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3, "VE" = 0.1, "placeboIncidence" = 3.5 )) {
   
     ## Number of parameters to optimize (3, 4, or 5).
     num.params <- reac[ "numParams" ];
+    placebo.incidence.target <- unname( reac[ "placeboIncidence" ] ); # incidence per 100 person years, eg 3.5 for 702 or 0.3 for RV144 [todo: double-check these values!]
+    VE.target = unname( reac[ "VE" ] ); # instantaneous VE observed by the end of the trial
 
     #browser()
 
     ## Note that we target the average incidence over time, rather than the incidence at the end of the trial, since with multiple risk groups there is waning expected.
 
     # MAGIC NUMBERS
-    time <- 3*365; # End of the trial.
-    placebo.incidence.target <- 3.5;    # incidence of 3.5% per 100 person years
-    VE.target <- 0.3;
+    trial.evaluation.time <- 3*365; # End of the trial.
     risk.max <- 50;
     lambda.min <- 1E-6;
     lambda.max <- 1E-3;
     smallest.discernable.amount <- 5E-4; # determined by trial and error this is the smallest amount you can change the parameters from 0 or 1 for it to register a difference from those extremes, eg to avoid NaN and Inf
 
-    target.stats <- data.frame( time, VE.target, placebo.incidence.target );
-    nsteps <- time;
+    target.stats <- data.frame( trial.evaluation.time, VE.target, placebo.incidence.target );
+    nsteps <- trial.evaluation.time;
 
     run.and.compute.run.stats <- function (
       epsilon,   #per contact vaccine efficacy
@@ -169,12 +169,14 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3 )) {
       mod <- dcm(param, init, control)
       #print( mod )
       
-      mod.with.stats <- mod.manipulate( mod )
+      mod.with.stats <- mod.manipulate( mod );
       #print( mod.with.stats )
-      mod.with.stats.df <- as.data.frame( mod.with.stats )
+      mod.with.stats.df <- as.data.frame( mod.with.stats );
       
-      # heterogeneous risk:
-      VE <- mod.with.stats.df$VE2.inst[target.stats$time]
+      # OLD: heterogeneous risk using instantaneous VE:
+      #VE <- mod.with.stats.df$VE2.inst[target.stats$time];
+      # NEW: heterogeneous risk using cumulative VE:
+      VE <- mod.with.stats.df$VE2.cumul[target.stats$time];
       
       ## The placebo incidence out stat vector is the mean over time up to each time in target.stats$time.
       .x <- mod.with.stats.df$rate.Placebo.het;
@@ -304,15 +306,15 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3 )) {
 ### ERE I AM testing...
 the.seed <- 98103;
 # To test replicability of the identified modes, uncomment this:
-set.seed( the.seed ); the.seed <- floor( runif( 1, max = 1E5 ) );
-# num.sims <- 1000; # Fast for debugging.
-num.sims <- 10000; # For reals.
+# set.seed( the.seed ); the.seed <- floor( runif( 1, max = 1E5 ) );
+num.sims <- 1000; # Fast for debugging.
+# num.sims <- 10000; # For reals.
 
 set.seed( the.seed );
 
 # .sim3 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 3 ));
 # .sim4 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 4 ));
-.sim5 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 5 ));
+# .sim5 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 5 ));
 
 ######
 ## Some plotting. Run manually. See above.
