@@ -121,9 +121,10 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3 )) {
 
     # MAGIC NUMBERS
     time <- 3*365; # End of the trial.
-    placebo.incidence.target <- rep( 3.5, length( time ) );    # incidence of 3.5% per 100 person years
-    VE.target <- rep( 0.3, length( time ) );
+    placebo.incidence.target <- 3.5;    # incidence of 3.5% per 100 person years
+    VE.target <- 0.3;
     risk.max <- 50;
+    lambda.min <- 1E-6;
     lambda.max <- 1E-3;
     smallest.discernable.amount <- 5E-4; # determined by trial and error this is the smallest amount you can change the parameters from 0 or 1 for it to register a difference from those extremes, eg to avoid NaN and Inf
 
@@ -173,21 +174,21 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3 )) {
       mod.with.stats.df <- as.data.frame( mod.with.stats )
       
       # heterogeneous risk:
-      het.VE <- mod.with.stats.df$VE2.inst[target.stats$time]
+      VE <- mod.with.stats.df$VE2.inst[target.stats$time]
       
       ## The placebo incidence out stat vector is the mean over time up to each time in target.stats$time.
       .x <- mod.with.stats.df$rate.Placebo.het;
-      het.meanPlaceboIncidence <-
+      meanPlaceboIncidence <-
         sapply( target.stats$time, function( .time ) { mean( .x[ 1:.time ] ) } );
       #out <- .x[ target.stats$time ];
-      c( het.VE = het.VE, het.meanPlaceboIncidence = het.meanPlaceboIncidence );
+      c( VE = VE, meanPlaceboIncidence = meanPlaceboIncidence );
     } # run.and.compute.run.stats (..)
 
     # Specify bounds for the initial conditions; these are used as priors.
     # In order of "x" in the above function.
     bounds <- list(
                    epsilon = c(smallest.discernable.amount, 1-smallest.discernable.amount), # This is just the full range 0 to 1
-                   lambda = c(smallest.discernable.amount, lambda.max),
+                   lambda = c(lambda.min, lambda.max),
                    risk = c(1, risk.max), # risk multiplier for high risk group
                    highRiskProportion = c(smallest.discernable.amount, 1-smallest.discernable.amount), # This is just the full range 0 to 1
                    lowRiskProportion = c(smallest.discernable.amount, 1-smallest.discernable.amount) # This is modified to avoid NaN/Inf
@@ -284,15 +285,17 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3 )) {
     lower.bounds <- sapply( bounds, function ( .bounds.for.x ) { .bounds.for.x[ 1 ] } );
     upper.bounds <- sapply( bounds, function ( .bounds.for.x ) { .bounds.for.x[ 2 ] } );
 
-    optima.by.cluster <- sapply( cluster.member.minimizing.dist, function( .minimizer.index ) {
+    optima.by.cluster <- sapply( cluster.member.minimizing.dist[1:2], function( .minimizer.index ) {
         print( .minimizer.index );
         print( fit.rej$param[ .minimizer.index, ] );
         print( .f( fit.rej$param[ .minimizer.index, ] ) );
         .optim.result <- optim( fit.rej$param[ .minimizer.index, ], .f, lower = lower.bounds, upper = upper.bounds, method = "L-BFGS-B" );
-        print( c( param = .optim.result$par, dist = .optim.result$value ) );
-        return( c( param = .optim.result$par, dist = .optim.result$value ) );
+        .par <- .optim.result$par;
+        names( .par ) <- names( bounds );
+        .stats <- .f.abc( .par );
+        print( c( .par, .stats, dist = .optim.result$value ) );
+        return( c( .par, .stats, dist = .optim.result$value ) );
     } );
-    rownames( optima.by.cluster )[ 1:length( bounds ) ] <- names( bounds );
     optima.by.cluster.sorted <- optima.by.cluster[ , order( optima.by.cluster[ "dist", ] ), drop = FALSE ];
 
     return( list( fit = fit.rej, priors = priors, bounds = bounds, target.stats = target.stats, fn = .f.abc, sampled.modes = optima.by.cluster.sorted ) );
@@ -301,15 +304,15 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3 )) {
 ### ERE I AM testing...
 the.seed <- 98103;
 # To test replicability of the identified modes, uncomment this:
-# set.seed( the.seed ); the.seed <- floor( runif( 1, max = 1E5 ) );
-num.sims <- 1000; # Fast for debugging.
-# num.sims <- 10000; # For reals.
+set.seed( the.seed ); the.seed <- floor( runif( 1, max = 1E5 ) );
+# num.sims <- 1000; # Fast for debugging.
+num.sims <- 10000; # For reals.
 
 set.seed( the.seed );
 
 # .sim3 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 3 ));
 # .sim4 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 4 ));
-# .sim5 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 5 ));
+.sim5 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 5 ));
 
 ######
 ## Some plotting. Run manually. See above.
