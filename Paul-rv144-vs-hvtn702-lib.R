@@ -449,7 +449,7 @@ runSim_rv144.hvtn702 <- function(reac = c( "numExecution" = 1000 ) ) {
 
     .f <- make.optim.fn( target.stats[-1], target.stat.scale.units ); # For better balancing of the costs we use target.stat.scale.units; see above.
 
-    optima.by.cluster <- sapply( 1:length( low.Tukey.whisker.bound.by.cluster ), function( .cluster ) {
+    optima.by.cluster <- sapply( 1:length( cluster.member.minimizing.dist ), function( .cluster ) {
         print( .cluster );
         .lower.bounds <- low.Tukey.whisker.bound.by.cluster[ , .cluster ];
         .upper.bounds <- high.Tukey.whisker.bound.by.cluster[ , .cluster ];
