@@ -219,7 +219,7 @@ runSim_rv144.hvtn702 <- function(reac = c( "numExecution" = 1000 ) ) {
     # modes are very close in one dimension and not in another
     # dimension, you can modify these scales to help balance that
     # distance cost across dimensions better.
-    placebo.incidence.target.scale.units <- 0.1; # These values mean that a 0.1 difference in placebo incidence from the target placebo incidence should cost about the same as a 0.01 difference in VE from its target. VE is meansured on a scale of -1 to 1, with units typically refered to as percentages, eg rv144 had a 31% efficacy is 0.31, so this means a "1% VE difference" has about the same cost in our distance metrix as does a 0.1 per 100-person year difference (so that's the difference between 3.3 as seen in 702 vs 3.2 or 3.3 per 100 person-years -- note that for rv144 the estimated placebo incidence was about 0.14 per 100 person-years, see below for references).
+    placebo.incidence.target.scale.units <- 1; # These values mean that a 1 difference in placebo incidence from the target placebo incidence should cost about the same as a 0.01 difference in VE from its target. VE is meansured on a scale of -1 to 1, with units typically refered to as percentages, eg rv144 had a 31% efficacy is 0.31, so this means a "1% VE difference" has about the same cost in our distance metrix as does a 1 per 100-person year difference (so that's the difference between 3.3 as seen in 702 vs 3.2 or 3.3 per 100 person-years -- note that for rv144 the estimated placebo incidence was about 0.14 per 100 person-years, see below for references). TODO: Just rescale VE to also be -100 to 100 as that is standard anyway.
     VE.target.scale.units <- 0.01;
 
     target.stat.scale.units <- c( "rv144.VE.target" = VE.target.scale.units, "rv144.placebo.incidence.target" = placebo.incidence.target.scale.units, "hvtn702.VE.target" = VE.target.scale.units, "hvtn702.placebo.incidence.target" = placebo.incidence.target.scale.units );
@@ -361,7 +361,7 @@ runSim_rv144.hvtn702 <- function(reac = c( "numExecution" = 1000 ) ) {
 
     # Compute the distances for each retained sample
     fit.rej.dist <-
-        calculate.abc.dist( fit.rej$stats, as.numeric( target.stats[-1] ), ifelse( is.na( fit.rej$stats_normalization ), 1, fit.rej$stats_normalization ) );
+        calculate.abc.dist( fit.rej$stats, as.numeric( target.stats[-1] ), target.stat.scale.units );
 
     # Filter to keep fewer points.
     # Divide distance into units the width of the top abc.keep.num.sims values.
@@ -416,9 +416,24 @@ runSim_rv144.hvtn702 <- function(reac = c( "numExecution" = 1000 ) ) {
     # Update: with current params (keeping 250 draws only, and with wide enough parameter ranges), see abc.keep.num.sims, this seems to work fine and better, even, in that the modes are good:
     # cl <- suppressWarnings( pdfCluster( fit.rej$param ) );
     # Further update: with new 9-param model, we need this:
-    cl <- pdfCluster( fit.rej$param, bwtype="adaptive", hmult=1, n.grid=nrow(fit.rej$param) );
+    pdfCluster.hmult <- 1.1; # MAGIC #
+    cl <- pdfCluster( fit.rej$param, bwtype="adaptive", hmult=pdfCluster.hmult, n.grid=nrow(fit.rej$param) );
 
     cluster.numbers <- groups( cl );
+    # Helpful when debugging - run through the next line.. it'll print when done
+    table( cluster.numbers )
+
+    medians.by.cluster <- sapply( 1:max( cluster.numbers ), function( .cluster ) { apply( fit.rej$param[ cluster.numbers == .cluster, , drop = FALSE ], 2, median ) } );
+    mins.by.cluster <- sapply( 1:max( cluster.numbers ), function( .cluster ) { apply( fit.rej$param[ cluster.numbers == .cluster, , drop = FALSE ], 2, min ) } );
+    maxs.by.cluster <- sapply( 1:max( cluster.numbers ), function( .cluster ) { apply( fit.rej$param[ cluster.numbers == .cluster, , drop = FALSE ], 2, max ) } );
+    IQRs.by.cluster <- sapply( 1:max( cluster.numbers ), function( .cluster ) { apply( fit.rej$param[ cluster.numbers == .cluster, , drop = FALSE ], 2, function( .col ) { diff( quantile( .col, c( 0.25, 0.75 ) ) ) } ) } );
+                                        # instead of around the median or mode, center it around the cluster minimizer.
+        print(  );
+
+#    Tukey.IQR.multiplier <- 1.5;
+    Tukey.IQR.multiplier <- .25;
+    low.Tukey.whisker.bound.by.cluster <- sapply( 1:ncol( medians.by.cluster ), function( .cluster ) { .tukey.low.whisker.candidate.values <- fit.rej$param[ cluster.member.minimizing.dist[[ .cluster ]], ] - ( Tukey.IQR.multiplier * IQRs.by.cluster[ , .cluster ] ); ifelse( .tukey.low.whisker.candidate.values < mins.by.cluster[ , .cluster ], mins.by.cluster[ , .cluster ], .tukey.low.whisker.candidate.values ) } );
+    high.Tukey.whisker.bound.by.cluster <- sapply( 1:ncol( medians.by.cluster ), function( .cluster ) { .tukey.high.whisker.candidate.values <- fit.rej$param[ cluster.member.minimizing.dist[[ .cluster ]], ] + ( Tukey.IQR.multiplier * IQRs.by.cluster[ , .cluster ] ); ifelse( .tukey.high.whisker.candidate.values < maxs.by.cluster[ , .cluster ], maxs.by.cluster[ , .cluster ], .tukey.high.whisker.candidate.values ) } );
     # boxplot( fit.rej.dist ~ cluster.numbers )
     
     # Cluster-specific best sample is at this index, for each cluster:
@@ -432,19 +447,17 @@ runSim_rv144.hvtn702 <- function(reac = c( "numExecution" = 1000 ) ) {
         }
     } # make.optim.fn (..)
 
-    # OLD: .f <- make.optim.fn( target.stats[-1], fit.rej$stats_normalization );
-    # NEW:
-    .f <- make.optim.fn( target.stats[-1], target.stat.scale.units ); # For better balancing of the costs; see above.
+    .f <- make.optim.fn( target.stats[-1], target.stat.scale.units ); # For better balancing of the costs we use target.stat.scale.units; see above.
 
-    # These are the original bounds, separated for use in optim:
-    lower.bounds <- sapply( bounds, function ( .bounds.for.x ) { .bounds.for.x[ 1 ] } );
-    upper.bounds <- sapply( bounds, function ( .bounds.for.x ) { .bounds.for.x[ 2 ] } );
-
-    optima.by.cluster <- sapply( cluster.member.minimizing.dist, function( .minimizer.index ) {
+    optima.by.cluster <- sapply( 1:length( low.Tukey.whisker.bound.by.cluster ), function( .cluster ) {
+        print( .cluster );
+        .lower.bounds <- low.Tukey.whisker.bound.by.cluster[ , .cluster ];
+        .upper.bounds <- high.Tukey.whisker.bound.by.cluster[ , .cluster ];
+        .minimizer.index <- cluster.member.minimizing.dist[[ .cluster ]];
         print( .minimizer.index );
         print( fit.rej$param[ .minimizer.index, ] );
         print( .f( fit.rej$param[ .minimizer.index, ] ) );
-        .optim.result <- optim( fit.rej$param[ .minimizer.index, ], .f, lower = lower.bounds, upper = upper.bounds, method = "L-BFGS-B" );
+        .optim.result <- optim( fit.rej$param[ .minimizer.index, ], .f, lower = .lower.bounds, upper = .upper.bounds, method = "L-BFGS-B" );
         .par <- .optim.result$par;
         names( .par ) <- names( bounds );
         .stats <- .f.abc( .par );
