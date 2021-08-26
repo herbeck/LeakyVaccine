@@ -111,9 +111,12 @@ calculate.abc.dist <- function ( sampled.stats.matrix, target.stats, target.stat
 # sim execution
 #------------------------------------------------------------------------------
 runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3, "VE" = 0.1, "placeboIncidence" = 3.5 )) {
-  
+    stopifnot( all( c( "numExecution", "numParams", "VE", "placeboIncidence" ) %in% names( reac ) ) );
+
     ## Number of parameters to optimize (3, 4, or 5).
-    num.params <- reac[ "numParams" ];
+    num.params <- unname( reac[ "numParams" ] );
+
+    num.sims <- unname( reac[ "numExecution" ] );
     placebo.incidence.target <- unname( reac[ "placeboIncidence" ] ); # incidence per 100 person years, eg 3.5 for 702 or 0.3 for RV144 [todo: double-check these values!]
     VE.target = unname( reac[ "VE" ] ); # instantaneous VE observed by the end of the trial
 
@@ -174,15 +177,15 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3, "VE" 
       mod.with.stats.df <- as.data.frame( mod.with.stats );
       
       # OLD: heterogeneous risk using instantaneous VE:
-      #VE <- mod.with.stats.df$VE2.inst[target.stats$time];
+      #VE <- mod.with.stats.df$VE2.inst[target.stats$trial.evaluation.time];
       # NEW: heterogeneous risk using cumulative VE:
-      VE <- mod.with.stats.df$VE2.cumul[target.stats$time];
+      VE <- mod.with.stats.df$VE2.cumul[target.stats$trial.evaluation.time];
       
-      ## The placebo incidence out stat vector is the mean over time up to each time in target.stats$time.
+      ## The placebo incidence out stat vector is the mean over time up to each time in target.stats$trial.evaluation.time.
       .x <- mod.with.stats.df$rate.Placebo.het;
       meanPlaceboIncidence <-
-        sapply( target.stats$time, function( .time ) { mean( .x[ 1:.time ] ) } );
-      #out <- .x[ target.stats$time ];
+        sapply( target.stats$trial.evaluation.time, function( .time ) { mean( .x[ 1:.time ] ) } );
+      #out <- .x[ target.stats$trial.evaluation.time ];
       c( VE = VE, meanPlaceboIncidence = meanPlaceboIncidence );
     } # run.and.compute.run.stats (..)
 
@@ -229,7 +232,7 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3, "VE" 
     }
     fit.rej <- ABC_rejection(model = .f.abc,
                          prior = priors,
-                         nb_simul = reac[ "numExecution" ],
+                         nb_simul = num.sims,
                          summary_stat_target = as.numeric( target.stats[-1] ),
                          tol = 0.10, # Just keep top 10%
                          progress_bar = TRUE)
@@ -273,11 +276,11 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3, "VE" 
     # Cluster-specific best sample is at this index, for each cluster:
     cluster.member.minimizing.dist <- sapply( 1:max( cluster.numbers ), function( .cluster.number ) { cluster.indices <- which( cluster.numbers == .cluster.number ); return( cluster.indices[ which.min( fit.rej.dist[ cluster.indices ] ) ] ); } );
     
-    make.optim.fn <- function ( target.stats, target.stat.stdevs = rep( 1, length( target.stats ) ) ) {
+    make.optim.fn <- function ( .target.stats, .target.stat.stdevs = rep( 1, length( .target.stats ) ) ) {
         function( x ) {
             .stats <- .f.abc( x );
             .stats.matrix <- matrix( .stats, nrow = 1 );
-            c( dist = calculate.abc.dist( .stats.matrix, target.stats, ifelse( is.na( target.stat.stdevs ), 1, target.stat.stdevs ) ) )
+            c( dist = calculate.abc.dist( .stats.matrix, .target.stats, ifelse( is.na( .target.stat.stdevs ), 1, .target.stat.stdevs ) ) )
         }
     } # make.optim.fn (..)
 
@@ -312,9 +315,9 @@ num.sims <- 1000; # Fast for debugging.
 
 set.seed( the.seed );
 
-# .sim3 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 3 ));
-# .sim4 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 4 ));
-# .sim5 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 5 ));
+.sim3 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 3, "VE" = 0.1, "placeboIncidence" = 3.5 ));
+# .sim4 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 4, "VE" = 0.1, "placeboIncidence" = 3.5 ));
+# .sim5 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 5, "VE" = 0.1, "placeboIncidence" = 3.5 ));
 
 ######
 ## Some plotting. Run manually. See above.
