@@ -11,10 +11,6 @@ si_odePaul <- function(times, init, param){
     
     # Flows
     # the number of people moving from S to I at each time step
-    #Susceptible, Infected, placebo
-    SIp.flow <- lambda*Sp
-    SIv.flow <- lambda*(1-epsilon)*Sv
-    
     #Susceptible, Infected, placebo, high, medium, low
     SIph.flow <- risk*lambda*Sph
     SIpm.flow <- lambda*Spl
@@ -28,14 +24,6 @@ si_odePaul <- function(times, init, param){
     SIvl.flow <- 0*lambda*(1-epsilon)*Svl  #0 to give this group zero exposures
     
     # ODEs
-    # placebo; homogeneous risk
-    dSp <- -SIp.flow
-    dIp <- SIp.flow  #lambda*Sp
-    
-    # vaccine; homogeneous risk
-    dSv <- -SIv.flow
-    dIv <- SIv.flow  #lambda*epsilon*Sv
-    
     # placebo; heterogeneous risk
     dSph <- -SIph.flow
     dIph <- SIph.flow  #risk*lambda*Sph
@@ -53,15 +41,13 @@ si_odePaul <- function(times, init, param){
     dIvl <- SIvl.flow  #0*lambda*(1-epsilon)*Svl
     
     #Output
-    list(c(dSp,dIp,
-           dSv,dIv,
+    list(c(
            dSph,dIph,
            dSpm,dIpm,
            dSpl,dIpl,
            dSvh,dIvh,
            dSvm,dIvm,
            dSvl,dIvl,
-           SIp.flow,SIv.flow,
            SIph.flow,SIpm.flow,SIpl.flow,
            SIvh.flow,SIvm.flow,SIvl.flow))
   })
@@ -79,28 +65,20 @@ mod.manipulate <- function(mod){
   
   #Incidence estimates, per 100 person years
   #Instantaneous incidence / hazard
-  mod <- mutate_epi(mod, rate.Vaccine = (SIv.flow/Sv)*365*100)
-  mod <- mutate_epi(mod, rate.Placebo = (SIp.flow/Sp)*365*100)
   mod <- mutate_epi(mod, rate.Vaccine.het = (total.SIvh.SIvm.SIvl.flow/total.Svh.Svm.Svl)*365*100)
   mod <- mutate_epi(mod, rate.Placebo.het = (total.SIph.SIpm.SIpl.flow/total.Sph.Spm.Spl)*365*100)
   
   #Cumulative incidence
-  mod <- mutate_epi(mod, cumul.Sv = cumsum(Sv))
-  mod <- mutate_epi(mod, cumul.Sp = cumsum(Sp))
   mod <- mutate_epi(mod, cumul.Svh.Svm.Svl = cumsum(total.Svh.Svm.Svl))
   mod <- mutate_epi(mod, cumul.Sph.Spm.Spl = cumsum(total.Sph.Spm.Spl))
-  mod <- mutate_epi(mod, cumul.rate.Vaccine = (Iv/cumul.Sv)*365*100)
-  mod <- mutate_epi(mod, cumul.rate.Placebo = (Ip/cumul.Sp)*365*100)
   mod <- mutate_epi(mod, cumul.rate.Vaccine.het = (total.Ivh.Ivm.Ivl/cumul.Svh.Svm.Svl)*365*100)
   mod <- mutate_epi(mod, cumul.rate.Placebo.het = (total.Iph.Ipm.Ipl/cumul.Sph.Spm.Spl)*365*100)
   
   #Vaccine efficacy (VE) estimates
   #VE <- 1 - Relative Risk; this is VE for instantaneous incidence / hazard
-  mod <- mutate_epi(mod, VE1.inst = 1 - rate.Vaccine/rate.Placebo)
   mod <- mutate_epi(mod, VE2.inst = 1 - rate.Vaccine.het/rate.Placebo.het)
   
   #VE <- 1 - Relative Risk; this is VE from cumulative incidence
-  mod <- mutate_epi(mod, VE1.cumul = 1 - cumul.rate.Vaccine/cumul.rate.Placebo)
   mod <- mutate_epi(mod, VE2.cumul = 1 - cumul.rate.Vaccine.het/cumul.rate.Placebo.het)
   
   #return(mod)
@@ -138,22 +116,25 @@ runSim_Paul <- function(reac = c( "numExecution" = 1000, "numParams" = 3 )) {
     num.params <- reac[ "numParams" ];
 
     #browser()
-    #time <- c(180,360,540,720,900,1080)  # every 6 months for 3 years
-    time <- 3*365; # End of the trial.
-    nsteps <- time;
-    ## Note here actually want to target the average incidence over time, rather than the incidence at the end of the trial, since with multiple risk groups there is waning expected. I have changed this in the ABC function f, below.
-    placebo.incidence.target <- rep( 3.5, length( time ) )    # flat incidence of 3.5% per 100 person years
 
-    ### Paul notes this is not going to work, if efficacy is waning you can't match a constant efficacy over time. We should match just one time, probably duration of 702 trial.
-    VE.target <- rep(0.3, length( time ))
-    target.stats <- data.frame(time, VE.target, placebo.incidence.target )
+    ## Note that we target the average incidence over time, rather than the incidence at the end of the trial, since with multiple risk groups there is waning expected.
+
+    # MAGIC NUMBERS
+    time <- 3*365; # End of the trial.
+    placebo.incidence.target <- rep( 3.5, length( time ) );    # incidence of 3.5% per 100 person years
+    VE.target <- rep( 0.3, length( time ) );
+    risk.max <- 50;
+    lambda.max <- 1E-3;
+
+    target.stats <- data.frame( time, VE.target, placebo.incidence.target );
+    nsteps <- time;
 
     run.and.compute.run.stats <- function (
       epsilon,   #per contact vaccine efficacy
       lambda,     #beta*c*prev,
       risk,          #risk multiplier for high risk group
-      highRiskProportion = 0.1,
-      immuneProportion = 0.1,
+      highRiskProportion = 0.1, # these have defaults, so you can run this as 3 or 4 or 5 parameters.
+      lowRiskProportion = 0.1,
       vaccinatedProportion = 0.5,
       trialSize = 10000
     ) {
@@ -161,27 +142,24 @@ runSim_Paul <- function(reac = c( "numExecution" = 1000, "numParams" = 3 )) {
       # Paul added the other params to this (risk here, others below):
       param <- param.dcm(lambda = lambda, epsilon = epsilon, risk = risk )
 
-      Svl <- floor( immuneProportion * vaccinatedProportion * trialSize );
-      Spl <- floor( immuneProportion * ( 1.0 - vaccinatedProportion ) * trialSize );
+      Svl <- floor( lowRiskProportion * vaccinatedProportion * trialSize );
+      Spl <- floor( lowRiskProportion * ( 1.0 - vaccinatedProportion ) * trialSize );
       Svh <- floor( highRiskProportion * vaccinatedProportion * trialSize );
       Sph <- floor( highRiskProportion * ( 1.0 - vaccinatedProportion ) * trialSize );
-      Svm <- floor( ( 1.0 - ( immuneProportion + highRiskProportion ) ) * vaccinatedProportion * trialSize );
-      Spm <- floor( ( 1.0 - ( immuneProportion + highRiskProportion ) ) * ( 1.0 - vaccinatedProportion ) * trialSize );
+      Svm <- floor( ( 1.0 - ( lowRiskProportion + highRiskProportion ) ) * vaccinatedProportion * trialSize );
+      Spm <- floor( ( 1.0 - ( lowRiskProportion + highRiskProportion ) ) * ( 1.0 - vaccinatedProportion ) * trialSize );
 
       Sp <- Spl + Spm + Sph;
       Sv <- Svl + Svm + Svh;
       if( vaccinatedProportion == 0.5 ) {
           stopifnot( Sp == Sv );
       }
-      init <- init.dcm(Sp = Sp, Ip = 0,
-                       Sv = Sv, Iv = 0,
-                       Sph = Sph, Iph = 0,    #placebo, high risk
+      init <- init.dcm(Sph = Sph, Iph = 0,    #placebo, high risk
                        Spm = Spm, Ipm = 0,   #placebo, medium risk
                        Spl = Spl, Ipl = 0,    #placebo, low risk
                        Svh = Svh, Ivh = 0,    #vaccine
                        Svm = Svm, Ivm = 0,   #vaccine
                        Svl = Svl, Ivl = 0,    #vaccine
-                       SIp.flow = 0, SIv.flow = 0, 
                        SIph.flow = 0, SIpm.flow = 0, SIpl.flow = 0,
                        SIvh.flow = 0, SIvm.flow = 0, SIvl.flow = 0)
       
@@ -193,13 +171,10 @@ runSim_Paul <- function(reac = c( "numExecution" = 1000, "numParams" = 3 )) {
       #print( mod.with.stats )
       mod.with.stats.df <- as.data.frame( mod.with.stats )
       
-      # homogeneous risk:
-      #hom.VE <- mod.with.stats.df$VE1.inst[target.stats$time]
       # heterogeneous risk:
       het.VE <- mod.with.stats.df$VE2.inst[target.stats$time]
       
-      #out <- mod.with.stats.df$rate.Placebo.het[target.stats$time]
-      ## Paul changed the placebo incidence out stat as the mean over time up to each time in target.stats$time.
+      ## The placebo incidence out stat vector is the mean over time up to each time in target.stats$time.
       .x <- mod.with.stats.df$rate.Placebo.het;
       het.meanPlaceboIncidence <-
         sapply( target.stats$time, function( .time ) { mean( .x[ 1:.time ] ) } );
@@ -210,11 +185,11 @@ runSim_Paul <- function(reac = c( "numExecution" = 1000, "numParams" = 3 )) {
     # Specify bounds for the initial conditions; these are used as priors.
     # In order of "x" in the above function.
     bounds <- list(
-                   epsilon = c(1E-10, 1-(1E-10)),
-                   lambda = c(1E-6, 1E-3),#1E-5),  # lambda
-                   risk = c(1, 50), # risk multiplier for high risk group
-                   highRiskProportion = c(1E-10, 1-(1E-10)),
-                   immuneProportion = c(1E-10, 1-(1E-10))
+                   epsilon = c(1E-10, 1-(1E-10)), # This is just the full range 0 to 1
+                   lambda = c(1E-6, lambda.max),
+                   risk = c(1, risk.max), # risk multiplier for high risk group
+                   highRiskProportion = c(1E-10, 1-(1E-10)), # This is just the full range 0 to 1
+                   lowRiskProportion = c(1E-10, 1-(1E-10)) # This is just the full range 0 to 1
                    );            
     # In order of "x" in the above function.
     priors  <- lapply( bounds, function( .bounds ) { c( "unif", unlist( .bounds ) ) } );
@@ -235,7 +210,7 @@ runSim_Paul <- function(reac = c( "numExecution" = 1000, "numParams" = 3 )) {
     # For the five-parameter version use this one, and change above too.
     make.abc.fn.5params <- function ( target ) {
         function( x ) {
-            run.and.compute.run.stats( epsilon = x[ 1 ], lambda = x[ 2 ], risk = x[ 3 ], highRiskProportion = x[ 4 ], immuneProportion = x[ 5 ] )
+            run.and.compute.run.stats( epsilon = x[ 1 ], lambda = x[ 2 ], risk = x[ 3 ], highRiskProportion = x[ 4 ], lowRiskProportion = x[ 5 ] )
         }
     }
 
@@ -252,7 +227,7 @@ runSim_Paul <- function(reac = c( "numExecution" = 1000, "numParams" = 3 )) {
                          prior = priors,
                          nb_simul = reac[ "numExecution" ],
                          summary_stat_target = as.numeric( target.stats[-1] ),
-                         tol = 0.25,
+                         tol = 0.1, # Just keep top 10%
                          progress_bar = TRUE)
 
     # Compute the distances for each retained sample
@@ -263,7 +238,6 @@ runSim_Paul <- function(reac = c( "numExecution" = 1000, "numParams" = 3 )) {
     
     # Globally best sample is at this index:
     # sample.index.minimizing.dist <- which.min( fit.rej.dist );
-    
     cl <- pdfCluster( fit.rej$param );
     cluster.numbers <- groups( cl );
     # boxplot( fit.rej.dist ~ cluster.numbers )
@@ -300,13 +274,14 @@ runSim_Paul <- function(reac = c( "numExecution" = 1000, "numParams" = 3 )) {
 } # runSim_Paul (..)
 
 ### ERE I AM testing...
-# set.seed( 98103 );
-# .sim3 <- runSim_Paul( reac = c( "numExecution" = 10000, "numParams" = 3 ));
+the.seed <- 98103;
+# num.sims <- 1000; # Fast for debugging.
+num.sims <- 10000; # For reals.
 
-# set.seed( 98103 );
-# .sim4 <- runSim_Paul( reac = c( "numExecution" = 10000, "numParams" = 4 ));
+set.seed( the.seed );
 
-# set.seed( 98103 );
-# .sim5 <- runSim_Paul( reac = c( "numExecution" = 10000, "numParams" = 5 ));
+# .sim3 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 3 ));
+# .sim4 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 4 ));
+# .sim5 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 5 ));
 
 
