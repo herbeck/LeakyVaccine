@@ -125,6 +125,7 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3 )) {
     VE.target <- rep( 0.3, length( time ) );
     risk.max <- 50;
     lambda.max <- 1E-3;
+    smallest.discernable.amount <- 5E-4; # determined by trial and error this is the smallest amount you can change the parameters from 0 or 1 for it to register a difference from those extremes, eg to avoid NaN and Inf
 
     target.stats <- data.frame( time, VE.target, placebo.incidence.target );
     nsteps <- time;
@@ -185,11 +186,11 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3 )) {
     # Specify bounds for the initial conditions; these are used as priors.
     # In order of "x" in the above function.
     bounds <- list(
-                   epsilon = c(1E-10, 1-(1E-10)), # This is just the full range 0 to 1
-                   lambda = c(1E-6, lambda.max),
+                   epsilon = c(smallest.discernable.amount, 1-smallest.discernable.amount), # This is just the full range 0 to 1
+                   lambda = c(smallest.discernable.amount, lambda.max),
                    risk = c(1, risk.max), # risk multiplier for high risk group
-                   highRiskProportion = c(1E-10, 1-(1E-10)), # This is just the full range 0 to 1
-                   lowRiskProportion = c(1E-10, 1-(1E-10)) # This is just the full range 0 to 1
+                   highRiskProportion = c(smallest.discernable.amount, 1-smallest.discernable.amount), # This is just the full range 0 to 1
+                   lowRiskProportion = c(smallest.discernable.amount, 1-smallest.discernable.amount) # This is modified to avoid NaN/Inf
                    );            
     # In order of "x" in the above function.
     priors  <- lapply( bounds, function( .bounds ) { c( "unif", unlist( .bounds ) ) } );
@@ -232,15 +233,39 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3 )) {
 
     # Compute the distances for each retained sample
     fit.rej.dist <-
-        calculate.abc.dist( fit.rej$stats, as.numeric( target.stats[-1] ), fit.rej$stats_normalization );
+        calculate.abc.dist( fit.rej$stats, as.numeric( target.stats[-1] ), ifelse( is.na( fit.rej$stats_normalization ), 1, fit.rej$stats_normalization ) );
 
     # Now find optimal points near the sampled modes.
     
     # Globally best sample is at this index:
     # sample.index.minimizing.dist <- which.min( fit.rej.dist );
-    cl <- pdfCluster( fit.rej$param );
-    cluster.numbers <- groups( cl );
-    # boxplot( fit.rej.dist ~ cluster.numbers )
+    # This might fail with the error that there's too course of a grid.
+    # from help( "pdfCluster" ):
+    #     # Warning:
+    # 
+    #      It may happen that the variability of the estimated density is so
+    #      high that not all jumps in the mode function can be detected by
+    #      the selected grid scanning the density function. In that case, no
+    #      output is produced and a message is displayed. As this may be
+    #      associated to the occurrence of some spurious connected
+    #      components, which appear and disappear within the range between
+    #      two subsequent values of the grid, a natural solution is to
+    #      increase the value of ‘n.grid’.  Alternatively either ‘lambda’ or
+    #      ‘hmult’ may be increased to alleviate the chance of detecting
+    #      spurious connected components.
+    #
+    # I TRIED first and it worked for 3 params just adding: bwtype="adaptive" 
+    # For 4 params that was not sufficient so I TRIED also adding (and it worked, despite actually just setting it to n): n.grid=1E5
+    # For 4 params that was too slow so I TRIED instead adding hmult = 1.25 and that worked but had too few modes, since I knew there were others. So I played around and hmult = 1 which I thought was the default gives 5 modes which feels ok.
+    # For 5 params that was also sufficient.
+    if( ncol( fit.rej$param ) < 5 ) {
+        cl <- suppressWarnings( pdfCluster( fit.rej$param, bwtype="adaptive", hmult=1 ) );
+    } else {
+        cl <- pdfCluster( fit.rej$param, bwtype="adaptive", hmult=1, n.grid=nrow(fit.rej$param) );
+    }
+
+     cluster.numbers <- groups( cl );
+     boxplot( fit.rej.dist ~ cluster.numbers )
     
     # Cluster-specific best sample is at this index, for each cluster:
     cluster.member.minimizing.dist <- sapply( 1:max( cluster.numbers ), function( .cluster.number ) { cluster.indices <- which( cluster.numbers == .cluster.number ); return( cluster.indices[ which.min( fit.rej.dist[ cluster.indices ] ) ] ); } );
@@ -249,7 +274,7 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3 )) {
         function( x ) {
             .stats <- .f.abc( x );
             .stats.matrix <- matrix( .stats, nrow = 1 );
-            c( dist = calculate.abc.dist( .stats.matrix, target.stats, target.stat.stdevs ) )
+            c( dist = calculate.abc.dist( .stats.matrix, target.stats, ifelse( is.na( target.stat.stdevs ), 1, target.stat.stdevs ) ) )
         }
     } # make.optim.fn (..)
 
@@ -276,14 +301,14 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3 )) {
 ### ERE I AM testing...
 the.seed <- 98103;
 # To test replicability of the identified modes, uncomment this:
-# set.seed( the.seed ); the.seed <- floor( runif( 1, max = 1E5 ) );
+set.seed( the.seed ); the.seed <- floor( runif( 1, max = 1E5 ) );
 # num.sims <- 1000; # Fast for debugging.
 num.sims <- 10000; # For reals.
 
 set.seed( the.seed );
 
 # .sim3 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 3 ));
-# .sim4 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 4 ));
+.sim4 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 4 ));
 # .sim5 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 5 ));
 
 ######
