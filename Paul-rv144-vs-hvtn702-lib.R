@@ -186,7 +186,7 @@ calculate.abc.dist <- function ( sampled.stats.matrix, target.stats, target.stat
 #------------------------------------------------------------------------------
 # sim execution
 #------------------------------------------------------------------------------
-runSim_Paul <- function(reac = c( "numExecution" = 1000 ) ) {
+runSim_rv144.hvtn702 <- function(reac = c( "numExecution" = 1000 ) ) {
     stopifnot( all( c( "numExecution" ) %in% names( reac ) ) );
 
     ## Number of parameters to optimize (3, 4, or 5).
@@ -378,7 +378,7 @@ runSim_Paul <- function(reac = c( "numExecution" = 1000 ) ) {
     # ggplot( .df, aes( x=lambda,y=risk, alpha = 1-(fit.rej.dist.scaled*(1/2)) ) ) + geom_point()
 
     # Filter to keep points up to max.fit.rej.dist.scaled units away.
-    max.fit.rej.dist.scaled <- 2; # MAGIC #
+    max.fit.rej.dist.scaled <- 1.5; # MAGIC #
     fit.orig <- fit.rej;
     abc.keep.sim <- fit.rej.dist.scaled < max.fit.rej.dist.scaled;
     fit.rej$param <- fit.rej$param[ abc.keep.sim, , drop = FALSE ];
@@ -414,7 +414,9 @@ runSim_Paul <- function(reac = c( "numExecution" = 1000 ) ) {
     #     cl <- pdfCluster( fit.rej$param, bwtype="adaptive", hmult=1, n.grid=nrow(fit.rej$param) );
     # }
     # Update: with current params (keeping 250 draws only, and with wide enough parameter ranges), see abc.keep.num.sims, this seems to work fine and better, even, in that the modes are good:
-    cl <- suppressWarnings( pdfCluster( fit.rej$param ) );
+    # cl <- suppressWarnings( pdfCluster( fit.rej$param ) );
+    # Further update: with new 9-param model, we need this:
+    cl <- pdfCluster( fit.rej$param, bwtype="adaptive", hmult=1, n.grid=nrow(fit.rej$param) );
 
     cluster.numbers <- groups( cl );
     # boxplot( fit.rej.dist ~ cluster.numbers )
@@ -452,7 +454,7 @@ runSim_Paul <- function(reac = c( "numExecution" = 1000 ) ) {
     optima.by.cluster.sorted <- optima.by.cluster[ , order( optima.by.cluster[ "dist", ] ), drop = FALSE ];
 
     return( list( fit = fit.rej, priors = priors, bounds = bounds, target.stats = target.stats, fn = .f.abc, sampled.modes = optima.by.cluster.sorted ) );
-} # runSim_Paul (..)
+} # runSim_rv144.hvtn702 (..)
 
 ### ERE I AM testing...
 the.seed <- 98103;
@@ -470,12 +472,12 @@ set.seed( the.seed );
 ## hvtn 702 placebo incidence was 3.3 per 100 person-years (95% CI, 2.8 to 3.9), from n engl j med 384;12 nejm.org March 25, 2021 (https://www.nejm.org/doi/pdf/10.1056/NEJMoa2031499), page 1092:
 # "During the first 24 months of follow-up, 138 HIV-1 infections occurred in the vaccine group and 133 in the placebo group, for an estimated incidence rate of 3.4 per 100 person-years (95% confidence interval [CI], 2.8 to 4.0) and 3.3 per 100 person-years (95% CI, 2.8 to 3.9), respectively (hazard ratio, 1.02; 95% CI, 0.81 to 1.30; P=0.84) (Fig. 1A and Table 2). The incidence of HIV-1 infection was similar in the vaccine group and the placebo group in secondary analyses during 36 months of follow-up (hazard ratio, 1.05; 95% CI, 0.83 to 1.31), in the month 6.5 at-risk cohort between 6.5 months and 24 months (hazard ratio, 1.15; 95% CI, 0.84 to 1.58), and in the perprotocol cohort, as well as in other secondary analyses (Figs. S3 through S9)."
 
-# .sim <- runSim_Paul( reac = c( "numExecution" = num.sims ) );
+# .sim <- runSim_rv144.hvtn702( reac = c( "numExecution" = num.sims ) );
 
 ######
 ## Some plotting. Run manually. See above.
 if( FALSE ) {
-    the.sim <- .sim3;
+    the.sim <- .sim;
 
     fit <- the.sim$fit
     bounds <- the.sim$bounds;
@@ -491,7 +493,7 @@ if( FALSE ) {
          col=2)
     lines(density(fit$param[, 1], from = lower.bounds[1],  to = upper.bounds[1]), col = 2)
     abline(v = VE.target, lty = 2, col = 1)
-    legend("topright", legend = c("VE target", "Posterior"),
+    legend("topright", legend = c("per-contact VE", "Posterior"),
            lty = c(1, 2), col = 1:2, lwd = 2)
     
     plot(density(fit$param[, 2], from = lower.bounds[2],  to = upper.bounds[2]),
