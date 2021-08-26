@@ -270,25 +270,34 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3 )) {
     rownames( optima.by.cluster )[ 1:length( bounds ) ] <- names( bounds );
     optima.by.cluster.sorted <- optima.by.cluster[ , order( optima.by.cluster[ "dist", ] ), drop = FALSE ];
 
-    return( list( fit = fit.rej, priors = priors, target.stats = target.stats, fn = .f.abc, sampled.modes = optima.by.cluster.sorted ) );
+    return( list( fit = fit.rej, priors = priors, bounds = bounds, target.stats = target.stats, fn = .f.abc, sampled.modes = optima.by.cluster.sorted ) );
 } # runSim_Paul (..)
 
 ### ERE I AM testing...
 the.seed <- 98103;
-num.sims <- 1000; # Fast for debugging.
-# num.sims <- 10000; # For reals.
+# To test replicability of the identified modes, uncomment this:
+set.seed( the.seed ); the.seed <- floor( runif( 1, max = 1E5 ) );
+# num.sims <- 1000; # Fast for debugging.
+num.sims <- 10000; # For reals.
 
 set.seed( the.seed );
 
 # .sim3 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 3 ));
 # .sim4 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 4 ));
-# .sim5 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 5 ));
+.sim5 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 5 ));
 
 ######
 ## Some plotting. Run manually. See above.
 if( FALSE ) {
-    fit <- .sim3$fit
+    the.sim <- .sim3;
+
+    fit <- the.sim$fit
+    bounds <- the.sim$bounds;
     
+    # These are the original bounds, separated for use in optim:
+    lower.bounds <- sapply( bounds, function ( .bounds.for.x ) { .bounds.for.x[ 1 ] } );
+    upper.bounds <- sapply( bounds, function ( .bounds.for.x ) { .bounds.for.x[ 2 ] } );
+
     plot(density(fit$param[, 1], from = lower.bounds[1],  to = upper.bounds[1]),
          main = "epsilon", 
          xlim = c(lower.bounds[1], upper.bounds[1]),
@@ -296,7 +305,7 @@ if( FALSE ) {
          col=2)
     lines(density(fit$param[, 1], from = lower.bounds[1],  to = upper.bounds[1]), col = 2)
     abline(v = VE.target, lty = 2, col = 1)
-    legend("topright", legend = c("Truth", "Posterior"),
+    legend("topright", legend = c("VE target", "Posterior"),
            lty = c(1, 2), col = 1:2, lwd = 2)
     
     plot(density(fit$param[, 2], from = lower.bounds[2],  to = upper.bounds[2]),
