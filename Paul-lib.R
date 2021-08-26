@@ -134,7 +134,7 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3 )) {
       lambda,     #beta*c*prev,
       risk,          #risk multiplier for high risk group
       highRiskProportion = 0.1, # these have defaults, so you can run this as 3 or 4 or 5 parameters.
-      lowRiskProportion = 0.1,
+      lowRiskProportion = ( 0.1/(1-highRiskProportion) ), # Among those not high risk.
       vaccinatedProportion = 0.5,
       trialSize = 10000
     ) {
@@ -142,12 +142,12 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3 )) {
       # Paul added the other params to this (risk here, others below):
       param <- param.dcm(lambda = lambda, epsilon = epsilon, risk = risk )
 
-      Svl <- floor( lowRiskProportion * vaccinatedProportion * trialSize );
-      Spl <- floor( lowRiskProportion * ( 1.0 - vaccinatedProportion ) * trialSize );
       Svh <- floor( highRiskProportion * vaccinatedProportion * trialSize );
       Sph <- floor( highRiskProportion * ( 1.0 - vaccinatedProportion ) * trialSize );
-      Svm <- floor( ( 1.0 - ( lowRiskProportion + highRiskProportion ) ) * vaccinatedProportion * trialSize );
-      Spm <- floor( ( 1.0 - ( lowRiskProportion + highRiskProportion ) ) * ( 1.0 - vaccinatedProportion ) * trialSize );
+      Svl <- floor( ( 1.0 - highRiskProportion ) * lowRiskProportion * vaccinatedProportion * trialSize );
+      Spl <- floor( ( 1.0 - highRiskProportion ) * lowRiskProportion * ( 1.0 - vaccinatedProportion ) * trialSize );
+      Svm <- floor( ( 1.0 - highRiskProportion ) * ( 1.0 - lowRiskProportion ) * vaccinatedProportion * trialSize );
+      Spm <- floor( ( 1.0 - highRiskProportion ) * ( 1.0 - lowRiskProportion ) * ( 1.0 - vaccinatedProportion ) * trialSize );
 
       Sp <- Spl + Spm + Sph;
       Sv <- Svl + Svm + Svh;
@@ -276,7 +276,7 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3 )) {
 ### ERE I AM testing...
 the.seed <- 98103;
 # To test replicability of the identified modes, uncomment this:
-set.seed( the.seed ); the.seed <- floor( runif( 1, max = 1E5 ) );
+# set.seed( the.seed ); the.seed <- floor( runif( 1, max = 1E5 ) );
 # num.sims <- 1000; # Fast for debugging.
 num.sims <- 10000; # For reals.
 
@@ -284,7 +284,7 @@ set.seed( the.seed );
 
 # .sim3 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 3 ));
 # .sim4 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 4 ));
-.sim5 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 5 ));
+# .sim5 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 5 ));
 
 ######
 ## Some plotting. Run manually. See above.
