@@ -439,30 +439,211 @@ runSim_rv144.hvtn702 <- function(reac = c( "numExecution" = 1000 ) ) {
     # Cluster-specific best sample is at this index, for each cluster:
     cluster.member.minimizing.dist <- sapply( 1:max( cluster.numbers ), function( .cluster.number ) { cluster.indices <- which( cluster.numbers == .cluster.number ); return( cluster.indices[ which.min( fit.rej.dist[ cluster.indices ] ) ] ); } );
     
-    make.optim.fn <- function ( .target.stats, .target.stat.stdevs = rep( 1, length( .target.stats ) ) ) {
+    # Ok, so there's two sets of model-specific parameters (rv144,
+    # hvtn702), and then one parameter that is shared (epsilon, the
+    # per-contact vaccine efficacy parameter), so the best way to
+    # optimize is using conditional optimization. That is, we hold
+    # epsilon fixed, and then do each model optimization separately,
+    # then hold those params fixed and optimize epsilon, and iterate
+    # until convergence.
+    make.epsilon.abc.fn <- function ( other.parameters ) {
         function( x ) {
-            .stats <- .f.abc( x );
+            run.and.compute.run.stats( epsilon = x, rv144.lambda = other.parameters[[ "rv144.lambda" ]], rv144.high.risk.multiplier = other.parameters[[ "rv144.high.risk.multiplier" ]], rv144.highRiskProportion = other.parameters[[ "rv144.highRiskProportion" ]], rv144.lowRiskProportion = other.parameters[[ "rv144.lowRiskProportion" ]], hvtn702.lambda = other.parameters[[ "hvtn702.lambda" ]], hvtn702.high.risk.multiplier = other.parameters[[ "hvtn702.high.risk.multiplier" ]], hvtn702.highRiskProportion = other.parameters[[ "hvtn702.highRiskProportion" ]], hvtn702.lowRiskProportion = other.parameters[[ "hvtn702.lowRiskProportion" ]] )
+        }
+    }
+    make.rv144.abc.fn <- function ( other.parameters ) {
+        function( x ) {
+            run.and.compute.run.stats( epsilon = other.parameters[[ "epsilon" ]], rv144.lambda = x[ 1 ], rv144.high.risk.multiplier = x[ 2 ], rv144.highRiskProportion = x[ 3 ], rv144.lowRiskProportion = x[ 4 ], hvtn702.lambda = other.parameters[[ "hvtn702.lambda" ]], hvtn702.high.risk.multiplier = other.parameters[[ "hvtn702.high.risk.multiplier" ]], hvtn702.highRiskProportion = other.parameters[[ "hvtn702.highRiskProportion" ]], hvtn702.lowRiskProportion = other.parameters[[ "hvtn702.lowRiskProportion" ]] )
+        }
+    }
+    make.hvtn702.abc.fn <- function ( other.parameters ) {
+        function( x ) {
+            run.and.compute.run.stats( epsilon = other.parameters[[ "epsilon" ]], rv144.lambda = other.parameters[[ "rv144.lambda" ]], rv144.high.risk.multiplier = other.parameters[[ "rv144.high.risk.multiplier" ]], rv144.highRiskProportion = other.parameters[[ "rv144.highRiskProportion" ]], rv144.lowRiskProportion = other.parameters[[ "rv144.lowRiskProportion" ]], hvtn702.lambda = x[ 1 ], hvtn702.high.risk.multiplier = x[ 2 ], hvtn702.highRiskProportion = x[ 3 ], hvtn702.lowRiskProportion = x[ 4 ] )
+        }
+    }
+
+    make.epsilon.optim.fn <- function ( .f.epsilon.abc, .target.stats, .target.stat.stdevs = rep( 1, length( .target.stats ) ) ) {
+        function( x ) {
+            .stats <- .f.epsilon.abc( x );
             .stats.matrix <- matrix( .stats, nrow = 1 );
             c( dist = calculate.abc.dist( .stats.matrix, .target.stats, ifelse( is.na( .target.stat.stdevs ), 1, .target.stat.stdevs ) ) )
         }
-    } # make.optim.fn (..)
+    } # make.epsilon.optim.fn (..)
 
-    .f <- make.optim.fn( target.stats[-1], target.stat.scale.units ); # For better balancing of the costs we use target.stat.scale.units; see above.
+    make.rv144.optim.fn <- function ( .f.rv144.abc, .target.stats, .target.stat.stdevs = rep( 1, length( .target.stats ) ) ) {
+        function( x ) {
+            .stats <- .f.rv144.abc( x );
+            .stats.matrix <- matrix( .stats, nrow = 1 );
+            c( dist = calculate.abc.dist( .stats.matrix, .target.stats, ifelse( is.na( .target.stat.stdevs ), 1, .target.stat.stdevs ) ) )
+        }
+    } # make.rv144.optim.fn (..)
 
+    make.hvtn702.optim.fn <- function ( .f.hvtn702.abc, .target.stats, .target.stat.stdevs = rep( 1, length( .target.stats ) ) ) {
+        function( x ) {
+            .stats <- .f.hvtn702.abc( x );
+            .stats.matrix <- matrix( .stats, nrow = 1 );
+            c( dist = calculate.abc.dist( .stats.matrix, .target.stats, ifelse( is.na( .target.stat.stdevs ), 1, .target.stat.stdevs ) ) )
+        }
+    } # make.hvtn702.optim.fn (..)
+
+    rv144.parameters <- c( "rv144.lambda", "rv144.high.risk.multiplier", "rv144.highRiskProportion", "rv144.lowRiskProportion" );
+    hvtn702.parameters <- c( "hvtn702.lambda", "hvtn702.high.risk.multiplier", "hvtn702.highRiskProportion", "hvtn702.lowRiskProportion" );
+    all.parameters <- c( "epsilon", rv144.parameters, hvtn702.parameters );
+
+    # For better balancing of the costs we use target.stat.scale.units; see above.
+    optimize.step <- function ( current.parameters, lower, upper, current.value = NULL, be.verbose = FALSE ) {
+          
+        ## First, update epsilon
+        .f.epsilon.abc <- make.epsilon.abc.fn( current.parameters );
+        .f.epsilon <- make.epsilon.optim.fn( .f.epsilon.abc, target.stats[-1], target.stat.scale.units );
+
+        if( is.null( current.value ) ) {
+            current.value <- unlist( .f.epsilon( current.parameters[[ "epsilon" ]] ) );
+        }
+        # Save the starting parameters and value, jic.
+        starting.parameters <- current.parameters;
+        starting.value <- current.value;
+
+        if( be.verbose ) {
+            cat( paste( apply( cbind( names( starting.parameters ), starting.parameters ), 1, paste, collapse = "=" ), collapse = ", " ), fill = TRUE )
+            cat( starting.value, fill = TRUE );
+        }
+
+        .optim.result <- optim( current.parameters[[ "epsilon" ]], .f.epsilon, lower = lower[[ "epsilon" ]], upper = upper[[ "epsilon" ]], method = "L-BFGS-B" );
+        .par <- .optim.result$par;
+        names( .par ) <- "epsilon";
+
+        .new.value <- .optim.result$value;
+        if( be.verbose ) {
+            cat( paste( "epsilon =", .par ), fill = TRUE );
+            cat( .new.value, fill = TRUE );
+        }
+        if( .new.value < current.value ) {
+            ## Update the current.parameters with this new epsilon value.
+            current.parameters[[ "epsilon" ]] <- .par;
+            current.value <- .new.value;
+            if( be.verbose ) {
+                cat( "accept", fill = TRUE );
+            }
+        } else {
+            if( be.verbose ) {
+                cat( "REJECT", fill = TRUE );
+            }
+        }
+
+        ## Next, update rv144 parameters
+        .f.rv144.abc <- make.rv144.abc.fn( current.parameters );
+        .f.rv144 <- make.rv144.optim.fn( .f.rv144.abc, target.stats[-1], target.stat.scale.units );
+
+        .optim.result <- optim( current.parameters[ rv144.parameters ], .f.rv144, lower = lower[ rv144.parameters ], upper = upper[ rv144.parameters ], method = "L-BFGS-B" );
+        .par <- .optim.result$par;
+        names( .par ) <- rv144.parameters;
+
+        .new.value <- .optim.result$value;
+        if( be.verbose ) {
+            cat( paste( apply( cbind( rv144.parameters, .par ), 1, paste, collapse = "=" ), collapse = ", " ), fill = TRUE )
+            cat( .new.value, fill = TRUE );
+        }
+
+        if( .new.value < current.value ) {
+            ## Update the current.parameters with this new epsilon value.
+            current.parameters[ rv144.parameters ] <- .par;
+            current.value <- .new.value;
+            if( be.verbose ) {
+                cat( "accept", fill = TRUE );
+            }
+        } else {
+            if( be.verbose ) {
+                cat( "REJECT", fill = TRUE );
+            }
+        }
+
+        ## Next, update hvtn702 parameters
+        .f.hvtn702.abc <- make.hvtn702.abc.fn( current.parameters );
+        .f.hvtn702 <- make.hvtn702.optim.fn( .f.hvtn702.abc, target.stats[-1], target.stat.scale.units );
+
+        .optim.result <- optim( current.parameters[ hvtn702.parameters ], .f.hvtn702, lower = lower[ hvtn702.parameters ], upper = upper[ hvtn702.parameters ], method = "L-BFGS-B" );
+        .par <- .optim.result$par;
+        names( .par ) <- hvtn702.parameters;
+
+        .new.value <- .optim.result$value;
+        if( be.verbose ) {
+            cat( paste( apply( cbind( hvtn702.parameters, .par ), 1, paste, collapse = "=" ), collapse = ", " ), fill = TRUE )
+            cat( .new.value, fill = TRUE );
+        }
+
+        if( .new.value < current.value ) {
+            ## Update the current.parameters with this new epsilon value.
+            current.parameters[ hvtn702.parameters ] <- .par;
+            current.value <- .new.value;
+            if( be.verbose ) {
+                cat( "accept", fill = TRUE );
+            }
+        } else {
+            if( be.verbose ) {
+                cat( "REJECT", fill = TRUE );
+            }
+        }
+
+        .f.epsilon.abc <- make.epsilon.abc.fn( current.parameters );
+        .new.stats <- .f.epsilon.abc( current.parameters[[ "epsilon" ]] );
+
+        print( c( current.parameters, .new.stats, dist = current.value ) );
+        return( c( current.parameters, .new.stats, dist = current.value ) );
+    } # optimize.step (..)
+
+    # First we optimize epsilon, then rv144, then hvtn702, then back to epsilon again
+    #      ‘reltol’ Relative convergence tolerance.  The algorithm stops if
+    # it is unable to reduce the value by a factor of ‘reltol *
+    # (abs(val) + reltol)’ at a step.  Defaults to
+    # ‘sqrt(.Machine$double.eps)’, typically about ‘1e-8’.
+    optimize.iteratively <- function ( current.parameters, lower, upper, current.value = NULL, reltol = sqrt(.Machine$double.eps), step.i = 1, max.steps = 5000, be.verbose = FALSE ) {
+        .converged <- FALSE;
+        last.dist <- current.value;
+        while( !.converged && ( step.i < max.steps ) ) {
+            .step.i.result <- optimize.step( current.parameters = current.parameters, lower = lower, upper = upper, current.value = current.value, be.verbose = be.verbose );
+            current.parameters <- .step.i.result[ all.parameters ];
+            current.value <- .step.i.result[[ "dist" ]];
+            if( !is.null( last.dist ) ) {
+                if( last.dist == current.value ) {
+                    .converged <- TRUE;
+                } else {
+                    .converged <- abs( last.dist - current.value ) < ( reltol * ( abs( last.dist ) + reltol ) )
+                }
+            } else {
+                last.dist <- current.value;
+            }
+            step.i <- step.i + 1;
+        } # End while !.converged && step.i < max.steps
+        if( be.verbose ) {
+            if( .converged ) {
+                cat( "CONVERGED.", fill = TRUE );
+            } else {
+                cat( "DID NOT CONVERGE (max steps reached).", fill = TRUE );
+            }
+        }
+        return( .step.i.result );
+    } # optimize.iteratively (..)
+        
     optima.by.cluster <- sapply( 1:length( cluster.member.minimizing.dist ), function( .cluster ) {
         print( .cluster );
         .lower.bounds <- low.Tukey.whisker.bound.by.cluster[ , .cluster ];
         .upper.bounds <- high.Tukey.whisker.bound.by.cluster[ , .cluster ];
+        names( .lower.bounds ) <- names( bounds );
+        names( .upper.bounds ) <- names( bounds );
         .minimizer.index <- cluster.member.minimizing.dist[[ .cluster ]];
         print( .minimizer.index );
         print( fit.rej$param[ .minimizer.index, ] );
-        print( .f( fit.rej$param[ .minimizer.index, ] ) );
-        .optim.result <- optim( fit.rej$param[ .minimizer.index, ], .f, lower = .lower.bounds, upper = .upper.bounds, method = "L-BFGS-B" );
-        .par <- .optim.result$par;
-        names( .par ) <- names( bounds );
-        .stats <- .f.abc( .par );
-        print( c( .par, .stats, dist = .optim.result$value ) );
-        return( c( .par, .stats, dist = .optim.result$value ) );
+
+        # Start at the initial value being the current minimizing value.
+        current.parameters <- fit.rej$param[ .minimizer.index, ];
+        names( current.parameters ) <- names( bounds );
+
+        .iterative.result <- optimize.iteratively( current.parameters, lower = .lower.bounds, upper = .upper.bounds, current.value = NULL, reltol = sqrt(.Machine$double.eps), step.i = 1, max.steps = 5000, be.verbose = TRUE );
+        # current.parameters <- .iterative.result[ all.parameters ];
+        # current.stats <- .iterative.result[[ setdiff( names( .iterative.result ), all.parameters, "dist" ) ]];
+        # current.value <- .iterative.result[[ "dist" ]];
+        return( .iterative.result );
     } );
     optima.by.cluster.sorted <- optima.by.cluster[ , order( optima.by.cluster[ "dist", ] ), drop = FALSE ];
 
