@@ -124,10 +124,10 @@ mod.manipulate <- function( mod ) {
   
   #Vaccine efficacy (VE) estimates
   #VE <- 1 - Relative Risk; this is VE for instantaneous incidence / hazard
-  mod <- mutate_epi(mod, rv144.VE.inst = 1 - rv144.rate.Vaccine.het/rv144.rate.Placebo.het)
+  mod <- mutate_epi(mod, rv144.VE.inst = 100 * ( 1 - rv144.rate.Vaccine.het/rv144.rate.Placebo.het ) )
   
   #VE <- 1 - Relative Risk; this is VE from cumulative incidence
-  mod <- mutate_epi(mod, rv144.VE.cumul = 1 - cumul.rv144.rate.Vaccine.het/cumul.rv144.rate.Placebo.het)
+  mod <- mutate_epi(mod, rv144.VE.cumul = 100 * ( 1 - cumul.rv144.rate.Vaccine.het/cumul.rv144.rate.Placebo.het ) )
 
 
   
@@ -152,10 +152,10 @@ mod.manipulate <- function( mod ) {
   
   #Vaccine efficacy (VE) estimates
   #VE <- 1 - Relative Risk; this is VE for instantaneous incidence / hazard
-  mod <- mutate_epi(mod, hvtn702.VE.inst = 1 - hvtn702.rate.Vaccine.het/hvtn702.rate.Placebo.het)
+  mod <- mutate_epi(mod, hvtn702.VE.inst = 100 * ( 1 - hvtn702.rate.Vaccine.het/hvtn702.rate.Placebo.het ) )
   
   #VE <- 1 - Relative Risk; this is VE from cumulative incidence
-  mod <- mutate_epi(mod, hvtn702.VE.cumul = 1 - cumul.hvtn702.rate.Vaccine.het/cumul.hvtn702.rate.Placebo.het)
+  mod <- mutate_epi(mod, hvtn702.VE.cumul = 100 * ( 1 - cumul.hvtn702.rate.Vaccine.het/cumul.hvtn702.rate.Placebo.het ) )
 
   #return(mod)
 } # mod.manipulate (..)
@@ -186,7 +186,7 @@ calculate.abc.dist <- function ( sampled.stats.matrix, target.stats, target.stat
 #------------------------------------------------------------------------------
 # sim execution
 #------------------------------------------------------------------------------
-runSim_rv144.hvtn702 <- function(reac = c( "numExecution" = 1000 ) ) {
+runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
     stopifnot( all( c( "numExecution" ) %in% names( reac ) ) );
 
     ## Number of parameters to optimize (3, 4, or 5).
@@ -196,9 +196,9 @@ runSim_rv144.hvtn702 <- function(reac = c( "numExecution" = 1000 ) ) {
     abc.keep.num.sims <- 250; # Number of samples to run through the clustering and optimizing steps.
     stopifnot( num.sims > abc.keep.num.sims ); # It won't work to cluster uniformly drawn points. You first have to filter them by keeping those nearest the target.
 
-    rv144.VE <- 0.31;
+    rv144.VE <- 31.0;
     rv144.placeboIncidence <- 0.14;
-    hvtn702.VE <- 0;
+    hvtn702.VE <- 0.0;
     hvtn702.placeboIncidence <- 3.3;
 
     rv144.placebo.incidence.target <- rv144.placeboIncidence; # incidence per 100 person years, eg 3.5 for 702 or 0.3 for RV144 [todo: double-check these values!]
@@ -219,8 +219,8 @@ runSim_rv144.hvtn702 <- function(reac = c( "numExecution" = 1000 ) ) {
     # modes are very close in one dimension and not in another
     # dimension, you can modify these scales to help balance that
     # distance cost across dimensions better.
-    placebo.incidence.target.scale.units <- 1; # These values mean that a 1 difference in placebo incidence from the target placebo incidence should cost about the same as a 0.01 difference in VE from its target. VE is meansured on a scale of -1 to 1, with units typically refered to as percentages, eg rv144 had a 31% efficacy is 0.31, so this means a "1% VE difference" has about the same cost in our distance metrix as does a 1 per 100-person year difference (so that's the difference between 3.3 as seen in 702 vs 3.2 or 3.3 per 100 person-years -- note that for rv144 the estimated placebo incidence was about 0.14 per 100 person-years, see below for references). TODO: Just rescale VE to also be -100 to 100 as that is standard anyway.
-    VE.target.scale.units <- 0.01;
+    placebo.incidence.target.scale.units <- 1;
+    VE.target.scale.units <- 1;
 
     target.stat.scale.units <- c( "rv144.VE.target" = VE.target.scale.units, "rv144.placebo.incidence.target" = placebo.incidence.target.scale.units, "hvtn702.VE.target" = VE.target.scale.units, "hvtn702.placebo.incidence.target" = placebo.incidence.target.scale.units );
 
@@ -427,17 +427,17 @@ runSim_rv144.hvtn702 <- function(reac = c( "numExecution" = 1000 ) ) {
     mins.by.cluster <- sapply( 1:max( cluster.numbers ), function( .cluster ) { apply( fit.rej$param[ cluster.numbers == .cluster, , drop = FALSE ], 2, min ) } );
     maxs.by.cluster <- sapply( 1:max( cluster.numbers ), function( .cluster ) { apply( fit.rej$param[ cluster.numbers == .cluster, , drop = FALSE ], 2, max ) } );
     IQRs.by.cluster <- sapply( 1:max( cluster.numbers ), function( .cluster ) { apply( fit.rej$param[ cluster.numbers == .cluster, , drop = FALSE ], 2, function( .col ) { diff( quantile( .col, c( 0.25, 0.75 ) ) ) } ) } );
-                                        # instead of around the median or mode, center it around the cluster minimizer.
-        print(  );
 
-#    Tukey.IQR.multiplier <- 1.5;
+    # Cluster-specific best sample is at this index, for each cluster:
+    cluster.member.minimizing.dist <- sapply( 1:max( cluster.numbers ), function( .cluster.number ) { cluster.indices <- which( cluster.numbers == .cluster.number ); return( cluster.indices[ which.min( fit.rej.dist[ cluster.indices ] ) ] ); } );
+    
+    # instead of around the median or mode, center it around the cluster minimizer.
+    # Tukey.IQR.multiplier <- 1.5;
     Tukey.IQR.multiplier <- .25;
     low.Tukey.whisker.bound.by.cluster <- sapply( 1:ncol( medians.by.cluster ), function( .cluster ) { .tukey.low.whisker.candidate.values <- fit.rej$param[ cluster.member.minimizing.dist[[ .cluster ]], ] - ( Tukey.IQR.multiplier * IQRs.by.cluster[ , .cluster ] ); ifelse( .tukey.low.whisker.candidate.values < mins.by.cluster[ , .cluster ], mins.by.cluster[ , .cluster ], .tukey.low.whisker.candidate.values ) } );
     high.Tukey.whisker.bound.by.cluster <- sapply( 1:ncol( medians.by.cluster ), function( .cluster ) { .tukey.high.whisker.candidate.values <- fit.rej$param[ cluster.member.minimizing.dist[[ .cluster ]], ] + ( Tukey.IQR.multiplier * IQRs.by.cluster[ , .cluster ] ); ifelse( .tukey.high.whisker.candidate.values < maxs.by.cluster[ , .cluster ], maxs.by.cluster[ , .cluster ], .tukey.high.whisker.candidate.values ) } );
+
     # boxplot( fit.rej.dist ~ cluster.numbers )
-    
-    # Cluster-specific best sample is at this index, for each cluster:
-    cluster.member.minimizing.dist <- sapply( 1:max( cluster.numbers ), function( .cluster.number ) { cluster.indices <- which( cluster.numbers == .cluster.number ); return( cluster.indices[ which.min( fit.rej.dist[ cluster.indices ] ) ] ); } );
     
     # Ok, so there's two sets of model-specific parameters (rv144,
     # hvtn702), and then one parameter that is shared (epsilon, the
@@ -492,6 +492,7 @@ runSim_rv144.hvtn702 <- function(reac = c( "numExecution" = 1000 ) ) {
 
     # For better balancing of the costs we use target.stat.scale.units; see above.
     optimize.step <- function ( current.parameters, lower, upper, current.value = NULL, be.verbose = FALSE ) {
+        is.anything.changed <- FALSE;
           
         ## First, update epsilon
         .f.epsilon.abc <- make.epsilon.abc.fn( current.parameters );
@@ -520,14 +521,15 @@ runSim_rv144.hvtn702 <- function(reac = c( "numExecution" = 1000 ) ) {
         }
         if( .new.value < current.value ) {
             ## Update the current.parameters with this new epsilon value.
+            if( be.verbose ) {
+                cat( paste( "ACCEPT epsilon change from ", current.parameters[[ "epsilon" ]], " to ", .par, sep = "" ), fill = TRUE );
+            }
             current.parameters[[ "epsilon" ]] <- .par;
             current.value <- .new.value;
-            if( be.verbose ) {
-                cat( "accept", fill = TRUE );
-            }
+            is.anything.changed <- TRUE;
         } else {
             if( be.verbose ) {
-                cat( "REJECT", fill = TRUE );
+                cat( "REJECT epsilon change", fill = TRUE );
             }
         }
 
@@ -546,15 +548,16 @@ runSim_rv144.hvtn702 <- function(reac = c( "numExecution" = 1000 ) ) {
         }
 
         if( .new.value < current.value ) {
+            if( be.verbose ) {
+                cat( paste( "ACCEPT rv144 parameters change from ", paste( apply( cbind( rv144.parameters, current.parameters[ rv144.parameters ] ), 1, paste, collapse = "=" ), collapse = ", " ), " to ", paste( apply( cbind( rv144.parameters, .par ), 1, paste, collapse = "=" ), collapse = ", " ), sep = "" ), fill = TRUE );
+            }
             ## Update the current.parameters with this new epsilon value.
             current.parameters[ rv144.parameters ] <- .par;
             current.value <- .new.value;
-            if( be.verbose ) {
-                cat( "accept", fill = TRUE );
-            }
+            is.anything.changed <- TRUE;
         } else {
             if( be.verbose ) {
-                cat( "REJECT", fill = TRUE );
+                cat( "REJECT rv144 parameters change", fill = TRUE );
             }
         }
 
@@ -573,21 +576,25 @@ runSim_rv144.hvtn702 <- function(reac = c( "numExecution" = 1000 ) ) {
         }
 
         if( .new.value < current.value ) {
+            if( be.verbose ) {
+                cat( paste( "ACCEPT hvtn702 parameters change from ", paste( apply( cbind( hvtn702.parameters, current.parameters[ hvtn702.parameters ] ), 1, paste, collapse = "=" ), collapse = ", " ), " to ", paste( apply( cbind( hvtn702.parameters, .par ), 1, paste, collapse = "=" ), collapse = ", " ), sep = "" ), fill = TRUE );
+            }
             ## Update the current.parameters with this new epsilon value.
             current.parameters[ hvtn702.parameters ] <- .par;
             current.value <- .new.value;
-            if( be.verbose ) {
-                cat( "accept", fill = TRUE );
-            }
+            is.anything.changed <- TRUE;
         } else {
             if( be.verbose ) {
-                cat( "REJECT", fill = TRUE );
+                cat( "REJECT hvtn702 parameters change", fill = TRUE );
             }
         }
 
         .f.epsilon.abc <- make.epsilon.abc.fn( current.parameters );
         .new.stats <- .f.epsilon.abc( current.parameters[[ "epsilon" ]] );
 
+        if( !is.anything.changed ) {
+            return( NULL );
+        }
         print( c( current.parameters, .new.stats, dist = current.value ) );
         return( c( current.parameters, .new.stats, dist = current.value ) );
     } # optimize.step (..)
@@ -597,27 +604,36 @@ runSim_rv144.hvtn702 <- function(reac = c( "numExecution" = 1000 ) ) {
     # it is unable to reduce the value by a factor of ‘reltol *
     # (abs(val) + reltol)’ at a step.  Defaults to
     # ‘sqrt(.Machine$double.eps)’, typically about ‘1e-8’.
-    optimize.iteratively <- function ( current.parameters, lower, upper, current.value = NULL, reltol = sqrt(.Machine$double.eps), step.i = 1, max.steps = 5000, be.verbose = FALSE ) {
+    optimize.iteratively <- function ( current.parameters, lower, upper, current.value = NULL, reltol = sqrt(.Machine$double.eps), step.i = 1, max.steps = 5, be.verbose = FALSE ) {
+        if( be.verbose ) {
+            cat( paste( "optimize.iteratively( step.i = ", step.i, " )", sep = "" ), fill = TRUE );
+        }
         .converged <- FALSE;
         last.dist <- current.value;
         while( !.converged && ( step.i < max.steps ) ) {
             .step.i.result <- optimize.step( current.parameters = current.parameters, lower = lower, upper = upper, current.value = current.value, be.verbose = be.verbose );
-            current.parameters <- .step.i.result[ all.parameters ];
-            current.value <- .step.i.result[[ "dist" ]];
-            if( !is.null( last.dist ) ) {
-                if( last.dist == current.value ) {
-                    .converged <- TRUE;
-                } else {
-                    .converged <- abs( last.dist - current.value ) < ( reltol * ( abs( last.dist ) + reltol ) )
-                }
+            if( is.null( .step.i.result ) ) {
+                .converged <- TRUE;
             } else {
-                last.dist <- current.value;
+                current.parameters <- .step.i.result[ all.parameters ];
+                current.value <- .step.i.result[[ "dist" ]];
+                if( !is.null( last.dist ) ) {
+                    if( last.dist == current.value ) {
+                        .converged <- TRUE;
+                    } else {
+                        .converged <- abs( last.dist - current.value ) < ( reltol * ( abs( last.dist ) + reltol ) )
+                    }
+                } else {
+                    last.dist <- current.value;
+                }
             }
             step.i <- step.i + 1;
         } # End while !.converged && step.i < max.steps
         if( be.verbose ) {
             if( .converged ) {
                 cat( "CONVERGED.", fill = TRUE );
+                cat( paste( apply( cbind( names( current.parameters ), current.parameters ), 1, paste, collapse = "=" ), collapse = ", " ), fill = TRUE )
+                cat( current.value, fill = TRUE );
             } else {
                 cat( "DID NOT CONVERGE (max steps reached).", fill = TRUE );
             }
