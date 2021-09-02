@@ -21,7 +21,7 @@ si_ode <- function(times, init, param){
     
     #Susceptible, Infected, vaccine, high, medium, low
     SIvh.flow <- risk*lambda*(1-epsilon)*Svh
-    ### Paul found this line has a bug:
+    ### Paul found this line has two bugs:
     ### SIvm.flow <- lambda*(1-epsilon)*Spl
     SIvm.flow <- lambda*(1-epsilon)*Svm
     SIvl.flow <- 0*lambda*(1-epsilon)*Svl  #0 to give this group zero exposures

@@ -15,14 +15,17 @@ si.ode.rv144.hvtn702.fn <- function ( times, init, param ) {
     # the number of people moving from S to I at each time step
     #Susceptible, Infected, placebo, high, medium, low
     rv144.SIph.flow <- rv144.high.risk.multiplier*rv144.lambda*rv144.Sph
-    rv144.SIpm.flow <- rv144.lambda*rv144.Spl
+    #rv144.SIpm.flow <- rv144.lambda*rv144.Spl ### BUG HERE: Spl instead of Spm!!!
+    rv144.SIpm.flow <- rv144.lambda*rv144.Spm ### BUG FIXED
     rv144.SIpl.flow <- 0*rv144.lambda*rv144.Spl  #0 to give this group zero exposures
     
     #Susceptible, Infected, vaccine, high, medium, low
     rv144.SIvh.flow <- rv144.high.risk.multiplier*rv144.lambda*(1-epsilon)*rv144.Svh
     ### Paul found this line has a bug:
     ### rv144.SIvm.flow <- rv144.lambda*(1-epsilon)*rv144.Spl
-    rv144.SIvm.flow <- rv144.lambda*(1-epsilon)*rv144.Svl
+### DARN it actually had TWO BUGS! Also the l at the end! 
+    #rv144.SIvm.flow <- rv144.lambda*(1-epsilon)*rv144.Svl ### BUG HERE: Svl instead of Svm!!!
+    rv144.SIvm.flow <- rv144.lambda*(1-epsilon)*rv144.Svm ### BUG FIXED
     rv144.SIvl.flow <- 0*rv144.lambda*(1-epsilon)*rv144.Svl  #0 to give this group zero exposures
     
     # ODEs
@@ -48,14 +51,12 @@ si.ode.rv144.hvtn702.fn <- function ( times, init, param ) {
     # the number of people moving from S to I at each time step
     #Susceptible, Infected, placebo, high, medium, low
     hvtn702.SIph.flow <- hvtn702.high.risk.multiplier*hvtn702.lambda*hvtn702.Sph
-    hvtn702.SIpm.flow <- hvtn702.lambda*hvtn702.Spl
+    hvtn702.SIpm.flow <- hvtn702.lambda*hvtn702.Spm
     hvtn702.SIpl.flow <- 0*hvtn702.lambda*hvtn702.Spl  #0 to give this group zero exposures
     
     #Susceptible, Infected, vaccine, high, medium, low
     hvtn702.SIvh.flow <- hvtn702.high.risk.multiplier*hvtn702.lambda*(1-epsilon)*hvtn702.Svh
-    ### Paul found this line has a bug:
-    ### hvtn702.SIvm.flow <- hvtn702.lambda*(1-epsilon)*hvtn702.Spl
-    hvtn702.SIvm.flow <- hvtn702.lambda*(1-epsilon)*hvtn702.Svl
+    hvtn702.SIvm.flow <- hvtn702.lambda*(1-epsilon)*hvtn702.Svm
     hvtn702.SIvl.flow <- 0*hvtn702.lambda*(1-epsilon)*hvtn702.Svl  #0 to give this group zero exposures
     
     # ODEs
@@ -189,12 +190,12 @@ calculate.abc.dist <- function ( sampled.stats.matrix, target.stats, target.stat
 run.and.compute.run.stats <- function (
       epsilon,   #per contact vaccine efficacy
       rv144.lambda,     #beta*c*prev,
-      hvtn702.lambda,     #beta*c*prev,
       rv144.high.risk.multiplier,          # Risk multiplier for high risk group
-      hvtn702.high.risk.multiplier,
       rv144.highRiskProportion,
-      hvtn702.highRiskProportion,
       rv144.lowRiskProportion,             # This is a proportion among those not high risk.
+      hvtn702.lambda,
+      hvtn702.high.risk.multiplier,
+      hvtn702.highRiskProportion,
       hvtn702.lowRiskProportion,
       vaccinatedProportion = 0.5,
       trialSize = 10000,
@@ -393,6 +394,10 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
     # In order of "x" in the above function.
     priors  <- lapply( bounds, function( .bounds ) { c( "unif", unlist( .bounds ) ) } );
 
+    ## PHASE 1: Find candidate starting places constructed from epsion-bin-specific, trial-specific local optima. Later (in phase 2) we will find 9-parameter local optima near each of these candidate starting places.
+    ## First we draw num.sims draws, then compute how far the closest abc.keep.num.sims are, and use all points within 1.5-fold (see fit.rej.dist.scaled) of the furthest of those, to ensure a minimum number of abc.keep.num.sims points but to usually keep additional points to help flesh out the contours of the space just below these peaks, which we think can possibly help with the clustering but it's not entirely clear yet.
+
+    # First we just draw num.sims draws from the priors, independently. Keep everything drawn. Compute the 4-parameter target stats from runs with these 9-parameter random starting places, and the standard deviations of these 4-parameter stats (which we use to scale the distance function on the target stats for balancing the optimization evenly across the parameters, see below).
     .f.abc <- function( x ) {
         run.and.compute.run.stats( epsilon = x[ 1 ], rv144.lambda = x[ 2 ], rv144.high.risk.multiplier = x[ 3 ], rv144.highRiskProportion = x[ 4 ], rv144.lowRiskProportion = x[ 5 ], hvtn702.lambda = x[ 6 ], hvtn702.high.risk.multiplier = x[ 7 ], hvtn702.highRiskProportion = x[ 8 ], hvtn702.lowRiskProportion = x[ 9 ] )
     }
@@ -405,10 +410,11 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
     colnames( fit.rej$param ) <- all.parameters;
     colnames( fit.rej$stats ) <- names( target.stats );
     names( fit.rej$stats_normalization ) <- names( target.stats );
+    # Keep this, because we discard much of the data in it and later if we need to we might revert to this, while debugging only.
+    fit.orig <- fit.rej; # TODO: REMOVE WHILE NOT DEBUGGING
 
     # Filter to keep points up to max.fit.rej.dist.scaled units away.
     max.fit.rej.dist.scaled <- 1.5; # MAGIC #
-    fit.orig <- fit.rej;
 
     # Compute the distances for each retained sample
     # fit.rej.dist <-
@@ -416,6 +422,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
 
     fit.rej.rv144.dist <-
         calculate.abc.dist( fit.rej$stats[ , rv144.target.stats ], as.numeric( target.stats[ rv144.target.stats ] ), ifelse( is.na( fit.rej$stats_normalization[ rv144.target.stats ] ), 1, fit.rej$stats_normalization[ rv144.target.stats ] ) * target.stat.scale.units[ rv144.target.stats ] );
+
     fit.rej.hvtn702.dist <-
         calculate.abc.dist( fit.rej$stats[ , hvtn702.target.stats ], as.numeric( target.stats[ hvtn702.target.stats ] ), ifelse( is.na( fit.rej$stats_normalization[ hvtn702.target.stats ] ), 1, fit.rej$stats_normalization[ hvtn702.target.stats ] ) * target.stat.scale.units[ hvtn702.target.stats ] );
 
@@ -528,8 +535,13 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
         } # End foreach rv144.cluster.i
         
     } # End foreach epsilon.bin
+
+
     # boxplot( fit.rej.dist ~ cluster.numbers )
     
+
+    ## PHASE 2:  from these candidate starting places constructed from epsion-bin-specific, trial-specific local optima, find modes in the 9-parameter space by conditional optimization.
+
     # For better balancing of the costs we use target.stat.scale.units; see above.
     optimize.step <- function ( current.parameters, lower, upper, current.value = NULL, be.verbose = FALSE ) {
         is.anything.changed <- FALSE;

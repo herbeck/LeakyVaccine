@@ -13,14 +13,16 @@ si_odePaul <- function(times, init, param){
     # the number of people moving from S to I at each time step
     #Susceptible, Infected, placebo, high, medium, low
     SIph.flow <- risk*lambda*Sph
-    SIpm.flow <- lambda*Spl
+    ### Paul found this line has a bug:
+    ### SIpm.flow <- lambda*Spl
+    SIpm.flow <- lambda*Spm
     SIpl.flow <- 0*lambda*Spl  #0 to give this group zero exposures
     
     #Susceptible, Infected, vaccine, high, medium, low
     SIvh.flow <- risk*lambda*(1-epsilon)*Svh
-    ### Paul found this line has a bug:
+    ### Paul found this line has two bugs:
     ### SIvm.flow <- lambda*(1-epsilon)*Spl
-    SIvm.flow <- lambda*(1-epsilon)*Svl
+    SIvm.flow <- lambda*(1-epsilon)*Svm
     SIvl.flow <- 0*lambda*(1-epsilon)*Svl  #0 to give this group zero exposures
     
     # ODEs
