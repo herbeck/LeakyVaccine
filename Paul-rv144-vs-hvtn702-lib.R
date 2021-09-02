@@ -187,6 +187,9 @@ calculate.abc.dist <- function ( sampled.stats.matrix, target.stats, target.stat
 #------------------------------------------------------------------------------
 # sim execution
 #------------------------------------------------------------------------------
+rv144.parameters <- c( "rv144.lambda", "rv144.high.risk.multiplier", "rv144.highRiskProportion", "rv144.lowRiskProportion" );
+hvtn702.parameters <- c( "hvtn702.lambda", "hvtn702.high.risk.multiplier", "hvtn702.highRiskProportion", "hvtn702.lowRiskProportion" );
+all.parameters <- c( "epsilon", rv144.parameters, hvtn702.parameters );
 run.and.compute.run.stats <- function (
       epsilon,   #per contact vaccine efficacy
       rv144.lambda,     #beta*c*prev,
@@ -201,10 +204,6 @@ run.and.compute.run.stats <- function (
       trialSize = 10000,
       trial.evaluation.time = 3*365
 ) {
-    rv144.parameters <- c( "rv144.lambda", "rv144.high.risk.multiplier", "rv144.highRiskProportion", "rv144.lowRiskProportion" );
-    hvtn702.parameters <- c( "hvtn702.lambda", "hvtn702.high.risk.multiplier", "hvtn702.highRiskProportion", "hvtn702.lowRiskProportion" );
-    all.parameters <- c( "epsilon", rv144.parameters, hvtn702.parameters );
-
       # Paul added the other params to this (risk here, others below):
       param <- param.dcm(epsilon = epsilon, rv144.lambda = rv144.lambda, hvtn702.lambda = hvtn702.lambda, rv144.high.risk.multiplier = rv144.high.risk.multiplier, hvtn702.high.risk.multiplier = hvtn702.high.risk.multiplier )
 
@@ -363,8 +362,8 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
     VE.target.scale.units <- 1;
 
     high.risk.multiplier.max <- 50;
-    lambda.min <- 1E-7;
-    lambda.max <- 1E-2;
+    lambda.min <- 1E-6;#1E-7;
+    lambda.max <- 1E-4;#1E-2;
     smallest.discernable.amount <- 5E-4; # determined by trial and error this is the smallest amount you can change the parameters from 0 or 1 for it to register a difference from those extremes, eg to avoid NaN and Inf
 
     target.stats <-
@@ -395,7 +394,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
     priors  <- lapply( bounds, function( .bounds ) { c( "unif", unlist( .bounds ) ) } );
 
     ## PHASE 1: Find candidate starting places constructed from epsion-bin-specific, trial-specific local optima. Later (in phase 2) we will find 9-parameter local optima near each of these candidate starting places.
-    ## First we draw num.sims draws, then compute how far the closest abc.keep.num.sims are, and use all points within 1.5-fold (see fit.rej.dist.scaled) of the furthest of those, to ensure a minimum number of abc.keep.num.sims points but to usually keep additional points to help flesh out the contours of the space just below these peaks, which we think can possibly help with the clustering but it's not entirely clear yet.
+    ## First we draw num.sims draws, then for each study-specific distance (computed using just that study's two target stats), compute how far the closest abc.keep.num.sims are, and use all points within 1.5-fold (see fit.rej.dist.scaled) of the furthest of those, to ensure a minimum number of abc.keep.num.sims points but to usually keep additional points to help flesh out the contours of the space just below these peaks, which we think can possibly help with the clustering but it's not entirely clear yet.
 
     # First we just draw num.sims draws from the priors, independently. Keep everything drawn. Compute the 4-parameter target stats from runs with these 9-parameter random starting places, and the standard deviations of these 4-parameter stats (which we use to scale the distance function on the target stats for balancing the optimization evenly across the parameters, see below).
     .f.abc <- function( x ) {
@@ -461,6 +460,12 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
     fit.rej.hvtn702$weights <- fit.rej.hvtn702$weights[ abc.hvtn702.keep.sim ];
     fit.rej.hvtn702.dist <- fit.rej.hvtn702.dist[ abc.hvtn702.keep.sim ];
 
+    ## Great, now that we have identified the subset of points that we are keeping, and have eliminated the other points, we will now consider bins of epsilon (the only parameter that is shared across the two studies) and within each bin we will cluster the non-epsilon parameters for each study and construct a set of 9-parameter candidate starting places based on study-specific modes that share approximately common epsilon parameters across the studies. For example if there is a mode at around epsilon = 0.5 for both studies, we want to construct a 9-parameter starting place with epsilon = 0.5 and the study-specific maximizing parameters for the non-epsilon parameters when epsilon is 0.5.
+
+   # Note that we use a sliding window approach so there's actually twice as many bins as is stated here, and we may find the same modes multiple times. This is to balance focusing on relevant values of the other parameters while clustering the non-epsilon study-specific parameters by conditioning approximately on epsilon, and might need be tuned to consider different bin sizes (bin sizes are 1/num.epsilon.bins and overlap halfway through, with the lowest and highest bins being half-sized).
+
+    # Once we identify modes we determine their compatability across studies by whether the epsilons are near enough to each other, based on the overlap or not of their search windows, which are defined by using the logic of identifying outliers in a box plot. That is we walk out from the mode some number of IQR-defined units and define the search window as anything within that zone. For Tukey-style boxplots the number is 1.5 IQRs from the median defines an outlier. Here we can tune this multiplier (Tukey.IQR.multiplier) to change the window width that we use to define the search space for optimization and also for this overlap detection.
+
     # Tukey.IQR.multiplier <- 1.5;
     # Tukey.IQR.multiplier <- 1.0;
     Tukey.IQR.multiplier <- .25;
@@ -468,19 +473,33 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
     # Now find optimal points near the sampled modes.
     
     ## Now we separately cluster the two trials except we group by epsilon bin.
+    candidate.parameter.sets.low <- matrix( NA, nrow = 0, ncol = length( all.parameters ) );
+    candidate.parameter.sets.high <- matrix( NA, nrow = 0, ncol = length( all.parameters ) );
     num.epsilon.bins <- 10; # MAGIC #
-    for( epsilon.bin in 1:num.epsilon.bins ) {
-        bin.min.epsilon <- ( epsilon.bin - 1 )/num.epsilon.bins;
-        bin.max.epsilon <- epsilon.bin/num.epsilon.bins;
+    #num.epsilon.bins <- 2; # MAGIC # for debugging when num.sims is only 1000
+    min.points.for.clustering <- 6; # MAGIC #, from "QH6214 qhull input error: not enough points(2) to construct initial simplex (need 6)"
+    be.verbose <- TRUE; # MAGIC #
+    for( epsilon.bin in 1:(2*num.epsilon.bins - 1) ) {
+        cat( paste( "epsilon.bin =", epsilon.bin ), fill = TRUE );
+        bin.min.epsilon <- max( 0, ( epsilon.bin - 1 )/(2*num.epsilon.bins) );
+        bin.max.epsilon <- min( 1, ( epsilon.bin + 1 )/(2*num.epsilon.bins) );
 
         ### rv144
         rv144.sample.is.in.bin <-
             ( fit.rej.rv144$param[ , "epsilon" ] >= bin.min.epsilon ) & ( fit.rej.rv144$param[ , "epsilon" ] < bin.max.epsilon );
-        
-        cl.rv144 <- suppressWarnings( pdfCluster( fit.rej.rv144$param[ rv144.sample.is.in.bin, rv144.parameters, drop = FALSE ] ) );
-        rv144.cluster.numbers <- rep( NA, length( rv144.sample.is.in.bin ) );
-        rv144.cluster.numbers[ rv144.sample.is.in.bin ] <- groups( cl.rv144 );
-       # Helpful when debugging - run through the next line.. it'll print when done
+        cat( paste( "sum( rv144.sample.is.in.bin ) =", sum( rv144.sample.is.in.bin ) ), fill = TRUE );
+        if( sum( rv144.sample.is.in.bin ) < min.points.for.clustering ) {
+            if( sum( rv144.sample.is.in.bin ) == 0 ) {
+                next; # No points in this bin at all. Move on.
+            }
+            rv144.cluster.numbers <- rep( NA, length( rv144.sample.is.in.bin ) );
+            rv144.cluster.numbers[ rv144.sample.is.in.bin ] <- 1; # All in one cluster together
+        } else {
+            cl.rv144 <- suppressWarnings( pdfCluster( fit.rej.rv144$param[ rv144.sample.is.in.bin, rv144.parameters, drop = FALSE ], bwtype="adaptive", hmult=1 ) );
+            rv144.cluster.numbers <- rep( NA, length( rv144.sample.is.in.bin ) );
+            rv144.cluster.numbers[ rv144.sample.is.in.bin ] <- groups( cl.rv144 );
+        }
+        # Helpful when debugging - run through the next line.. it'll print when done
         table( rv144.cluster.numbers )
 
         medians.by.rv144.cluster <- sapply( 1:max( rv144.cluster.numbers, na.rm = TRUE ), function( .cluster ) { apply( fit.rej.rv144$param[ !is.na( rv144.cluster.numbers ) & ( rv144.cluster.numbers == .cluster ), , drop = FALSE ], 2, median ) } );
@@ -498,11 +517,20 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
         ### hvtn702
         hvtn702.sample.is.in.bin <-
             ( fit.rej.hvtn702$param[ , "epsilon" ] >= bin.min.epsilon ) & ( fit.rej.hvtn702$param[ , "epsilon" ] < bin.max.epsilon );
+        cat( paste( "sum( hvtn702.sample.is.in.bin ) =", sum( hvtn702.sample.is.in.bin ) ), fill = TRUE );
         
-        cl.hvtn702 <- suppressWarnings( pdfCluster( fit.rej.hvtn702$param[ hvtn702.sample.is.in.bin, hvtn702.parameters, drop = FALSE ] ) );
-        hvtn702.cluster.numbers <- rep( NA, length( hvtn702.sample.is.in.bin ) );
-        hvtn702.cluster.numbers[ hvtn702.sample.is.in.bin ] <- groups( cl.hvtn702 );
-       # Helpful when debugging - run through the next line.. it'll print when done
+        if( sum( hvtn702.sample.is.in.bin ) < min.points.for.clustering ) {
+            if( sum( hvtn702.sample.is.in.bin ) == 0 ) {
+                next; # No points in this bin at all. Move on.
+            }
+            hvtn702.cluster.numbers <- rep( NA, length( hvtn702.sample.is.in.bin ) );
+            hvtn702.cluster.numbers[ hvtn702.sample.is.in.bin ] <- 1; # All in one cluster together
+        } else {
+            cl.hvtn702 <- suppressWarnings( pdfCluster( fit.rej.hvtn702$param[ hvtn702.sample.is.in.bin, hvtn702.parameters, drop = FALSE ], bwtype="adaptive", hmult=1 ) );
+            hvtn702.cluster.numbers <- rep( NA, length( hvtn702.sample.is.in.bin ) );
+            hvtn702.cluster.numbers[ hvtn702.sample.is.in.bin ] <- groups( cl.hvtn702 );
+        }
+        # Helpful when debugging - run through the next line.. it'll print when done
         table( hvtn702.cluster.numbers )
 
         medians.by.hvtn702.cluster <- sapply( 1:max( hvtn702.cluster.numbers, na.rm = TRUE ), function( .cluster ) { apply( fit.rej.hvtn702$param[ !is.na( hvtn702.cluster.numbers ) & ( hvtn702.cluster.numbers == .cluster ), , drop = FALSE ], 2, median ) } );
@@ -518,10 +546,12 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
         high.Tukey.whisker.bound.by.hvtn702.cluster <- sapply( 1:ncol( medians.by.hvtn702.cluster ), function( .cluster ) { .tukey.low.whisker.candidate.values <- fit.rej.hvtn702$param[ hvtn702.cluster.member.minimizing.dist[[ .cluster ]],  ] + ( Tukey.IQR.multiplier * IQRs.by.hvtn702.cluster[ , .cluster ] ); ifelse( .tukey.low.whisker.candidate.values < mins.by.hvtn702.cluster[ , .cluster ], mins.by.hvtn702.cluster[ , .cluster ], .tukey.low.whisker.candidate.values ) } );
 
         ## Ok, so the idea is that for this epsilon bin we now have rv144 and hvtn702 parameter clusters that are effectively independent, and we just want to try the combos that work. For now we can use this strategy but we need to keep track in case we are losing a lot of clusters this way: basically just try all compatible combinations based on overlap of the window we are calling the Tukey whisker bound, because it is based on the idea of multiplying the IQR by a constant and using that to determine a window of what is considered an outlier. So we have these windows on all the parameters but here the only overlapping parameter is epsilon.
-        for( rv144.cluster.i in 1:length( low.Tukey.whisker.bound.by.rv144.cluster ) ) {
-            for( hvtn702.cluster.j in 1:length( low.Tukey.whisker.bound.by.hvtn702.cluster ) ) {
+        for( rv144.cluster.i in 1:ncol( low.Tukey.whisker.bound.by.rv144.cluster ) ) {
+            cat( paste( "rv144.cluster.i = ", rv144.cluster.i ), fill = TRUE );
+            for( hvtn702.cluster.j in 1:ncol( low.Tukey.whisker.bound.by.hvtn702.cluster ) ) {
+                cat( paste( "hvtn702.cluster.j = ", hvtn702.cluster.j ), fill = TRUE );
                 # Is it incompatible?
-                if( ( high.Tukey.whisker.bound.by.rv144.cluster[ rv144.cluster.i ] < low.Tukey.whisker.bound.by.hvtn702.cluster[ hvtn702.cluster.j ] ) || ( high.Tukey.whisker.bound.by.hvtn702.cluster[ hvtn702.cluster.j ] < low.Tukey.whisker.bound.by.rv144.cluster[ rv144.cluster.i ] ) ) {
+                if( ( high.Tukey.whisker.bound.by.rv144.cluster[ "epsilon", rv144.cluster.i ] < low.Tukey.whisker.bound.by.hvtn702.cluster[ "epsilon", hvtn702.cluster.j ] ) || ( high.Tukey.whisker.bound.by.hvtn702.cluster[ "epsilon", hvtn702.cluster.j ] < low.Tukey.whisker.bound.by.rv144.cluster[ "epsilon", rv144.cluster.i ] ) ) {
                     # The epsilon windows do not overlap. Move on.
                     if( be.verbose ) {
                         cat( paste( "Epsilon windows for rv144 cluster ", rv144.cluster.i, " and hvtn702 cluster ", hvtn702.cluster.j, " in epsilon bin ", epsilon.bin, " do not overlap.", sep = "" ), fill = TRUE );
@@ -530,15 +560,52 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
                 }
                 if( be.verbose ) {
                     cat( paste( "Epsilon windows for rv144 cluster ", rv144.cluster.i, " and hvtn702 cluster ", hvtn702.cluster.j, " in epsilon bin ", epsilon.bin, " ARE COMPATIBLE.", sep = "" ), fill = TRUE );
+                    low.epsilon.bound <-
+                        max(
+                            low.Tukey.whisker.bound.by.rv144.cluster[ "epsilon", rv144.cluster.i ],
+                            low.Tukey.whisker.bound.by.hvtn702.cluster[ "epsilon", hvtn702.cluster.j ]
+                            );
+                    high.epsilon.bound <-
+                        min(
+                            high.Tukey.whisker.bound.by.rv144.cluster[ "epsilon", rv144.cluster.i ],
+                            high.Tukey.whisker.bound.by.hvtn702.cluster[ "epsilon", hvtn702.cluster.j ]
+                            );
+                    stopifnot( high.epsilon.bound > low.epsilon.bound );
+                    candidate.parameter.sets.low <-
+                        rbind( candidate.parameter.sets.low,
+                              c( "epsilon" = low.epsilon.bound,
+                                low.Tukey.whisker.bound.by.rv144.cluster[ rv144.parameters, rv144.cluster.i ],
+                                low.Tukey.whisker.bound.by.hvtn702.cluster[ hvtn702.parameters, hvtn702.cluster.j ]
+                                ) );
+                    candidate.parameter.sets.high <-
+                        rbind( candidate.parameter.sets.high,
+                              c( "epsilon" = high.epsilon.bound,
+                                high.Tukey.whisker.bound.by.rv144.cluster[ rv144.parameters, rv144.cluster.i ],
+                                high.Tukey.whisker.bound.by.hvtn702.cluster[ hvtn702.parameters, hvtn702.cluster.j ]
+                                ) );
                 }
-            } # End foreach hvtn702.cluster.i
+            } # End foreach hvtn702.cluster.j
         } # End foreach rv144.cluster.i
         
+        cat( paste( "END epsilon.bin =", epsilon.bin ), fill = TRUE );
     } # End foreach epsilon.bin
 
-
     # boxplot( fit.rej.dist ~ cluster.numbers )
-    
+
+    ## TODO: Filter the candidates so they are not redundant.
+
+    ## Compute midpoints of candidates as medians of bounds; these
+    ## will be the starting places for the optimizations below, but
+    ## first we need to ensure everything is within the specified
+    ## bounds.
+    candidate.parameter.sets.midpoint <- candidate.parameter.sets.low + ( candidate.parameter.sets.high - candidate.parameter.sets.low ) / 2;
+
+    ## Ensure global bounds
+    bounds.low <- sapply( bounds, function ( .lower.and.higher ) { .lower.and.higher[ 1 ] } );
+    bounds.high <- sapply( bounds, function ( .lower.and.higher ) { .lower.and.higher[ 2 ] } );
+    candidate.parameter.sets.low.bounded <- t( apply( candidate.parameter.sets.low, 1, function( .candidate.parameter.set.low ) { ifelse( .candidate.parameter.set.low < bounds.low, bounds.low, .candidate.parameter.set.low ) } ) );
+    candidate.parameter.sets.high.bounded <- t( apply( candidate.parameter.sets.high, 1, function( .candidate.parameter.set.high ) { ifelse( .candidate.parameter.set.high > bounds.high, bounds.high, .candidate.parameter.set.high ) } ) );
+    candidate.parameter.sets.midpoint.bounded <- t( apply( candidate.parameter.sets.midpoint, 1, function( .candidate.parameter.set.midpoint ) { ifelse( .candidate.parameter.set.midpoint > bounds.high, bounds.high, ifelse( .candidate.parameter.set.midpoint < bounds.low, bounds.low, .candidate.parameter.set.midpoint ) ) } ) );
 
     ## PHASE 2:  from these candidate starting places constructed from epsion-bin-specific, trial-specific local optima, find modes in the 9-parameter space by conditional optimization.
 
@@ -699,28 +766,19 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
         return( .step.i.result );
     } # optimize.iteratively (..)
 
-    ## ERE I AM
-    optima.by.cluster <- sapply( 1:length( cluster.member.minimizing.dist ), function( .cluster ) {
-        print( .cluster );
-        .lower.bounds <- low.Tukey.whisker.bound.by.cluster[ , .cluster ];
-        .upper.bounds <- high.Tukey.whisker.bound.by.cluster[ , .cluster ];
-        names( .lower.bounds ) <- names( bounds );
-        names( .upper.bounds ) <- names( bounds );
-        .minimizer.index <- cluster.member.minimizing.dist[[ .cluster ]];
-        print( .minimizer.index );
-        print( fit.rej$param[ .minimizer.index, ] );
-
-        # Start at the initial value being the current minimizing value.
-        current.parameters <- fit.rej$param[ .minimizer.index, ];
-        names( current.parameters ) <- names( bounds );
-
-        .iterative.result <- optimize.iteratively( current.parameters, lower = .lower.bounds, upper = .upper.bounds, current.value = NULL, be.verbose = TRUE );
+    optima.by.candidate <- sapply( 1:length( candidate.parameter.sets.midpoint.bounded ), function( .candidate ) {
+        print( .candidate );
+        .lower.bounds <- candidate.parameter.sets.low.bounded[ .candidate, ];
+        .upper.bounds <- candidate.parameter.sets.high.bounded[ .candidate, ];
+        .midpoint <- candidate.parameter.sets.midpoint.bounded[ .candidate, ];
+        print( .midpoint );
+        .iterative.result <- optimize.iteratively( .midpoint, lower = .lower.bounds, upper = .upper.bounds, current.value = NULL, be.verbose = TRUE );
         # current.parameters <- .iterative.result[ all.parameters ];
         # current.stats <- .iterative.result[[ setdiff( names( .iterative.result ), all.parameters, "dist" ) ]];
         # current.value <- .iterative.result[[ "dist" ]];
         return( .iterative.result );
     } );
-    optima.by.cluster.sorted <- optima.by.cluster[ , order( optima.by.cluster[ "dist", ] ), drop = FALSE ];
+    optima.by.candidate.sorted <- optima.by.candidate[ , order( optima.by.candidate[ "dist", ] ), drop = FALSE ];
 
         
     return( list( fit = fit.rej, priors = priors, bounds = bounds, target.stats = target.stats, fn = .f.abc, sampled.modes = optima.by.cluster.sorted ) );
