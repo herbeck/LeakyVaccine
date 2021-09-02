@@ -331,7 +331,8 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
     num.sims <- unname( reac[ "numExecution" ] );
 
     ## TODO : REMOVE?
-    abc.keep.num.sims <- 250; # Number of samples to run through the clustering and optimizing steps.
+    #abc.keep.num.sims <- 1000; # Number of samples to run through the clustering and optimizing steps.
+    abc.keep.num.sims <- floor( num.sims / 4 );
     stopifnot( num.sims > abc.keep.num.sims ); # It won't work to cluster uniformly drawn points. You first have to filter them by keeping those nearest the target.
 
     # MAGIC #s
@@ -410,7 +411,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
     colnames( fit.rej$stats ) <- names( target.stats );
     names( fit.rej$stats_normalization ) <- names( target.stats );
     # Keep this, because we discard much of the data in it and later if we need to we might revert to this, while debugging only.
-    fit.orig <- fit.rej; # TODO: REMOVE WHILE NOT DEBUGGING
+    fit.orig <- fit.rej; # TODO: CAN SAFELY REMOVE THIS, IT IS NOT USED IN THE CODE.
 
     # Filter to keep points up to max.fit.rej.dist.scaled units away.
     max.fit.rej.dist.scaled <- 1.5; # MAGIC #
@@ -434,14 +435,6 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
     hvtn702.dist.units <- quantile( fit.rej.hvtn702.dist, probs = ( abc.keep.num.sims / num.sims ) )
     fit.rej.hvtn702.dist.scaled <- fit.rej.hvtn702.dist / hvtn702.dist.units;
     fit.rej.hvtn702.dist.scaled.int <- floor( fit.rej.hvtn702.dist.scaled );
-
-    ## Make a contour-like plot
-    ## ERE I AM
-    # .df <- as.data.frame( fit.rej$param ) #df of just the parameter combinations ABC sampled
-    # names( .df ) <- c( "epsilon", "lambda", "risk" );
-    # .df <- cbind( .df, fit.rej.dist, fit.rej.dist.scaled );
-    # .df <- .df[ fit.rej.dist.scaled.int <= 2, , drop = FALSE ];
-    # ggplot( .df, aes( x=lambda,y=risk, alpha = 1-(fit.rej.dist.scaled*(1/2)) ) ) + geom_point()
 
     abc.rv144.keep.sim <- fit.rej.rv144.dist.scaled < max.fit.rej.dist.scaled;
 
@@ -495,7 +488,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
             rv144.cluster.numbers <- rep( NA, length( rv144.sample.is.in.bin ) );
             rv144.cluster.numbers[ rv144.sample.is.in.bin ] <- 1; # All in one cluster together
         } else {
-            cl.rv144 <- suppressWarnings( pdfCluster( fit.rej.rv144$param[ rv144.sample.is.in.bin, rv144.parameters, drop = FALSE ], bwtype="adaptive", hmult=1 ) );
+            cl.rv144 <- suppressWarnings( pdfCluster( fit.rej.rv144$param[ rv144.sample.is.in.bin, rv144.parameters, drop = FALSE ], bwtype="adaptive", hmult=1.05, n.grid=sum( rv144.sample.is.in.bin ) ) );
             rv144.cluster.numbers <- rep( NA, length( rv144.sample.is.in.bin ) );
             rv144.cluster.numbers[ rv144.sample.is.in.bin ] <- groups( cl.rv144 );
         }
@@ -526,7 +519,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
             hvtn702.cluster.numbers <- rep( NA, length( hvtn702.sample.is.in.bin ) );
             hvtn702.cluster.numbers[ hvtn702.sample.is.in.bin ] <- 1; # All in one cluster together
         } else {
-            cl.hvtn702 <- suppressWarnings( pdfCluster( fit.rej.hvtn702$param[ hvtn702.sample.is.in.bin, hvtn702.parameters, drop = FALSE ], bwtype="adaptive", hmult=1 ) );
+            cl.hvtn702 <- suppressWarnings( pdfCluster( fit.rej.hvtn702$param[ hvtn702.sample.is.in.bin, hvtn702.parameters, drop = FALSE ], bwtype="adaptive", hmult=1.05, n.grid=sum( hvtn702.sample.is.in.bin ) ) );
             hvtn702.cluster.numbers <- rep( NA, length( hvtn702.sample.is.in.bin ) );
             hvtn702.cluster.numbers[ hvtn702.sample.is.in.bin ] <- groups( cl.hvtn702 );
         }
@@ -586,13 +579,11 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
                 }
             } # End foreach hvtn702.cluster.j
         } # End foreach rv144.cluster.i
-        
-        cat( paste( "END epsilon.bin =", epsilon.bin ), fill = TRUE );
     } # End foreach epsilon.bin
 
     # boxplot( fit.rej.dist ~ cluster.numbers )
 
-    ## TODO: Filter the candidates so they are not redundant.
+    ## TODO: Filter/merge the overlapping candidates so they are not redundant.
 
     ## Compute midpoints of candidates as medians of bounds; these
     ## will be the starting places for the optimizations below, but
