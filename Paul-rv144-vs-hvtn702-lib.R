@@ -742,12 +742,15 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) {
             if( be.verbose ) {
                 cat( paste( "optimize.iteratively( step.i = ", step.i, " )", sep = "" ), fill = TRUE );
             }
-            .step.i.result <- optimize.step( current.parameters = current.parameters, lower = lower, upper = upper, current.value = current.value, be.verbose = be.verbose );
+            .step.i.result <-
+                optimize.step( current.parameters = current.parameters, lower = lower, upper = upper, current.value = current.value, be.verbose = be.verbose );
             if( is.null( .step.i.result ) ) {
                 .converged <- TRUE;
             } else {
                 current.parameters <- .step.i.result[ all.parameters ];
                 current.value <- .step.i.result[[ "dist" ]];
+                current.stats <-
+                    .step.i.result[ setdiff( names( .step.i.result ), c( all.parameters, "dist" ) ) ];
                 if( !is.null( last.dist ) ) {
                     if( last.dist == current.value ) {
                         .converged <- TRUE;
@@ -769,7 +772,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) {
                 cat( "DID NOT CONVERGE (max steps reached).", fill = TRUE );
             }
         }
-        return( .step.i.result );
+        return( c( current.parameters, current.stats, dist = unname( current.value ) ) );
     } # optimize.iteratively (..)
 
     optima.by.candidate <- sapply( 1:nrow( candidate.parameter.sets.midpoint.bounded ), function( .candidate ) {
@@ -784,10 +787,9 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) {
         # current.value <- .iterative.result[[ "dist" ]];
         return( .iterative.result );
     } );
-    optima.by.candidate.sorted <- optima.by.candidate[ , order( optima.by.candidate[ "dist", ] ), drop = FALSE ];
-
+    optima.by.candidate.sorted <- optima.by.candidate[ , order( as.numeric( optima.by.candidate[ "dist", ] ) ), drop = FALSE ];
         
-    return( list( fit = fit.rej, priors = priors, bounds = bounds, target.stats = target.stats, fn = .f.abc, sampled.modes = optima.by.cluster.sorted ) );
+    return( list( fit = fit.rej, priors = priors, bounds = bounds, target.stats = target.stats, fn = .f.abc, sampled.modes = optima.by.candidate.sorted ) );
 } # runSim_rv144.hvtn702 (..)
 
 ### ERE I AM testing...
