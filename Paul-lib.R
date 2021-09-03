@@ -13,14 +13,16 @@ si_odePaul <- function(times, init, param){
     # the number of people moving from S to I at each time step
     #Susceptible, Infected, placebo, high, medium, low
     SIph.flow <- risk*lambda*Sph
-    SIpm.flow <- lambda*Spl
+    ### Paul found this line has a bug:
+    ### SIpm.flow <- lambda*Spl
+    SIpm.flow <- lambda*Spm
     SIpl.flow <- 0*lambda*Spl  #0 to give this group zero exposures
     
     #Susceptible, Infected, vaccine, high, medium, low
     SIvh.flow <- risk*lambda*(1-epsilon)*Svh
-    ### Paul found this line has a bug:
+    ### Paul found this line has two bugs:
     ### SIvm.flow <- lambda*(1-epsilon)*Spl
-    SIvm.flow <- lambda*(1-epsilon)*Svl
+    SIvm.flow <- lambda*(1-epsilon)*Svm
     SIvl.flow <- 0*lambda*(1-epsilon)*Svl  #0 to give this group zero exposures
     
     # ODEs
@@ -110,25 +112,51 @@ calculate.abc.dist <- function ( sampled.stats.matrix, target.stats, target.stat
 #------------------------------------------------------------------------------
 # sim execution
 #------------------------------------------------------------------------------
-runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3, "VE" = 0.1, "placeboIncidence" = 3.5 )) {
+runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3, "VE" = 0.1, "VE.scale.unit" = 0.01, "placeboIncidence" = 3.5 )) {
     stopifnot( all( c( "numExecution", "numParams", "VE", "placeboIncidence" ) %in% names( reac ) ) );
 
     ## Number of parameters to optimize (3, 4, or 5).
     num.params <- unname( reac[ "numParams" ] );
 
     num.sims <- unname( reac[ "numExecution" ] );
+    abc.keep.num.sims <- 250; # Number of samples to run through the clustering and optimizing steps.
+    stopifnot( num.sims > abc.keep.num.sims ); # It won't work to cluster uniformly drawn points. You first have to filter them by keeping those nearest the target.
+
     placebo.incidence.target <- unname( reac[ "placeboIncidence" ] ); # incidence per 100 person years, eg 3.5 for 702 or 0.3 for RV144 [todo: double-check these values!]
     VE.target = unname( reac[ "VE" ] ); # instantaneous VE observed by the end of the trial
+
+    # For the abc and optimization we need a way to compute distances,
+    # for which we use the abc default function which is Euclidean
+    # distance after scaling each dimension; you can scale it by the
+    # standard deviation as abc does, but for optimization we need a
+    # better way to balance these, so instead of the observed SD we
+    # explicitly weight the scales by setting the scale units such
+    # that after scaling the dimensions by these corresponding
+    # scale.unit values, the Euclidean distance of those scaled values
+    # is approximately correctly weighting the multiple dimensions'
+    # contributions. For example if you are finding the optimized
+    # modes are very close in one dimension and not in another
+    # dimension, you can modify these scales to help balance that
+    # distance cost across dimensions better.
+    placebo.incidence.target.scale.units <- 0.1; # These values mean that a 0.1 difference in placebo incidence from the target placebo incidence should cost about the same as a 0.01 difference in VE from its target. VE is meansured on a scale of -1 to 1, with units typically refered to as percentages, eg rv144 had a 31% efficacy is 0.31, so this means a "1% VE difference" has about the same cost in our distance metrix as does a 0.1 per 100-person year difference (so that's the difference between 3.3 as seen in 702 vs 3.2 or 3.3 per 100 person-years -- note that for rv144 the estimated placebo incidence was about 0.14 per 100 person-years, see below for references).
+    VE.target.scale.units <- 0.01;
+
+    target.stat.scale.units <- c( "VE.target" = VE.target.scale.units, "placebo.incidence.target" = placebo.incidence.target.scale.units );
+
 
     #browser()
 
     ## Note that we target the average incidence over time, rather than the incidence at the end of the trial, since with multiple risk groups there is waning expected.
 
     # MAGIC NUMBERS
+    trial.size <- 10000; # Number of participants (vaccine & placebo recipients)
+    trial.frac.vaccinated <- 0.5; # 1:1 vaccine:placebo treatment assigment ratio
     trial.evaluation.time <- 3*365; # End of the trial.
+    default.high.risk.proportion <- 0.1; # For 3 parameter version.
+    default.low.risk.proportion.among.those.not.high.risk <- 0.1; # For 3 and 4 parameter venrsions.
     risk.max <- 50;
-    lambda.min <- 1E-6;
-    lambda.max <- 1E-3;
+    lambda.min <- 1E-7;
+    lambda.max <- 1E-2;
     smallest.discernable.amount <- 5E-4; # determined by trial and error this is the smallest amount you can change the parameters from 0 or 1 for it to register a difference from those extremes, eg to avoid NaN and Inf
 
     target.stats <- data.frame( trial.evaluation.time, VE.target, placebo.incidence.target );
@@ -138,10 +166,10 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3, "VE" 
       epsilon,   #per contact vaccine efficacy
       lambda,     #beta*c*prev,
       risk,          #risk multiplier for high risk group
-      highRiskProportion = 0.1, # these have defaults, so you can run this as 3 or 4 or 5 parameters.
-      lowRiskProportion = ( 0.1/(1-highRiskProportion) ), # Among those not high risk.
-      vaccinatedProportion = 0.5,
-      trialSize = 10000
+      highRiskProportion = default.high.risk.proportion, # these have defaults, so you can run this as 3 or 4 or 5 parameters.
+      lowRiskProportion = ( default.low.risk.proportion.among.those.not.high.risk/(1-highRiskProportion) ), # Among those not high risk.
+      vaccinatedProportion = trial.frac.vaccinated,
+      trialSize = trial.size
     ) {
       
       # Paul added the other params to this (risk here, others below):
@@ -234,13 +262,35 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3, "VE" 
                          prior = priors,
                          nb_simul = num.sims,
                          summary_stat_target = as.numeric( target.stats[-1] ),
-                         tol = 0.10, # Just keep top 10%
+                         tol = 1.0, # Keep all of them for the moment; see below.
                          progress_bar = TRUE)
 
     # Compute the distances for each retained sample
     fit.rej.dist <-
         calculate.abc.dist( fit.rej$stats, as.numeric( target.stats[-1] ), ifelse( is.na( fit.rej$stats_normalization ), 1, fit.rej$stats_normalization ) );
 
+    # Filter to keep fewer points.
+    # Divide distance into units the width of the top abc.keep.num.sims values.
+    dist.units <- quantile( fit.rej.dist, probs = ( abc.keep.num.sims / num.sims ) )
+    fit.rej.dist.scaled <- fit.rej.dist / dist.units;
+    fit.rej.dist.scaled.int <- floor( fit.rej.dist.scaled );
+
+    ## Make a contour-like plot
+    ## ERE I AM
+    # .df <- as.data.frame( fit.rej$param ) #df of just the parameter combinations ABC sampled
+    # names( .df ) <- c( "epsilon", "lambda", "risk" );
+    # .df <- cbind( .df, fit.rej.dist, fit.rej.dist.scaled );
+    # .df <- .df[ fit.rej.dist.scaled.int <= 2, , drop = FALSE ];
+    # ggplot( .df, aes( x=lambda,y=risk, alpha = 1-(fit.rej.dist.scaled*(1/2)) ) ) + geom_point()
+
+    # Filter to keep points up to max.fit.rej.dist.scaled units away.
+    max.fit.rej.dist.scaled <- 2; # MAGIC #
+    fit.orig <- fit.rej;
+    abc.keep.sim <- fit.rej.dist.scaled < max.fit.rej.dist.scaled;
+    fit.rej$param <- fit.rej$param[ abc.keep.sim, , drop = FALSE ];
+    fit.rej$stats <- fit.rej$stats[ abc.keep.sim, , drop = FALSE ];
+    fit.rej$weights <- fit.rej$weights[ abc.keep.sim ];
+    fit.rej.dist <- fit.rej.dist[ abc.keep.sim ];
     # Now find optimal points near the sampled modes.
     
     # Globally best sample is at this index:
@@ -264,14 +314,16 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3, "VE" 
     # For 4 params that was not sufficient so I TRIED also adding (and it worked, despite actually just setting it to n): n.grid=1E5
     # For 4 params that was too slow so I TRIED instead adding hmult = 1.25 and that worked but had too few modes, since I knew there were others. So I played around and hmult = 1 which I thought was the default gives 5 modes which feels ok.
     # For 5 params that was also sufficient.
-    if( ncol( fit.rej$param ) < 5 ) {
-        cl <- suppressWarnings( pdfCluster( fit.rej$param, bwtype="adaptive", hmult=1 ) );
-    } else {
-        cl <- pdfCluster( fit.rej$param, bwtype="adaptive", hmult=1, n.grid=nrow(fit.rej$param) );
-    }
+    # if( ncol( fit.rej$param ) < 5 ) {
+    #     cl <- suppressWarnings( pdfCluster( fit.rej$param, bwtype="adaptive", hmult=1 ) );
+    # } else {
+    #     cl <- pdfCluster( fit.rej$param, bwtype="adaptive", hmult=1, n.grid=nrow(fit.rej$param) );
+    # }
+    # Update: with current params (keeping 250 draws only, and with wide enough parameter ranges), see abc.keep.num.sims, this seems to work fine and better, even, in that the modes are good:
+    cl <- suppressWarnings( pdfCluster( fit.rej$param ) );
 
-     cluster.numbers <- groups( cl );
-     boxplot( fit.rej.dist ~ cluster.numbers )
+    cluster.numbers <- groups( cl );
+    # boxplot( fit.rej.dist ~ cluster.numbers )
     
     # Cluster-specific best sample is at this index, for each cluster:
     cluster.member.minimizing.dist <- sapply( 1:max( cluster.numbers ), function( .cluster.number ) { cluster.indices <- which( cluster.numbers == .cluster.number ); return( cluster.indices[ which.min( fit.rej.dist[ cluster.indices ] ) ] ); } );
@@ -284,13 +336,15 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3, "VE" 
         }
     } # make.optim.fn (..)
 
-    .f <- make.optim.fn( target.stats[-1], fit.rej$stats_normalization );
+    # OLD: .f <- make.optim.fn( target.stats[-1], fit.rej$stats_normalization );
+    # NEW:
+    .f <- make.optim.fn( target.stats[-1], target.stat.scale.units ); # For better balancing of the costs; see above.
 
     # These are the original bounds, separated for use in optim:
     lower.bounds <- sapply( bounds, function ( .bounds.for.x ) { .bounds.for.x[ 1 ] } );
     upper.bounds <- sapply( bounds, function ( .bounds.for.x ) { .bounds.for.x[ 2 ] } );
 
-    optima.by.cluster <- sapply( cluster.member.minimizing.dist[1:2], function( .minimizer.index ) {
+    optima.by.cluster <- sapply( cluster.member.minimizing.dist, function( .minimizer.index ) {
         print( .minimizer.index );
         print( fit.rej$param[ .minimizer.index, ] );
         print( .f( fit.rej$param[ .minimizer.index, ] ) );
@@ -310,7 +364,11 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3, "VE" 
 the.seed <- 98103;
 # To test replicability of the identified modes, uncomment this:
 # set.seed( the.seed ); the.seed <- floor( runif( 1, max = 1E5 ) );
+<<<<<<< HEAD
 #num.sims <- 1000; # Fast for debugging.
+=======
+# num.sims <- 1000; # Fast for debugging.
+>>>>>>> 4add213810be6a0124e71b217fd6b2f8b1500ba6
 num.sims <- 10000; # For reals.
 
 set.seed( the.seed );
@@ -338,8 +396,13 @@ set.seed( the.seed );
 
 ## FOR RV144:
 # .sim3 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 3, "VE" = 0.31, "placeboIncidence" = 0.14 ));
+<<<<<<< HEAD
 .sim4 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 4, "VE" = 0.31, "placeboIncidence" = 0.14 ));
 # .sim5 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 5, "VE" = 0.31, "placeboIncidence" = 0.14 ));
+=======
+# .sim4 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 4, "VE" = 0.31, "placeboIncidence" = 0.14 ));
+.sim5 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 5, "VE" = 0.31, "placeboIncidence" = 0.14 ));
+>>>>>>> 4add213810be6a0124e71b217fd6b2f8b1500ba6
 
 
 ## FOR 702:

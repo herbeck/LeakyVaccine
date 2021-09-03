@@ -10,15 +10,20 @@ si.ode.rv144.hvtn702.fn <- function ( times, init, param ) {
   with(as.list(c(init, param)), {
     
     # Flows
-
-    # rv144
-    # the number of people moving from S to I at each time step
+    # the number of people moving from the S to I compartment at each time step
+    
+    # RV144
+    
+    #PLACEBO arm
     #Susceptible, Infected, placebo, high, medium, low
+    #SIph.flow <- risk*lambda*Sph # line from original model, FYI
     rv144.SIph.flow <- rv144.high.risk.multiplier*rv144.lambda*rv144.Sph
     #rv144.SIpm.flow <- rv144.lambda*rv144.Spl ### BUG HERE: Spl instead of Spm!!!
     rv144.SIpm.flow <- rv144.lambda*rv144.Spm ### BUG FIXED
     rv144.SIpl.flow <- 0*rv144.lambda*rv144.Spl  #0 to give this group zero exposures
+       # Could also use "1/high.risk.multiplier" if we don't want ZERO exposures
     
+    #VACCINE arm
     #Susceptible, Infected, vaccine, high, medium, low
     rv144.SIvh.flow <- rv144.high.risk.multiplier*rv144.lambda*(1-epsilon)*rv144.Svh
     ### Paul found this line has a bug:
@@ -27,9 +32,11 @@ si.ode.rv144.hvtn702.fn <- function ( times, init, param ) {
     #rv144.SIvm.flow <- rv144.lambda*(1-epsilon)*rv144.Svl ### BUG HERE: Svl instead of Svm!!!
     rv144.SIvm.flow <- rv144.lambda*(1-epsilon)*rv144.Svm ### BUG FIXED
     rv144.SIvl.flow <- 0*rv144.lambda*(1-epsilon)*rv144.Svl  #0 to give this group zero exposures
+       # Could also use "1/high.risk.multiplier" if we don't want ZERO exposures
     
     # ODEs
     # placebo; heterogeneous rv144.high.risk.multiplier
+    # original ODE:  dSph <- -SIph.flow
     drv144.Sph <- -rv144.SIph.flow
     drv144.Iph <- rv144.SIph.flow  #rv144.high.risk.multiplier*rv144.lambda*rv144.Sph
     drv144.Spm <- -rv144.SIpm.flow
@@ -44,10 +51,8 @@ si.ode.rv144.hvtn702.fn <- function ( times, init, param ) {
     drv144.Ivm <- rv144.SIvm.flow  #rv144.lambda*rv144.Svm
     drv144.Svl <- -rv144.SIvl.flow
     drv144.Ivl <- rv144.SIvl.flow  #0*rv144.lambda*(1-epsilon)*rv144.Svl
-    
 
-
-    # hvtn702
+    # HVTN702
     # the number of people moving from S to I at each time step
     #Susceptible, Infected, placebo, high, medium, low
     hvtn702.SIph.flow <- hvtn702.high.risk.multiplier*hvtn702.lambda*hvtn702.Sph
@@ -161,7 +166,14 @@ mod.manipulate <- function( mod ) {
   #return(mod)
 } # mod.manipulate (..)
 
-## This computes the distance as calculated internally in the abc function - but not there the distances are normalized using "normalise" which we think centralizes too (so makes each scaled stat have mean 0, sd 1) - the standard deviations are saved and included in the abc output and need to be passed into here, because after keeping only the closest X% of the samples, the remaining samples will have a different STDEV. So to get the right distances it's important to use the correct stdev. These values are not centralized before the distances are computed but this should not matter.
+## This computes the distance as calculated internally in the abc function - but not 
+# where the distances are normalized using "normalise", which we think centralizes also 
+# (so makes each scaled stat have mean 0, sd 1) - the standard deviations are saved and 
+# included in the abc output and need to be passed into here, because after keeping only the 
+# closest X% of the samples, the remaining samples will have a different STDEV. So to get the 
+# right distances it's important to use the correct stdev. These values are not centralized 
+# before the distances are computed but this should not matter.
+
 # example: calculate.abc.dist( fit.rej$stats, as.numeric( target.stats ), fit.rej$stats_normalization )
 calculate.abc.dist <- function ( sampled.stats.matrix, target.stats, target.stat.stdevs ) {
     nss <- length( target.stats );
@@ -190,18 +202,19 @@ calculate.abc.dist <- function ( sampled.stats.matrix, target.stats, target.stat
 rv144.parameters <- c( "rv144.lambda", "rv144.high.risk.multiplier", "rv144.highRiskProportion", "rv144.lowRiskProportion" );
 hvtn702.parameters <- c( "hvtn702.lambda", "hvtn702.high.risk.multiplier", "hvtn702.highRiskProportion", "hvtn702.lowRiskProportion" );
 all.parameters <- c( "epsilon", rv144.parameters, hvtn702.parameters );
+
 run.and.compute.run.stats <- function (
       epsilon,   #per contact vaccine efficacy
       rv144.lambda,     #beta*c*prev,
       rv144.high.risk.multiplier,          # Risk multiplier for high risk group
       rv144.highRiskProportion,
-      rv144.lowRiskProportion,             # This is a proportion among those not high risk.
+      rv144.lowRiskProportion,             # This is a proportion among those not high risk
       hvtn702.lambda,
       hvtn702.high.risk.multiplier,
       hvtn702.highRiskProportion,
       hvtn702.lowRiskProportion,
-      vaccinatedProportion = 0.5,
-      trialSize = 10000,
+      vaccinatedProportion = 0.5,  # In lieu of naming vaccine and placebo arms separately (and their N)
+      trialSize = 10000,  # Now we just have to add this magic number for size
       trial.evaluation.time = 3*365
 ) {
       # Paul added the other params to this (risk here, others below):
@@ -282,6 +295,7 @@ run.and.compute.run.stats <- function (
     # epsilon fixed, and then do each model optimization separately,
     # then hold those params fixed and optimize epsilon, and iterate
     # until convergence.
+
     make.epsilon.abc.fn <- function ( other.parameters ) {
         function( x ) {
             run.and.compute.run.stats( epsilon = x, rv144.lambda = other.parameters[[ "rv144.lambda" ]], rv144.high.risk.multiplier = other.parameters[[ "rv144.high.risk.multiplier" ]], rv144.highRiskProportion = other.parameters[[ "rv144.highRiskProportion" ]], rv144.lowRiskProportion = other.parameters[[ "rv144.lowRiskProportion" ]], hvtn702.lambda = other.parameters[[ "hvtn702.lambda" ]], hvtn702.high.risk.multiplier = other.parameters[[ "hvtn702.high.risk.multiplier" ]], hvtn702.highRiskProportion = other.parameters[[ "hvtn702.highRiskProportion" ]], hvtn702.lowRiskProportion = other.parameters[[ "hvtn702.lowRiskProportion" ]] )
@@ -322,7 +336,7 @@ run.and.compute.run.stats <- function (
         }
     } # make.hvtn702.optim.fn (..)
 
-runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
+runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) {
     stopifnot( all( c( "numExecution" ) %in% names( reac ) ) );
 
     ## Number of parameters to optimize (3, 4, or 5).
