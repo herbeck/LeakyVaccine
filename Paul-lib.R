@@ -310,21 +310,35 @@ runSim_Paul <- function(reac = c( "numExecution" = 10000, "numParams" = 3, "VE" 
 the.seed <- 98103;
 # To test replicability of the identified modes, uncomment this:
 # set.seed( the.seed ); the.seed <- floor( runif( 1, max = 1E5 ) );
-num.sims <- 1000; # Fast for debugging.
-# num.sims <- 10000; # For reals.
+#num.sims <- 1000; # Fast for debugging.
+num.sims <- 10000; # For reals.
 
 set.seed( the.seed );
 
-## Ok, I think that we need to first determine the reasonable epsilon values from the RV144-like setting, then ask could you get zero (or very low) VE with the same epsilon by increasing only lambda and risk values, with placebo incidence going from an rv144-like value (~0.14) to a 702-like value (~3.3).
-## rv144 placebo incidence in the prespecified analysis (MITT) cohort was 0.1397 per 100 person years, 100*(74/52985) from N Engl J Med 2009; 361:2209-2220 DOI: 10.1056/NEJMoa0908492 December 3, 2009 (https://www.nejm.org/doi/full/10.1056/nejmoa0908492):
-# "HIV-1 infection was diagnosed in 132 subjects (56 in the vaccine group and 76 in the placebo group) during 52,985 person-years of follow-up in the intention-to-treat analysis, in 86 subjects (36 in the vaccine group and 50 in the placebo group) during 36,720 person-years of follow-up in the per-protocol analysis, and in 125 subjects (51 in the vaccine group and 74 in the placebo group) during 52,985 person-years of follow-up in the modified intention-to-treat analysis. One subject in the placebo group who was identified by hospital record as being seropositive for HIV after dying from Pneumocystis jirovecii pneumonia was included in the analysis before the unblinding of the study. This diagnosis of HIV-1 infection was the only one that occurred outside planned procedures."
+## Ok, I think that we need to first determine the reasonable epsilon values from the RV144-like setting, 
+## then ask could you get zero (or very low) VE with the same epsilon by increasing only lambda and 
+## risk values, with placebo incidence going from an rv144-like value (~0.14) to a 702-like value (~3.3).
+## RV144 placebo incidence in the prespecified analysis (MITT) cohort was 0.1397 per 100 person years, 100*(74/52985) 
+## from NEJM 2009; (https://www.nejm.org/doi/full/10.1056/nejmoa0908492):
+## "HIV-1 infection was diagnosed in 132 subjects (56 in the vaccine group and 76 in the placebo group) 
+## during 52,985 person-years of follow-up in the intention-to-treat analysis, in 86 subjects 
+## (36 in the vaccine group and 50 in the placebo group) during 36,720 person-years of follow-up 
+## in the per-protocol analysis, and in 125 subjects (51 in the vaccine group and 74 in the placebo group) 
+## during 52,985 person-years of follow-up in the modified intention-to-treat analysis. One subject in the 
+## placebo group who was identified by hospital record as being seropositive for HIV after 
+## dying from Pneumocystis jirovecii pneumonia was included in the analysis before the unblinding of the study. 
+## This diagnosis of HIV-1 infection was the only one that occurred outside planned procedures."
 
-## hvtn 702 placebo incidence was 3.3 per 100 person-years (95% CI, 2.8 to 3.9), from n engl j med 384;12 nejm.org March 25, 2021 (https://www.nejm.org/doi/pdf/10.1056/NEJMoa2031499), page 1092:
-# "During the first 24 months of follow-up, 138 HIV-1 infections occurred in the vaccine group and 133 in the placebo group, for an estimated incidence rate of 3.4 per 100 person-years (95% confidence interval [CI], 2.8 to 4.0) and 3.3 per 100 person-years (95% CI, 2.8 to 3.9), respectively (hazard ratio, 1.02; 95% CI, 0.81 to 1.30; P=0.84) (Fig. 1A and Table 2). The incidence of HIV-1 infection was similar in the vaccine group and the placebo group in secondary analyses during 36 months of follow-up (hazard ratio, 1.05; 95% CI, 0.83 to 1.31), in the month 6.5 at-risk cohort between 6.5 months and 24 months (hazard ratio, 1.15; 95% CI, 0.84 to 1.58), and in the perprotocol cohort, as well as in other secondary analyses (Figs. S3 through S9)."
+## Overall HVTN 702 placebo incidence was 3.3 per 100 person-years (95% CI, 2.8 to 3.9), 
+## from NEJM 384;12 (https://www.nejm.org/doi/pdf/10.1056/NEJMoa2031499), page 1092:
+## "During the first 24 months of follow-up, 138 HIV-1 infections occurred in the vaccine 
+## group and 133 in the placebo group, for an estimated incidence rate of 3.4 per 100 
+## person-years (95% confidence interval [CI], 2.8 to 4.0) and 3.3 per 100 person-years (95% CI, 2.8 to 3.9), 
+## respectively (hazard ratio, 1.02; 95% CI, 0.81 to 1.30; P=0.84) (Fig. 1A and Table 2). The incidence of HIV-1 infection was similar in the vaccine group and the placebo group in secondary analyses during 36 months of follow-up (hazard ratio, 1.05; 95% CI, 0.83 to 1.31), in the month 6.5 at-risk cohort between 6.5 months and 24 months (hazard ratio, 1.15; 95% CI, 0.84 to 1.58), and in the perprotocol cohort, as well as in other secondary analyses (Figs. S3 through S9)."
 
 ## FOR RV144:
-.sim3 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 3, "VE" = 0.31, "placeboIncidence" = 0.14 ));
-# .sim4 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 4, "VE" = 0.31, "placeboIncidence" = 0.14 ));
+# .sim3 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 3, "VE" = 0.31, "placeboIncidence" = 0.14 ));
+.sim4 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 4, "VE" = 0.31, "placeboIncidence" = 0.14 ));
 # .sim5 <- runSim_Paul( reac = c( "numExecution" = num.sims, "numParams" = 5, "VE" = 0.31, "placeboIncidence" = 0.14 ));
 
 
