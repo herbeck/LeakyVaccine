@@ -471,6 +471,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
     num.epsilon.bins <- 10; # MAGIC #
     #num.epsilon.bins <- 2; # MAGIC # for debugging when num.sims is only 1000
     min.points.for.clustering <- 6; # MAGIC #, from "QH6214 qhull input error: not enough points(2) to construct initial simplex (need 6)"
+    pdfCluster.hmult <- 1.05; # MAGIC #, tweaked it to get pdfCluster to run without crashing with the error message suggesting increasing n.grid -- even with max n.grid, hmult has to be just above 1, it seems. If it is too high, the clusters merge into one.
     be.verbose <- TRUE; # MAGIC #
     for( epsilon.bin in 1:(2*num.epsilon.bins - 1) ) {
         cat( paste( "epsilon.bin =", epsilon.bin ), fill = TRUE );
@@ -488,7 +489,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
             rv144.cluster.numbers <- rep( NA, length( rv144.sample.is.in.bin ) );
             rv144.cluster.numbers[ rv144.sample.is.in.bin ] <- 1; # All in one cluster together
         } else {
-            cl.rv144 <- suppressWarnings( pdfCluster( fit.rej.rv144$param[ rv144.sample.is.in.bin, rv144.parameters, drop = FALSE ], bwtype="adaptive", hmult=1.05, n.grid=sum( rv144.sample.is.in.bin ) ) );
+            cl.rv144 <- suppressWarnings( pdfCluster( fit.rej.rv144$param[ rv144.sample.is.in.bin, rv144.parameters, drop = FALSE ], bwtype="adaptive", hmult=pdfCluster.hmult, n.grid=sum( rv144.sample.is.in.bin ) ) );
             rv144.cluster.numbers <- rep( NA, length( rv144.sample.is.in.bin ) );
             rv144.cluster.numbers[ rv144.sample.is.in.bin ] <- groups( cl.rv144 );
         }
@@ -519,7 +520,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
             hvtn702.cluster.numbers <- rep( NA, length( hvtn702.sample.is.in.bin ) );
             hvtn702.cluster.numbers[ hvtn702.sample.is.in.bin ] <- 1; # All in one cluster together
         } else {
-            cl.hvtn702 <- suppressWarnings( pdfCluster( fit.rej.hvtn702$param[ hvtn702.sample.is.in.bin, hvtn702.parameters, drop = FALSE ], bwtype="adaptive", hmult=1.05, n.grid=sum( hvtn702.sample.is.in.bin ) ) );
+            cl.hvtn702 <- suppressWarnings( pdfCluster( fit.rej.hvtn702$param[ hvtn702.sample.is.in.bin, hvtn702.parameters, drop = FALSE ], bwtype="adaptive", hmult=pdfCluster.hmult, n.grid=sum( hvtn702.sample.is.in.bin ) ) );
             hvtn702.cluster.numbers <- rep( NA, length( hvtn702.sample.is.in.bin ) );
             hvtn702.cluster.numbers[ hvtn702.sample.is.in.bin ] <- groups( cl.hvtn702 );
         }
@@ -757,7 +758,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
         return( .step.i.result );
     } # optimize.iteratively (..)
 
-    optima.by.candidate <- sapply( 1:length( candidate.parameter.sets.midpoint.bounded ), function( .candidate ) {
+    optima.by.candidate <- sapply( 1:nrow( candidate.parameter.sets.midpoint.bounded ), function( .candidate ) {
         print( .candidate );
         .lower.bounds <- candidate.parameter.sets.low.bounded[ .candidate, ];
         .upper.bounds <- candidate.parameter.sets.high.bounded[ .candidate, ];
