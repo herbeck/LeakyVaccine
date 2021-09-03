@@ -773,10 +773,9 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
         # current.value <- .iterative.result[[ "dist" ]];
         return( .iterative.result );
     } );
-    optima.by.candidate.sorted <- optima.by.candidate[ , order( optima.by.candidate[ "dist", ] ), drop = FALSE ];
-
+    optima.by.candidate.sorted <- optima.by.candidate[ , order( as.numeric( optima.by.candidate[ "dist", ] ) ), drop = FALSE ];
         
-    return( list( fit = fit.rej, priors = priors, bounds = bounds, target.stats = target.stats, fn = .f.abc, sampled.modes = optima.by.cluster.sorted ) );
+    return( list( fit = fit.rej, priors = priors, bounds = bounds, target.stats = target.stats, fn = .f.abc, sampled.modes = optima.by.candidate.sorted ) );
 } # runSim_rv144.hvtn702 (..)
 
 ### ERE I AM testing...
