@@ -125,7 +125,7 @@ si.ode.rv144.hvtn702.fn <- function ( times, init, param ) {
 
 # Function to manipulate the model output object
 Usage: >mod.manipulate (..)
-```{r model-output}
+```{r model-output-function}
 mod.manipulate <- function( mod ) {
   #browser()
 
