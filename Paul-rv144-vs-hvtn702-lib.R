@@ -758,7 +758,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
                 cat( "DID NOT CONVERGE (max steps reached).", fill = TRUE );
             }
         }
-        return( list( unlist( current.parameters ), unlist( current.stats ), c( "dist" = current.value ) ) );
+        return( c( current.parameters, current.stats, dist = unname( current.value ) ) );
     } # optimize.iteratively (..)
 
     optima.by.candidate <- sapply( 1:nrow( candidate.parameter.sets.midpoint.bounded ), function( .candidate ) {
