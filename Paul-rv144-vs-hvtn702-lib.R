@@ -1,0 +1,843 @@
+library(deSolve)
+library(tidyverse)
+library(EpiModel)
+library(survival)
+library(EasyABC)
+library(ggplot2)
+library(pdfCluster)
+
+si.ode.rv144.hvtn702.fn <- function ( times, init, param ) {
+  with(as.list(c(init, param)), {
+    
+    # Flows
+
+    # rv144
+    # the number of people moving from S to I at each time step
+    #Susceptible, Infected, placebo, high, medium, low
+    rv144.SIph.flow <- rv144.high.risk.multiplier*rv144.lambda*rv144.Sph
+    #rv144.SIpm.flow <- rv144.lambda*rv144.Spl ### BUG HERE: Spl instead of Spm!!!
+    rv144.SIpm.flow <- rv144.lambda*rv144.Spm ### BUG FIXED
+    rv144.SIpl.flow <- 0*rv144.lambda*rv144.Spl  #0 to give this group zero exposures
+    
+    #Susceptible, Infected, vaccine, high, medium, low
+    rv144.SIvh.flow <- rv144.high.risk.multiplier*rv144.lambda*(1-epsilon)*rv144.Svh
+    ### Paul found this line has a bug:
+    ### rv144.SIvm.flow <- rv144.lambda*(1-epsilon)*rv144.Spl
+### DARN it actually had TWO BUGS! Also the l at the end! 
+    #rv144.SIvm.flow <- rv144.lambda*(1-epsilon)*rv144.Svl ### BUG HERE: Svl instead of Svm!!!
+    rv144.SIvm.flow <- rv144.lambda*(1-epsilon)*rv144.Svm ### BUG FIXED
+    rv144.SIvl.flow <- 0*rv144.lambda*(1-epsilon)*rv144.Svl  #0 to give this group zero exposures
+    
+    # ODEs
+    # placebo; heterogeneous rv144.high.risk.multiplier
+    drv144.Sph <- -rv144.SIph.flow
+    drv144.Iph <- rv144.SIph.flow  #rv144.high.risk.multiplier*rv144.lambda*rv144.Sph
+    drv144.Spm <- -rv144.SIpm.flow
+    drv144.Ipm <- rv144.SIpm.flow  #rv144.lambda*rv144.Spm
+    drv144.Spl <- -rv144.SIpl.flow
+    drv144.Ipl <- rv144.SIpl.flow  #0*rv144.lambda*rv144.Spl
+    
+    # vaccine; heterogeneous rv144.high.risk.multiplier
+    drv144.Svh <- -rv144.SIvh.flow
+    drv144.Ivh <- rv144.SIvh.flow  #rv144.high.risk.multiplier*rv144.lambda*(1-epsilon)*rv144.Svh
+    drv144.Svm <- -rv144.SIvm.flow
+    drv144.Ivm <- rv144.SIvm.flow  #rv144.lambda*rv144.Svm
+    drv144.Svl <- -rv144.SIvl.flow
+    drv144.Ivl <- rv144.SIvl.flow  #0*rv144.lambda*(1-epsilon)*rv144.Svl
+    
+
+
+    # hvtn702
+    # the number of people moving from S to I at each time step
+    #Susceptible, Infected, placebo, high, medium, low
+    hvtn702.SIph.flow <- hvtn702.high.risk.multiplier*hvtn702.lambda*hvtn702.Sph
+    hvtn702.SIpm.flow <- hvtn702.lambda*hvtn702.Spm
+    hvtn702.SIpl.flow <- 0*hvtn702.lambda*hvtn702.Spl  #0 to give this group zero exposures
+    
+    #Susceptible, Infected, vaccine, high, medium, low
+    hvtn702.SIvh.flow <- hvtn702.high.risk.multiplier*hvtn702.lambda*(1-epsilon)*hvtn702.Svh
+    hvtn702.SIvm.flow <- hvtn702.lambda*(1-epsilon)*hvtn702.Svm
+    hvtn702.SIvl.flow <- 0*hvtn702.lambda*(1-epsilon)*hvtn702.Svl  #0 to give this group zero exposures
+    
+    # ODEs
+    # placebo; heterogeneous hvtn702.high.risk.multiplier
+    dhvtn702.Sph <- -hvtn702.SIph.flow
+    dhvtn702.Iph <- hvtn702.SIph.flow  #hvtn702.high.risk.multiplier*hvtn702.lambda*hvtn702.Sph
+    dhvtn702.Spm <- -hvtn702.SIpm.flow
+    dhvtn702.Ipm <- hvtn702.SIpm.flow  #hvtn702.lambda*hvtn702.Spm
+    dhvtn702.Spl <- -hvtn702.SIpl.flow
+    dhvtn702.Ipl <- hvtn702.SIpl.flow  #0*hvtn702.lambda*hvtn702.Spl
+    
+    # vaccine; heterogeneous hvtn702.high.risk.multiplier
+    dhvtn702.Svh <- -hvtn702.SIvh.flow
+    dhvtn702.Ivh <- hvtn702.SIvh.flow  #hvtn702.high.risk.multiplier*hvtn702.lambda*(1-epsilon)*hvtn702.Svh
+    dhvtn702.Svm <- -hvtn702.SIvm.flow
+    dhvtn702.Ivm <- hvtn702.SIvm.flow  #hvtn702.lambda*hvtn702.Svm
+    dhvtn702.Svl <- -hvtn702.SIvl.flow
+    dhvtn702.Ivl <- hvtn702.SIvl.flow  #0*hvtn702.lambda*(1-epsilon)*hvtn702.Svl
+
+    #Output
+    list(c(
+           drv144.Sph,drv144.Iph,
+           drv144.Spm,drv144.Ipm,
+           drv144.Spl,drv144.Ipl,
+           drv144.Svh,drv144.Ivh,
+           drv144.Svm,drv144.Ivm,
+           drv144.Svl,drv144.Ivl,
+           rv144.SIph.flow,rv144.SIpm.flow,rv144.SIpl.flow,
+           rv144.SIvh.flow,rv144.SIvm.flow,rv144.SIvl.flow,
+
+           dhvtn702.Sph,dhvtn702.Iph,
+           dhvtn702.Spm,dhvtn702.Ipm,
+           dhvtn702.Spl,dhvtn702.Ipl,
+           dhvtn702.Svh,dhvtn702.Ivh,
+           dhvtn702.Svm,dhvtn702.Ivm,
+           dhvtn702.Svl,dhvtn702.Ivl,
+           hvtn702.SIph.flow,hvtn702.SIpm.flow,hvtn702.SIpl.flow,
+           hvtn702.SIvh.flow,hvtn702.SIvm.flow,hvtn702.SIvl.flow
+
+           ))
+  })
+} # si.ode.rv144.hvtn702.fn (..)
+
+
+mod.manipulate <- function( mod ) {
+  #browser()
+
+  # RV144
+  mod <- mutate_epi(mod, total.rv144.Svh.rv144.Svm.rv144.Svl = rv144.Svh + rv144.Svm + rv144.Svl) #all susceptible in heterogeneous risk vaccine pop
+  mod <- mutate_epi(mod, total.rv144.Sph.rv144.Spm.rv144.Spl = rv144.Sph + rv144.Spm + rv144.Spl) #all susceptible in heterogeneous risk placebo pop
+  mod <- mutate_epi(mod, total.rv144.Ivh.rv144.Ivm.rv144.Ivl = rv144.Ivh + rv144.Ivm + rv144.Ivl) #all infected in heterogeneous risk vaccine pop
+  mod <- mutate_epi(mod, total.rv144.Iph.rv144.Ipm.rv144.Ipl = rv144.Iph + rv144.Ipm + rv144.Ipl) #all infected in heterogeneous risk placebo pop
+  mod <- mutate_epi(mod, total.rv144.SIvh.rv144.SIvm.rv144.SIvl.flow = rv144.SIvh.flow + rv144.SIvm.flow + rv144.SIvl.flow) #all infections per day in heterogeneous risk vaccine pop
+  mod <- mutate_epi(mod, total.rv144.SIph.rv144.SIpm.rv144.SIpl.flow = rv144.SIph.flow + rv144.SIpm.flow + rv144.SIpl.flow) #all infections in heterogeneous risk placebo pop
+  
+  #Incidence estimates, per 100 person years
+  #Instantaneous incidence / hazard
+  mod <- mutate_epi(mod, rv144.rate.Vaccine.het = (total.rv144.SIvh.rv144.SIvm.rv144.SIvl.flow/total.rv144.Svh.rv144.Svm.rv144.Svl)*365*100)
+  mod <- mutate_epi(mod, rv144.rate.Placebo.het = (total.rv144.SIph.rv144.SIpm.rv144.SIpl.flow/total.rv144.Sph.rv144.Spm.rv144.Spl)*365*100)
+  
+  #Cumulative incidence
+  mod <- mutate_epi(mod, cumul.rv144.Svh.rv144.Svm.rv144.Svl = cumsum(total.rv144.Svh.rv144.Svm.rv144.Svl))
+  mod <- mutate_epi(mod, cumul.rv144.Sph.rv144.Spm.rv144.Spl = cumsum(total.rv144.Sph.rv144.Spm.rv144.Spl))
+  mod <- mutate_epi(mod, cumul.rv144.rate.Vaccine.het = (total.rv144.Ivh.rv144.Ivm.rv144.Ivl/cumul.rv144.Svh.rv144.Svm.rv144.Svl)*365*100)
+  mod <- mutate_epi(mod, cumul.rv144.rate.Placebo.het = (total.rv144.Iph.rv144.Ipm.rv144.Ipl/cumul.rv144.Sph.rv144.Spm.rv144.Spl)*365*100)
+  
+  #Vaccine efficacy (VE) estimates
+  #VE <- 1 - Relative Risk; this is VE for instantaneous incidence / hazard
+  mod <- mutate_epi(mod, rv144.VE.inst = 100 * ( 1 - rv144.rate.Vaccine.het/rv144.rate.Placebo.het ) )
+  
+  #VE <- 1 - Relative Risk; this is VE from cumulative incidence
+  mod <- mutate_epi(mod, rv144.VE.cumul = 100 * ( 1 - cumul.rv144.rate.Vaccine.het/cumul.rv144.rate.Placebo.het ) )
+
+
+  
+  # HVTN702
+  mod <- mutate_epi(mod, total.hvtn702.Svh.hvtn702.Svm.hvtn702.Svl = hvtn702.Svh + hvtn702.Svm + hvtn702.Svl) #all susceptible in heterogeneous risk vaccine pop
+  mod <- mutate_epi(mod, total.hvtn702.Sph.hvtn702.Spm.hvtn702.Spl = hvtn702.Sph + hvtn702.Spm + hvtn702.Spl) #all susceptible in heterogeneous risk placebo pop
+  mod <- mutate_epi(mod, total.hvtn702.Ivh.hvtn702.Ivm.hvtn702.Ivl = hvtn702.Ivh + hvtn702.Ivm + hvtn702.Ivl) #all infected in heterogeneous risk vaccine pop
+  mod <- mutate_epi(mod, total.hvtn702.Iph.hvtn702.Ipm.hvtn702.Ipl = hvtn702.Iph + hvtn702.Ipm + hvtn702.Ipl) #all infected in heterogeneous risk placebo pop
+  mod <- mutate_epi(mod, total.hvtn702.SIvh.hvtn702.SIvm.hvtn702.SIvl.flow = hvtn702.SIvh.flow + hvtn702.SIvm.flow + hvtn702.SIvl.flow) #all infections per day in heterogeneous risk vaccine pop
+  mod <- mutate_epi(mod, total.hvtn702.SIph.hvtn702.SIpm.hvtn702.SIpl.flow = hvtn702.SIph.flow + hvtn702.SIpm.flow + hvtn702.SIpl.flow) #all infections in heterogeneous risk placebo pop
+  
+  #Incidence estimates, per 100 person years
+  #Instantaneous incidence / hazard
+  mod <- mutate_epi(mod, hvtn702.rate.Vaccine.het = (total.hvtn702.SIvh.hvtn702.SIvm.hvtn702.SIvl.flow/total.hvtn702.Svh.hvtn702.Svm.hvtn702.Svl)*365*100)
+  mod <- mutate_epi(mod, hvtn702.rate.Placebo.het = (total.hvtn702.SIph.hvtn702.SIpm.hvtn702.SIpl.flow/total.hvtn702.Sph.hvtn702.Spm.hvtn702.Spl)*365*100)
+  
+  #Cumulative incidence
+  mod <- mutate_epi(mod, cumul.hvtn702.Svh.hvtn702.Svm.hvtn702.Svl = cumsum(total.hvtn702.Svh.hvtn702.Svm.hvtn702.Svl))
+  mod <- mutate_epi(mod, cumul.hvtn702.Sph.hvtn702.Spm.hvtn702.Spl = cumsum(total.hvtn702.Sph.hvtn702.Spm.hvtn702.Spl))
+  mod <- mutate_epi(mod, cumul.hvtn702.rate.Vaccine.het = (total.hvtn702.Ivh.hvtn702.Ivm.hvtn702.Ivl/cumul.hvtn702.Svh.hvtn702.Svm.hvtn702.Svl)*365*100)
+  mod <- mutate_epi(mod, cumul.hvtn702.rate.Placebo.het = (total.hvtn702.Iph.hvtn702.Ipm.hvtn702.Ipl/cumul.hvtn702.Sph.hvtn702.Spm.hvtn702.Spl)*365*100)
+  
+  #Vaccine efficacy (VE) estimates
+  #VE <- 1 - Relative Risk; this is VE for instantaneous incidence / hazard
+  mod <- mutate_epi(mod, hvtn702.VE.inst = 100 * ( 1 - hvtn702.rate.Vaccine.het/hvtn702.rate.Placebo.het ) )
+  
+  #VE <- 1 - Relative Risk; this is VE from cumulative incidence
+  mod <- mutate_epi(mod, hvtn702.VE.cumul = 100 * ( 1 - cumul.hvtn702.rate.Vaccine.het/cumul.hvtn702.rate.Placebo.het ) )
+
+  #return(mod)
+} # mod.manipulate (..)
+
+## This computes the distance as calculated internally in the abc function - but not there the distances are normalized using "normalise" which we think centralizes too (so makes each scaled stat have mean 0, sd 1) - the standard deviations are saved and included in the abc output and need to be passed into here, because after keeping only the closest X% of the samples, the remaining samples will have a different STDEV. So to get the right distances it's important to use the correct stdev. These values are not centralized before the distances are computed but this should not matter.
+# example: calculate.abc.dist( fit.rej$stats, as.numeric( target.stats ), fit.rej$stats_normalization )
+calculate.abc.dist <- function ( sampled.stats.matrix, target.stats, target.stat.stdevs ) {
+    nss <- length( target.stats );
+    stopifnot( ncol( sampled.stats.matrix ) == nss );
+
+    scaled.sumstat <- sampled.stats.matrix;
+    for (j in 1:nss) {
+        scaled.sumstat[, j] <- ( sampled.stats.matrix[, j] / target.stat.stdevs[ j ] );
+    }
+    scaled.target <- target.stats;
+    for (j in 1:nss) {
+        scaled.target[j] <- ( target.stats[j] / target.stat.stdevs[ j ] );
+    }
+    sum1 <- 0
+    for (j in 1:nss) {
+        sum1 <- sum1 + (scaled.sumstat[, j] - scaled.target[j])^2
+    }
+    dist <- sqrt(sum1)
+ 
+   return( dist );
+} # calculate.abc.dist ( .. )
+
+#------------------------------------------------------------------------------
+# sim execution
+#------------------------------------------------------------------------------
+rv144.parameters <- c( "rv144.lambda", "rv144.high.risk.multiplier", "rv144.highRiskProportion", "rv144.lowRiskProportion" );
+hvtn702.parameters <- c( "hvtn702.lambda", "hvtn702.high.risk.multiplier", "hvtn702.highRiskProportion", "hvtn702.lowRiskProportion" );
+all.parameters <- c( "epsilon", rv144.parameters, hvtn702.parameters );
+run.and.compute.run.stats <- function (
+      epsilon,   #per contact vaccine efficacy
+      rv144.lambda,     #beta*c*prev,
+      rv144.high.risk.multiplier,          # Risk multiplier for high risk group
+      rv144.highRiskProportion,
+      rv144.lowRiskProportion,             # This is a proportion among those not high risk.
+      hvtn702.lambda,
+      hvtn702.high.risk.multiplier,
+      hvtn702.highRiskProportion,
+      hvtn702.lowRiskProportion,
+      vaccinatedProportion = 0.5,
+      trialSize = 10000,
+      trial.evaluation.time = 3*365
+) {
+      # Paul added the other params to this (risk here, others below):
+      param <- param.dcm(epsilon = epsilon, rv144.lambda = rv144.lambda, hvtn702.lambda = hvtn702.lambda, rv144.high.risk.multiplier = rv144.high.risk.multiplier, hvtn702.high.risk.multiplier = hvtn702.high.risk.multiplier )
+
+      # rv144 initial values
+      rv144.Svh <- floor( rv144.highRiskProportion * vaccinatedProportion * trialSize );
+      rv144.Sph <- floor( rv144.highRiskProportion * ( 1.0 - vaccinatedProportion ) * trialSize );
+      rv144.Svl <- floor( ( 1.0 - rv144.highRiskProportion ) * rv144.lowRiskProportion * vaccinatedProportion * trialSize );
+      rv144.Spl <- floor( ( 1.0 - rv144.highRiskProportion ) * rv144.lowRiskProportion * ( 1.0 - vaccinatedProportion ) * trialSize );
+      rv144.Svm <- floor( ( 1.0 - rv144.highRiskProportion ) * ( 1.0 - rv144.lowRiskProportion ) * vaccinatedProportion * trialSize );
+      rv144.Spm <- floor( ( 1.0 - rv144.highRiskProportion ) * ( 1.0 - rv144.lowRiskProportion ) * ( 1.0 - vaccinatedProportion ) * trialSize );
+
+      rv144.Sp <- rv144.Spl + rv144.Spm + rv144.Sph;
+      rv144.Sv <- rv144.Svl + rv144.Svm + rv144.Svh;
+      if( vaccinatedProportion == 0.5 ) {
+          stopifnot( rv144.Sp == rv144.Sv );
+      }
+
+
+      # hvtn702 initial values
+      hvtn702.Svh <- floor( hvtn702.highRiskProportion * vaccinatedProportion * trialSize );
+      hvtn702.Sph <- floor( hvtn702.highRiskProportion * ( 1.0 - vaccinatedProportion ) * trialSize );
+      hvtn702.Svl <- floor( ( 1.0 - hvtn702.highRiskProportion ) * hvtn702.lowRiskProportion * vaccinatedProportion * trialSize );
+      hvtn702.Spl <- floor( ( 1.0 - hvtn702.highRiskProportion ) * hvtn702.lowRiskProportion * ( 1.0 - vaccinatedProportion ) * trialSize );
+      hvtn702.Svm <- floor( ( 1.0 - hvtn702.highRiskProportion ) * ( 1.0 - hvtn702.lowRiskProportion ) * vaccinatedProportion * trialSize );
+      hvtn702.Spm <- floor( ( 1.0 - hvtn702.highRiskProportion ) * ( 1.0 - hvtn702.lowRiskProportion ) * ( 1.0 - vaccinatedProportion ) * trialSize );
+
+      hvtn702.Sp <- hvtn702.Spl + hvtn702.Spm + hvtn702.Sph;
+      hvtn702.Sv <- hvtn702.Svl + hvtn702.Svm + hvtn702.Svh;
+      if( vaccinatedProportion == 0.5 ) {
+          stopifnot( hvtn702.Sp == hvtn702.Sv );
+      }
+
+      init <- init.dcm(rv144.Sph = rv144.Sph, rv144.Iph = 0,    #placebo, high risk
+                       rv144.Spm = rv144.Spm, rv144.Ipm = 0,   #placebo, medium risk
+                       rv144.Spl = rv144.Spl, rv144.Ipl = 0,    #placebo, low risk
+                       rv144.Svh = rv144.Svh, rv144.Ivh = 0,    #vaccine
+                       rv144.Svm = rv144.Svm, rv144.Ivm = 0,   #vaccine
+                       rv144.Svl = rv144.Svl, rv144.Ivl = 0,    #vaccine
+                       rv144.SIph.flow = 0, rv144.SIpm.flow = 0, rv144.SIpl.flow = 0,
+                       rv144.SIvh.flow = 0, rv144.SIvm.flow = 0, rv144.SIvl.flow = 0,
+
+                       hvtn702.Sph = hvtn702.Sph, hvtn702.Iph = 0,    #placebo, high risk
+                       hvtn702.Spm = hvtn702.Spm, hvtn702.Ipm = 0,   #placebo, medium risk
+                       hvtn702.Spl = hvtn702.Spl, hvtn702.Ipl = 0,    #placebo, low risk
+                       hvtn702.Svh = hvtn702.Svh, hvtn702.Ivh = 0,    #vaccine
+                       hvtn702.Svm = hvtn702.Svm, hvtn702.Ivm = 0,   #vaccine
+                       hvtn702.Svl = hvtn702.Svl, hvtn702.Ivl = 0,    #vaccine
+                       hvtn702.SIph.flow = 0, hvtn702.SIpm.flow = 0, hvtn702.SIpl.flow = 0,
+                       hvtn702.SIvh.flow = 0, hvtn702.SIvm.flow = 0, hvtn702.SIvl.flow = 0
+                       )
+      
+      control <- control.dcm( nsteps = trial.evaluation.time, new.mod = si.ode.rv144.hvtn702.fn );
+      mod <- dcm( param, init, control );
+      #print( mod )
+      
+      mod.with.stats <- mod.manipulate( mod );
+      #print( mod.with.stats )
+      mod.with.stats.df <- as.data.frame( mod.with.stats );
+      
+      # heterogeneous risk using cumulative VE:
+      rv144.VE <- mod.with.stats.df$rv144.VE.cumul[ trial.evaluation.time ];
+      hvtn702.VE <- mod.with.stats.df$hvtn702.VE.cumul[ trial.evaluation.time ];
+      
+      ## The placebo incidence out stat vector is the _cumulative_ incidence at time trial.evaluation.time.
+      rv144.placeboIncidence <- mod.with.stats.df$cumul.rv144.rate.Placebo.het[ trial.evaluation.time ];
+      hvtn702.placeboIncidence <- mod.with.stats.df$cumul.hvtn702.rate.Placebo.het[ trial.evaluation.time ];
+
+      c( rv144.VE = rv144.VE, rv144.placeboIncidence = rv144.placeboIncidence, hvtn702.VE = hvtn702.VE, hvtn702.placeboIncidence = hvtn702.placeboIncidence );
+} # run.and.compute.run.stats (..)
+
+
+    # Ok, so there's two sets of model-specific parameters (rv144,
+    # hvtn702), and then one parameter that is shared (epsilon, the
+    # per-contact vaccine efficacy parameter), so the best way to
+    # optimize is using conditional optimization. That is, we hold
+    # epsilon fixed, and then do each model optimization separately,
+    # then hold those params fixed and optimize epsilon, and iterate
+    # until convergence.
+    make.epsilon.abc.fn <- function ( other.parameters ) {
+        function( x ) {
+            run.and.compute.run.stats( epsilon = x, rv144.lambda = other.parameters[[ "rv144.lambda" ]], rv144.high.risk.multiplier = other.parameters[[ "rv144.high.risk.multiplier" ]], rv144.highRiskProportion = other.parameters[[ "rv144.highRiskProportion" ]], rv144.lowRiskProportion = other.parameters[[ "rv144.lowRiskProportion" ]], hvtn702.lambda = other.parameters[[ "hvtn702.lambda" ]], hvtn702.high.risk.multiplier = other.parameters[[ "hvtn702.high.risk.multiplier" ]], hvtn702.highRiskProportion = other.parameters[[ "hvtn702.highRiskProportion" ]], hvtn702.lowRiskProportion = other.parameters[[ "hvtn702.lowRiskProportion" ]] )
+        }
+    }
+    make.rv144.abc.fn <- function ( other.parameters ) {
+        function( x ) {
+            run.and.compute.run.stats( epsilon = other.parameters[[ "epsilon" ]], rv144.lambda = x[ 1 ], rv144.high.risk.multiplier = x[ 2 ], rv144.highRiskProportion = x[ 3 ], rv144.lowRiskProportion = x[ 4 ], hvtn702.lambda = other.parameters[[ "hvtn702.lambda" ]], hvtn702.high.risk.multiplier = other.parameters[[ "hvtn702.high.risk.multiplier" ]], hvtn702.highRiskProportion = other.parameters[[ "hvtn702.highRiskProportion" ]], hvtn702.lowRiskProportion = other.parameters[[ "hvtn702.lowRiskProportion" ]] )
+        }
+    }
+    make.hvtn702.abc.fn <- function ( other.parameters ) {
+        function( x ) {
+            run.and.compute.run.stats( epsilon = other.parameters[[ "epsilon" ]], rv144.lambda = other.parameters[[ "rv144.lambda" ]], rv144.high.risk.multiplier = other.parameters[[ "rv144.high.risk.multiplier" ]], rv144.highRiskProportion = other.parameters[[ "rv144.highRiskProportion" ]], rv144.lowRiskProportion = other.parameters[[ "rv144.lowRiskProportion" ]], hvtn702.lambda = x[ 1 ], hvtn702.high.risk.multiplier = x[ 2 ], hvtn702.highRiskProportion = x[ 3 ], hvtn702.lowRiskProportion = x[ 4 ] )
+        }
+    }
+
+    make.epsilon.optim.fn <- function ( .f.epsilon.abc, .target.stats, .target.stat.stdevs = rep( 1, length( .target.stats ) ) ) {
+        function( x ) {
+            .stats <- .f.epsilon.abc( x );
+            .stats.matrix <- matrix( .stats, nrow = 1 );
+            c( dist = calculate.abc.dist( .stats.matrix, .target.stats, ifelse( is.na( .target.stat.stdevs ), 1, .target.stat.stdevs ) ) )
+        }
+    } # make.epsilon.optim.fn (..)
+
+    make.rv144.optim.fn <- function ( .f.rv144.abc, .target.stats, .target.stat.stdevs = rep( 1, length( .target.stats ) ) ) {
+        function( x ) {
+            .stats <- .f.rv144.abc( x );
+            .stats.matrix <- matrix( .stats, nrow = 1 );
+            c( dist = calculate.abc.dist( .stats.matrix, .target.stats, ifelse( is.na( .target.stat.stdevs ), 1, .target.stat.stdevs ) ) )
+        }
+    } # make.rv144.optim.fn (..)
+
+    make.hvtn702.optim.fn <- function ( .f.hvtn702.abc, .target.stats, .target.stat.stdevs = rep( 1, length( .target.stats ) ) ) {
+        function( x ) {
+            .stats <- .f.hvtn702.abc( x );
+            .stats.matrix <- matrix( .stats, nrow = 1 );
+            c( dist = calculate.abc.dist( .stats.matrix, .target.stats, ifelse( is.na( .target.stat.stdevs ), 1, .target.stat.stdevs ) ) )
+        }
+    } # make.hvtn702.optim.fn (..)
+
+runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 1000 ) ) {
+    stopifnot( all( c( "numExecution" ) %in% names( reac ) ) );
+
+    ## Number of parameters to optimize (3, 4, or 5).
+    num.params <- 9; # This is now fixed at 9.
+
+    num.sims <- unname( reac[ "numExecution" ] );
+
+    ## TODO : REMOVE?
+    #abc.keep.num.sims <- 1000; # Number of samples to run through the clustering and optimizing steps.
+    abc.keep.num.sims <- floor( num.sims / 4 );
+    stopifnot( num.sims > abc.keep.num.sims ); # It won't work to cluster uniformly drawn points. You first have to filter them by keeping those nearest the target.
+
+    # MAGIC #s
+    rv144.VE <- 31.0;
+    rv144.placeboIncidence <- 0.14;
+    hvtn702.VE <- 0.0;
+    hvtn702.placeboIncidence <- 3.3;
+
+    rv144.placebo.incidence.target <- rv144.placeboIncidence; # incidence per 100 person years
+    rv144.VE.target = rv144.VE; # cumulative VE observed by the end of the trial as percentage eg 31 for rv144
+    hvtn702.placebo.incidence.target <- hvtn702.placeboIncidence; # incidence per 100 person years
+    hvtn702.VE.target = hvtn702.VE; # cumulative VE observed by the end of the trial
+
+    # For the abc and optimization we need a way to compute distances,
+    # for which we use the abc default function which is Euclidean
+    # distance after scaling each dimension; you can scale it by the
+    # standard deviation as abc does, but for optimization we need a
+    # better way to balance these, so instead of the observed SD we
+    # explicitly weight the scales by setting the scale units such
+    # that after scaling the dimensions by these corresponding
+    # scale.unit values, the Euclidean distance of those scaled values
+    # is approximately correctly weighting the multiple dimensions'
+    # contributions. For example if you are finding the optimized
+    # modes are very close in one dimension and not in another
+    # dimension, you can modify these scales to help balance that
+    # distance cost across dimensions better.
+    placebo.incidence.target.scale.units <- 1;
+    VE.target.scale.units <- 1;
+
+    high.risk.multiplier.max <- 50;
+    lambda.min <- 1E-6;#1E-7;
+    lambda.max <- 1E-4;#1E-2;
+    smallest.discernable.amount <- 5E-4; # determined by trial and error this is the smallest amount you can change the parameters from 0 or 1 for it to register a difference from those extremes, eg to avoid NaN and Inf
+
+    target.stats <-
+        data.frame( rv144.VE.target, rv144.placebo.incidence.target, hvtn702.VE.target, hvtn702.placebo.incidence.target );        
+    rv144.target.stats <- c( "rv144.VE.target", "rv144.placebo.incidence.target" );
+    hvtn702.target.stats <- c( "hvtn702.VE.target", "hvtn702.placebo.incidence.target" );
+
+    ## Note that we target the cumulative incidence at the end of the trial (we used to use the average instantaneous incidence over time).
+    target.stat.scale.units <- c( "rv144.VE.target" = VE.target.scale.units, "rv144.placebo.incidence.target" = placebo.incidence.target.scale.units, "hvtn702.VE.target" = VE.target.scale.units, "hvtn702.placebo.incidence.target" = placebo.incidence.target.scale.units );
+
+    # MAGIC NUMBERS
+    # Specify bounds for the initial conditions; these are used as priors.
+    # In order of "x" in the above function.
+    bounds <- list(
+                   epsilon = c(smallest.discernable.amount, 1-smallest.discernable.amount), # This is just the full range 0 to 1
+                   rv144.lambda = c(lambda.min, lambda.max),
+                   rv144.high.risk.multiplier = c(1, high.risk.multiplier.max), # risk multiplier for high risk group
+                   rv144.highRiskProportion = c(smallest.discernable.amount, 1-smallest.discernable.amount), # This is just the full range 0 to 1
+                   rv144.lowRiskProportion = c(smallest.discernable.amount, 1-smallest.discernable.amount), # This is modified to avoid NaN/Inf
+                   hvtn702.lambda = c(lambda.min, lambda.max),
+                   hvtn702.high.risk.multiplier = c(1, high.risk.multiplier.max), # risk multiplier for high risk group
+                   hvtn702.highRiskProportion = c(smallest.discernable.amount, 1-smallest.discernable.amount), # This is just the full range 0 to 1
+                   hvtn702.lowRiskProportion = c(smallest.discernable.amount, 1-smallest.discernable.amount) # This is modified to avoid NaN/Inf
+                   );            
+    stopifnot( all( names( bounds ) == all.parameters ) );
+
+    # In order of "x" in the above function.
+    priors  <- lapply( bounds, function( .bounds ) { c( "unif", unlist( .bounds ) ) } );
+
+    ## PHASE 1: Find candidate starting places constructed from epsion-bin-specific, trial-specific local optima. Later (in phase 2) we will find 9-parameter local optima near each of these candidate starting places.
+    ## First we draw num.sims draws, then for each study-specific distance (computed using just that study's two target stats), compute how far the closest abc.keep.num.sims are, and use all points within 1.5-fold (see fit.rej.dist.scaled) of the furthest of those, to ensure a minimum number of abc.keep.num.sims points but to usually keep additional points to help flesh out the contours of the space just below these peaks, which we think can possibly help with the clustering but it's not entirely clear yet.
+
+    # First we just draw num.sims draws from the priors, independently. Keep everything drawn. Compute the 4-parameter target stats from runs with these 9-parameter random starting places, and the standard deviations of these 4-parameter stats (which we use to scale the distance function on the target stats for balancing the optimization evenly across the parameters, see below).
+    .f.abc <- function( x ) {
+        run.and.compute.run.stats( epsilon = x[ 1 ], rv144.lambda = x[ 2 ], rv144.high.risk.multiplier = x[ 3 ], rv144.highRiskProportion = x[ 4 ], rv144.lowRiskProportion = x[ 5 ], hvtn702.lambda = x[ 6 ], hvtn702.high.risk.multiplier = x[ 7 ], hvtn702.highRiskProportion = x[ 8 ], hvtn702.lowRiskProportion = x[ 9 ] )
+    }
+    fit.rej <- ABC_rejection(model = .f.abc,
+                         prior = priors,
+                         nb_simul = num.sims,
+                         summary_stat_target = as.numeric( target.stats ),
+                         tol = 1.0, # Keep all of them for the moment; see below.
+                         progress_bar = TRUE)
+    colnames( fit.rej$param ) <- all.parameters;
+    colnames( fit.rej$stats ) <- names( target.stats );
+    names( fit.rej$stats_normalization ) <- names( target.stats );
+    # Keep this, because we discard much of the data in it and later if we need to we might revert to this, while debugging only.
+    fit.orig <- fit.rej; # TODO: CAN SAFELY REMOVE THIS, IT IS NOT USED IN THE CODE.
+
+    # Filter to keep points up to max.fit.rej.dist.scaled units away.
+    max.fit.rej.dist.scaled <- 1.5; # MAGIC #
+
+    # Compute the distances for each retained sample
+    # fit.rej.dist <-
+    #     calculate.abc.dist( fit.rej$stats, as.numeric( target.stats ), ifelse( is.na( fit.rej$stats_normalization ), 1, fit.rej$stats_normalization ) * target.stat.scale.units );
+
+    fit.rej.rv144.dist <-
+        calculate.abc.dist( fit.rej$stats[ , rv144.target.stats ], as.numeric( target.stats[ rv144.target.stats ] ), ifelse( is.na( fit.rej$stats_normalization[ rv144.target.stats ] ), 1, fit.rej$stats_normalization[ rv144.target.stats ] ) * target.stat.scale.units[ rv144.target.stats ] );
+
+    fit.rej.hvtn702.dist <-
+        calculate.abc.dist( fit.rej$stats[ , hvtn702.target.stats ], as.numeric( target.stats[ hvtn702.target.stats ] ), ifelse( is.na( fit.rej$stats_normalization[ hvtn702.target.stats ] ), 1, fit.rej$stats_normalization[ hvtn702.target.stats ] ) * target.stat.scale.units[ hvtn702.target.stats ] );
+
+    # Filter to keep fewer points.
+    # Divide distance into units the width of the top abc.keep.num.sims values.
+    rv144.dist.units <- quantile( fit.rej.rv144.dist, probs = ( abc.keep.num.sims / num.sims ) )
+    fit.rej.rv144.dist.scaled <- fit.rej.rv144.dist / rv144.dist.units;
+    fit.rej.rv144.dist.scaled.int <- floor( fit.rej.rv144.dist.scaled );
+
+    hvtn702.dist.units <- quantile( fit.rej.hvtn702.dist, probs = ( abc.keep.num.sims / num.sims ) )
+    fit.rej.hvtn702.dist.scaled <- fit.rej.hvtn702.dist / hvtn702.dist.units;
+    fit.rej.hvtn702.dist.scaled.int <- floor( fit.rej.hvtn702.dist.scaled );
+
+    abc.rv144.keep.sim <- fit.rej.rv144.dist.scaled < max.fit.rej.dist.scaled;
+
+    fit.rej.rv144 <- fit.rej;
+    fit.rej.rv144$param <- fit.rej.rv144$param[ abc.rv144.keep.sim, c( "epsilon", rv144.parameters ), drop = FALSE ];
+    fit.rej.rv144$stats <- fit.rej.rv144$stats[ abc.rv144.keep.sim, rv144.target.stats, drop = FALSE ];
+    fit.rej.rv144$weights <- fit.rej.rv144$weights[ abc.rv144.keep.sim ];
+    fit.rej.rv144.dist <- fit.rej.rv144.dist[ abc.rv144.keep.sim ];
+
+
+    abc.hvtn702.keep.sim <- fit.rej.hvtn702.dist.scaled < max.fit.rej.dist.scaled;
+
+    fit.rej.hvtn702 <- fit.rej;
+    fit.rej.hvtn702$param <- fit.rej.hvtn702$param[ abc.hvtn702.keep.sim, c( "epsilon", hvtn702.parameters ), drop = FALSE ];
+    fit.rej.hvtn702$stats <- fit.rej.hvtn702$stats[ abc.hvtn702.keep.sim, hvtn702.target.stats, drop = FALSE ];
+    fit.rej.hvtn702$weights <- fit.rej.hvtn702$weights[ abc.hvtn702.keep.sim ];
+    fit.rej.hvtn702.dist <- fit.rej.hvtn702.dist[ abc.hvtn702.keep.sim ];
+
+    ## Great, now that we have identified the subset of points that we are keeping, and have eliminated the other points, we will now consider bins of epsilon (the only parameter that is shared across the two studies) and within each bin we will cluster the non-epsilon parameters for each study and construct a set of 9-parameter candidate starting places based on study-specific modes that share approximately common epsilon parameters across the studies. For example if there is a mode at around epsilon = 0.5 for both studies, we want to construct a 9-parameter starting place with epsilon = 0.5 and the study-specific maximizing parameters for the non-epsilon parameters when epsilon is 0.5.
+
+   # Note that we use a sliding window approach so there's actually twice as many bins as is stated here, and we may find the same modes multiple times. This is to balance focusing on relevant values of the other parameters while clustering the non-epsilon study-specific parameters by conditioning approximately on epsilon, and might need be tuned to consider different bin sizes (bin sizes are 1/num.epsilon.bins and overlap halfway through, with the lowest and highest bins being half-sized).
+
+    # Once we identify modes we determine their compatability across studies by whether the epsilons are near enough to each other, based on the overlap or not of their search windows, which are defined by using the logic of identifying outliers in a box plot. That is we walk out from the mode some number of IQR-defined units and define the search window as anything within that zone. For Tukey-style boxplots the number is 1.5 IQRs from the median defines an outlier. Here we can tune this multiplier (Tukey.IQR.multiplier) to change the window width that we use to define the search space for optimization and also for this overlap detection.
+
+    # Tukey.IQR.multiplier <- 1.5;
+    # Tukey.IQR.multiplier <- 1.0;
+    Tukey.IQR.multiplier <- .25;
+
+    # Now find optimal points near the sampled modes.
+    
+    ## Now we separately cluster the two trials except we group by epsilon bin.
+    candidate.parameter.sets.low <- matrix( NA, nrow = 0, ncol = length( all.parameters ) );
+    candidate.parameter.sets.high <- matrix( NA, nrow = 0, ncol = length( all.parameters ) );
+    num.epsilon.bins <- 10; # MAGIC #
+    #num.epsilon.bins <- 2; # MAGIC # for debugging when num.sims is only 1000
+    min.points.for.clustering <- 6; # MAGIC #, from "QH6214 qhull input error: not enough points(2) to construct initial simplex (need 6)"
+    pdfCluster.hmult <- 1.05; # MAGIC #, tweaked it to get pdfCluster to run without crashing with the error message suggesting increasing n.grid -- even with max n.grid, hmult has to be just above 1, it seems. If it is too high, the clusters merge into one.
+    be.verbose <- TRUE; # MAGIC #
+    for( epsilon.bin in 1:(2*num.epsilon.bins - 1) ) {
+        cat( paste( "epsilon.bin =", epsilon.bin ), fill = TRUE );
+        bin.min.epsilon <- max( 0, ( epsilon.bin - 1 )/(2*num.epsilon.bins) );
+        bin.max.epsilon <- min( 1, ( epsilon.bin + 1 )/(2*num.epsilon.bins) );
+
+        ### rv144
+        rv144.sample.is.in.bin <-
+            ( fit.rej.rv144$param[ , "epsilon" ] >= bin.min.epsilon ) & ( fit.rej.rv144$param[ , "epsilon" ] < bin.max.epsilon );
+        cat( paste( "sum( rv144.sample.is.in.bin ) =", sum( rv144.sample.is.in.bin ) ), fill = TRUE );
+        if( sum( rv144.sample.is.in.bin ) < min.points.for.clustering ) {
+            if( sum( rv144.sample.is.in.bin ) == 0 ) {
+                next; # No points in this bin at all. Move on.
+            }
+            rv144.cluster.numbers <- rep( NA, length( rv144.sample.is.in.bin ) );
+            rv144.cluster.numbers[ rv144.sample.is.in.bin ] <- 1; # All in one cluster together
+        } else {
+            cl.rv144 <- suppressWarnings( pdfCluster( fit.rej.rv144$param[ rv144.sample.is.in.bin, rv144.parameters, drop = FALSE ], bwtype="adaptive", hmult=pdfCluster.hmult, n.grid=sum( rv144.sample.is.in.bin ) ) );
+            rv144.cluster.numbers <- rep( NA, length( rv144.sample.is.in.bin ) );
+            rv144.cluster.numbers[ rv144.sample.is.in.bin ] <- groups( cl.rv144 );
+        }
+        # Helpful when debugging - run through the next line.. it'll print when done
+        table( rv144.cluster.numbers )
+
+        medians.by.rv144.cluster <- sapply( 1:max( rv144.cluster.numbers, na.rm = TRUE ), function( .cluster ) { apply( fit.rej.rv144$param[ !is.na( rv144.cluster.numbers ) & ( rv144.cluster.numbers == .cluster ), , drop = FALSE ], 2, median ) } );
+        mins.by.rv144.cluster <- sapply( 1:max( rv144.cluster.numbers, na.rm = TRUE ), function( .cluster ) { apply( fit.rej.rv144$param[ !is.na( rv144.cluster.numbers ) & ( rv144.cluster.numbers == .cluster ), , drop = FALSE ], 2, min ) } );
+        maxs.by.rv144.cluster <- sapply( 1:max( rv144.cluster.numbers, na.rm = TRUE ), function( .cluster ) { apply( fit.rej.rv144$param[ !is.na( rv144.cluster.numbers ) & ( rv144.cluster.numbers == .cluster ), , drop = FALSE ], 2, max ) } );
+        IQRs.by.rv144.cluster <- sapply( 1:max( rv144.cluster.numbers, na.rm = TRUE ), function( .cluster ) { apply( fit.rej.rv144$param[ !is.na( rv144.cluster.numbers ) & ( rv144.cluster.numbers == .cluster ), , drop = FALSE ], 2, function( .col ) { diff( quantile( .col, c( 0.25, 0.75 ) ) ) } ) } );
+
+        # Cluster-specific best sample is at this index, for each cluster:
+        rv144.cluster.member.minimizing.dist <- sapply( 1:max( rv144.cluster.numbers, na.rm = TRUE ), function( .cluster.number ) { .cluster.indices <- which( !is.na( rv144.cluster.numbers ) & ( rv144.cluster.numbers == .cluster.number ) ); return( .cluster.indices[ which.min( fit.rej.rv144.dist[ .cluster.indices ] ) ] ); } );
+    
+        # instead of around the median or mode, center it around the cluster minimizer.
+        low.Tukey.whisker.bound.by.rv144.cluster <- sapply( 1:ncol( medians.by.rv144.cluster ), function( .cluster ) { .tukey.low.whisker.candidate.values <- fit.rej.rv144$param[ rv144.cluster.member.minimizing.dist[[ .cluster ]],  ] - ( Tukey.IQR.multiplier * IQRs.by.rv144.cluster[ , .cluster ] ); ifelse( .tukey.low.whisker.candidate.values < mins.by.rv144.cluster[ , .cluster ], mins.by.rv144.cluster[ , .cluster ], .tukey.low.whisker.candidate.values ) } );
+        high.Tukey.whisker.bound.by.rv144.cluster <- sapply( 1:ncol( medians.by.rv144.cluster ), function( .cluster ) { .tukey.low.whisker.candidate.values <- fit.rej.rv144$param[ rv144.cluster.member.minimizing.dist[[ .cluster ]],  ] + ( Tukey.IQR.multiplier * IQRs.by.rv144.cluster[ , .cluster ] ); ifelse( .tukey.low.whisker.candidate.values < mins.by.rv144.cluster[ , .cluster ], mins.by.rv144.cluster[ , .cluster ], .tukey.low.whisker.candidate.values ) } );
+
+        ### hvtn702
+        hvtn702.sample.is.in.bin <-
+            ( fit.rej.hvtn702$param[ , "epsilon" ] >= bin.min.epsilon ) & ( fit.rej.hvtn702$param[ , "epsilon" ] < bin.max.epsilon );
+        cat( paste( "sum( hvtn702.sample.is.in.bin ) =", sum( hvtn702.sample.is.in.bin ) ), fill = TRUE );
+        
+        if( sum( hvtn702.sample.is.in.bin ) < min.points.for.clustering ) {
+            if( sum( hvtn702.sample.is.in.bin ) == 0 ) {
+                next; # No points in this bin at all. Move on.
+            }
+            hvtn702.cluster.numbers <- rep( NA, length( hvtn702.sample.is.in.bin ) );
+            hvtn702.cluster.numbers[ hvtn702.sample.is.in.bin ] <- 1; # All in one cluster together
+        } else {
+            cl.hvtn702 <- suppressWarnings( pdfCluster( fit.rej.hvtn702$param[ hvtn702.sample.is.in.bin, hvtn702.parameters, drop = FALSE ], bwtype="adaptive", hmult=pdfCluster.hmult, n.grid=sum( hvtn702.sample.is.in.bin ) ) );
+            hvtn702.cluster.numbers <- rep( NA, length( hvtn702.sample.is.in.bin ) );
+            hvtn702.cluster.numbers[ hvtn702.sample.is.in.bin ] <- groups( cl.hvtn702 );
+        }
+        # Helpful when debugging - run through the next line.. it'll print when done
+        table( hvtn702.cluster.numbers )
+
+        medians.by.hvtn702.cluster <- sapply( 1:max( hvtn702.cluster.numbers, na.rm = TRUE ), function( .cluster ) { apply( fit.rej.hvtn702$param[ !is.na( hvtn702.cluster.numbers ) & ( hvtn702.cluster.numbers == .cluster ), , drop = FALSE ], 2, median ) } );
+        mins.by.hvtn702.cluster <- sapply( 1:max( hvtn702.cluster.numbers, na.rm = TRUE ), function( .cluster ) { apply( fit.rej.hvtn702$param[ !is.na( hvtn702.cluster.numbers ) & ( hvtn702.cluster.numbers == .cluster ), , drop = FALSE ], 2, min ) } );
+        maxs.by.hvtn702.cluster <- sapply( 1:max( hvtn702.cluster.numbers, na.rm = TRUE ), function( .cluster ) { apply( fit.rej.hvtn702$param[ !is.na( hvtn702.cluster.numbers ) & ( hvtn702.cluster.numbers == .cluster ), , drop = FALSE ], 2, max ) } );
+        IQRs.by.hvtn702.cluster <- sapply( 1:max( hvtn702.cluster.numbers, na.rm = TRUE ), function( .cluster ) { apply( fit.rej.hvtn702$param[ !is.na( hvtn702.cluster.numbers ) & ( hvtn702.cluster.numbers == .cluster ), , drop = FALSE ], 2, function( .col ) { diff( quantile( .col, c( 0.25, 0.75 ) ) ) } ) } );
+
+        # Cluster-specific best sample is at this index, for each cluster:
+        hvtn702.cluster.member.minimizing.dist <- sapply( 1:max( hvtn702.cluster.numbers, na.rm = TRUE ), function( .cluster.number ) { .cluster.indices <- which( !is.na( hvtn702.cluster.numbers ) & ( hvtn702.cluster.numbers == .cluster.number ) ); return( .cluster.indices[ which.min( fit.rej.hvtn702.dist[ .cluster.indices ] ) ] ); } );
+    
+        # instead of around the median or mode, center it around the cluster minimizer.
+        low.Tukey.whisker.bound.by.hvtn702.cluster <- sapply( 1:ncol( medians.by.hvtn702.cluster ), function( .cluster ) { .tukey.low.whisker.candidate.values <- fit.rej.hvtn702$param[ hvtn702.cluster.member.minimizing.dist[[ .cluster ]],  ] - ( Tukey.IQR.multiplier * IQRs.by.hvtn702.cluster[ , .cluster ] ); ifelse( .tukey.low.whisker.candidate.values < mins.by.hvtn702.cluster[ , .cluster ], mins.by.hvtn702.cluster[ , .cluster ], .tukey.low.whisker.candidate.values ) } );
+        high.Tukey.whisker.bound.by.hvtn702.cluster <- sapply( 1:ncol( medians.by.hvtn702.cluster ), function( .cluster ) { .tukey.low.whisker.candidate.values <- fit.rej.hvtn702$param[ hvtn702.cluster.member.minimizing.dist[[ .cluster ]],  ] + ( Tukey.IQR.multiplier * IQRs.by.hvtn702.cluster[ , .cluster ] ); ifelse( .tukey.low.whisker.candidate.values < mins.by.hvtn702.cluster[ , .cluster ], mins.by.hvtn702.cluster[ , .cluster ], .tukey.low.whisker.candidate.values ) } );
+
+        ## Ok, so the idea is that for this epsilon bin we now have rv144 and hvtn702 parameter clusters that are effectively independent, and we just want to try the combos that work. For now we can use this strategy but we need to keep track in case we are losing a lot of clusters this way: basically just try all compatible combinations based on overlap of the window we are calling the Tukey whisker bound, because it is based on the idea of multiplying the IQR by a constant and using that to determine a window of what is considered an outlier. So we have these windows on all the parameters but here the only overlapping parameter is epsilon.
+        for( rv144.cluster.i in 1:ncol( low.Tukey.whisker.bound.by.rv144.cluster ) ) {
+            cat( paste( "rv144.cluster.i = ", rv144.cluster.i ), fill = TRUE );
+            for( hvtn702.cluster.j in 1:ncol( low.Tukey.whisker.bound.by.hvtn702.cluster ) ) {
+                cat( paste( "hvtn702.cluster.j = ", hvtn702.cluster.j ), fill = TRUE );
+                # Is it incompatible?
+                if( ( high.Tukey.whisker.bound.by.rv144.cluster[ "epsilon", rv144.cluster.i ] < low.Tukey.whisker.bound.by.hvtn702.cluster[ "epsilon", hvtn702.cluster.j ] ) || ( high.Tukey.whisker.bound.by.hvtn702.cluster[ "epsilon", hvtn702.cluster.j ] < low.Tukey.whisker.bound.by.rv144.cluster[ "epsilon", rv144.cluster.i ] ) ) {
+                    # The epsilon windows do not overlap. Move on.
+                    if( be.verbose ) {
+                        cat( paste( "Epsilon windows for rv144 cluster ", rv144.cluster.i, " and hvtn702 cluster ", hvtn702.cluster.j, " in epsilon bin ", epsilon.bin, " do not overlap.", sep = "" ), fill = TRUE );
+                    }
+                    next;
+                }
+                if( be.verbose ) {
+                    cat( paste( "Epsilon windows for rv144 cluster ", rv144.cluster.i, " and hvtn702 cluster ", hvtn702.cluster.j, " in epsilon bin ", epsilon.bin, " ARE COMPATIBLE.", sep = "" ), fill = TRUE );
+                    low.epsilon.bound <-
+                        max(
+                            low.Tukey.whisker.bound.by.rv144.cluster[ "epsilon", rv144.cluster.i ],
+                            low.Tukey.whisker.bound.by.hvtn702.cluster[ "epsilon", hvtn702.cluster.j ]
+                            );
+                    high.epsilon.bound <-
+                        min(
+                            high.Tukey.whisker.bound.by.rv144.cluster[ "epsilon", rv144.cluster.i ],
+                            high.Tukey.whisker.bound.by.hvtn702.cluster[ "epsilon", hvtn702.cluster.j ]
+                            );
+                    stopifnot( high.epsilon.bound > low.epsilon.bound );
+                    candidate.parameter.sets.low <-
+                        rbind( candidate.parameter.sets.low,
+                              c( "epsilon" = low.epsilon.bound,
+                                low.Tukey.whisker.bound.by.rv144.cluster[ rv144.parameters, rv144.cluster.i ],
+                                low.Tukey.whisker.bound.by.hvtn702.cluster[ hvtn702.parameters, hvtn702.cluster.j ]
+                                ) );
+                    candidate.parameter.sets.high <-
+                        rbind( candidate.parameter.sets.high,
+                              c( "epsilon" = high.epsilon.bound,
+                                high.Tukey.whisker.bound.by.rv144.cluster[ rv144.parameters, rv144.cluster.i ],
+                                high.Tukey.whisker.bound.by.hvtn702.cluster[ hvtn702.parameters, hvtn702.cluster.j ]
+                                ) );
+                }
+            } # End foreach hvtn702.cluster.j
+        } # End foreach rv144.cluster.i
+    } # End foreach epsilon.bin
+
+    # boxplot( fit.rej.dist ~ cluster.numbers )
+
+    ## TODO: Filter/merge the overlapping candidates so they are not redundant.
+
+    ## Compute midpoints of candidates as medians of bounds; these
+    ## will be the starting places for the optimizations below, but
+    ## first we need to ensure everything is within the specified
+    ## bounds.
+    candidate.parameter.sets.midpoint <- candidate.parameter.sets.low + ( candidate.parameter.sets.high - candidate.parameter.sets.low ) / 2;
+
+    ## Ensure global bounds
+    bounds.low <- sapply( bounds, function ( .lower.and.higher ) { .lower.and.higher[ 1 ] } );
+    bounds.high <- sapply( bounds, function ( .lower.and.higher ) { .lower.and.higher[ 2 ] } );
+    candidate.parameter.sets.low.bounded <- t( apply( candidate.parameter.sets.low, 1, function( .candidate.parameter.set.low ) { ifelse( .candidate.parameter.set.low < bounds.low, bounds.low, .candidate.parameter.set.low ) } ) );
+    candidate.parameter.sets.high.bounded <- t( apply( candidate.parameter.sets.high, 1, function( .candidate.parameter.set.high ) { ifelse( .candidate.parameter.set.high > bounds.high, bounds.high, .candidate.parameter.set.high ) } ) );
+    candidate.parameter.sets.midpoint.bounded <- t( apply( candidate.parameter.sets.midpoint, 1, function( .candidate.parameter.set.midpoint ) { ifelse( .candidate.parameter.set.midpoint > bounds.high, bounds.high, ifelse( .candidate.parameter.set.midpoint < bounds.low, bounds.low, .candidate.parameter.set.midpoint ) ) } ) );
+
+    ## PHASE 2:  from these candidate starting places constructed from epsion-bin-specific, trial-specific local optima, find modes in the 9-parameter space by conditional optimization.
+
+    # For better balancing of the costs we use target.stat.scale.units; see above.
+    optimize.step <- function ( current.parameters, lower, upper, current.value = NULL, be.verbose = FALSE ) {
+        is.anything.changed <- FALSE;
+          
+        ## First, update epsilon
+        .f.epsilon.abc <- make.epsilon.abc.fn( current.parameters );
+        .f.epsilon <- make.epsilon.optim.fn( .f.epsilon.abc, target.stats, ifelse( is.na( fit.rej$stats_normalization ), 1, fit.rej$stats_normalization ) * target.stat.scale.units );
+
+        if( is.null( current.value ) ) {
+            current.value <- unlist( .f.epsilon( current.parameters[[ "epsilon" ]] ) );
+        }
+        # Save the starting parameters and value, jic.
+        starting.parameters <- current.parameters;
+        starting.value <- current.value;
+
+        if( be.verbose ) {
+            cat( paste( apply( cbind( names( starting.parameters ), starting.parameters ), 1, paste, collapse = "=" ), collapse = ", " ), fill = TRUE )
+            cat( starting.value, fill = TRUE );
+        }
+
+        .optim.result <- optim( current.parameters[[ "epsilon" ]], .f.epsilon, lower = lower[[ "epsilon" ]], upper = upper[[ "epsilon" ]], method = "L-BFGS-B" );
+        .par <- .optim.result$par;
+        names( .par ) <- "epsilon";
+
+        .new.value <- .optim.result$value;
+        if( be.verbose ) {
+            cat( paste( "epsilon =", .par ), fill = TRUE );
+            cat( .new.value, fill = TRUE );
+        }
+        if( .new.value < current.value ) {
+            ## Update the current.parameters with this new epsilon value.
+            if( be.verbose ) {
+                cat( paste( "ACCEPT epsilon change from ", current.parameters[[ "epsilon" ]], " to ", .par, sep = "" ), fill = TRUE );
+            }
+            current.parameters[[ "epsilon" ]] <- .par;
+            current.value <- .new.value;
+            is.anything.changed <- TRUE;
+        } else {
+            if( be.verbose ) {
+                cat( "REJECT epsilon change", fill = TRUE );
+                ## TODO: REMOVE
+                print( .optim.result );
+            }
+        }
+
+        ## Next, update rv144 parameters
+        .f.rv144.abc <- make.rv144.abc.fn( current.parameters );
+        .f.rv144 <- make.rv144.optim.fn( .f.rv144.abc, target.stats, ifelse( is.na( fit.rej$stats_normalization ), 1, fit.rej$stats_normalization ) * target.stat.scale.units );
+
+        .optim.result <- optim( current.parameters[ rv144.parameters ], .f.rv144, lower = lower[ rv144.parameters ], upper = upper[ rv144.parameters ], method = "L-BFGS-B" );
+        .par <- .optim.result$par;
+        names( .par ) <- rv144.parameters;
+
+        .new.value <- .optim.result$value;
+        if( be.verbose ) {
+            cat( paste( apply( cbind( rv144.parameters, .par ), 1, paste, collapse = "=" ), collapse = ", " ), fill = TRUE )
+            cat( .new.value, fill = TRUE );
+        }
+
+        if( .new.value < current.value ) {
+            if( be.verbose ) {
+                cat( paste( "ACCEPT rv144 parameters change from ", paste( apply( cbind( rv144.parameters, current.parameters[ rv144.parameters ] ), 1, paste, collapse = "=" ), collapse = ", " ), " to ", paste( apply( cbind( rv144.parameters, .par ), 1, paste, collapse = "=" ), collapse = ", " ), sep = "" ), fill = TRUE );
+            }
+            ## Update the current.parameters with this new epsilon value.
+            current.parameters[ rv144.parameters ] <- .par;
+            current.value <- .new.value;
+            is.anything.changed <- TRUE;
+        } else {
+            if( be.verbose ) {
+                cat( "REJECT rv144 parameters change", fill = TRUE );
+                ## TODO: REMOVE
+                print( .optim.result );
+            }
+        }
+
+        ## Next, update hvtn702 parameters
+        .f.hvtn702.abc <- make.hvtn702.abc.fn( current.parameters );
+        .f.hvtn702 <- make.hvtn702.optim.fn( .f.hvtn702.abc, target.stats, ifelse( is.na( fit.rej$stats_normalization ), 1, fit.rej$stats_normalization ) * target.stat.scale.units );
+
+        .optim.result <- optim( current.parameters[ hvtn702.parameters ], .f.hvtn702, lower = lower[ hvtn702.parameters ], upper = upper[ hvtn702.parameters ], method = "L-BFGS-B" );
+        .par <- .optim.result$par;
+        names( .par ) <- hvtn702.parameters;
+
+        .new.value <- .optim.result$value;
+        if( be.verbose ) {
+            cat( paste( apply( cbind( hvtn702.parameters, .par ), 1, paste, collapse = "=" ), collapse = ", " ), fill = TRUE )
+            cat( .new.value, fill = TRUE );
+        }
+
+        if( .new.value < current.value ) {
+            if( be.verbose ) {
+                cat( paste( "ACCEPT hvtn702 parameters change from ", paste( apply( cbind( hvtn702.parameters, current.parameters[ hvtn702.parameters ] ), 1, paste, collapse = "=" ), collapse = ", " ), " to ", paste( apply( cbind( hvtn702.parameters, .par ), 1, paste, collapse = "=" ), collapse = ", " ), sep = "" ), fill = TRUE );
+            }
+            ## Update the current.parameters with this new epsilon value.
+            current.parameters[ hvtn702.parameters ] <- .par;
+            current.value <- .new.value;
+            is.anything.changed <- TRUE;
+        } else {
+            if( be.verbose ) {
+                cat( "REJECT hvtn702 parameters change", fill = TRUE );
+                ## TODO: REMOVE
+                print( .optim.result );
+            }
+        }
+
+        .f.epsilon.abc <- make.epsilon.abc.fn( current.parameters );
+        .new.stats <- .f.epsilon.abc( current.parameters[[ "epsilon" ]] );
+
+        if( !is.anything.changed ) {
+            return( NULL );
+        }
+        print( c( current.parameters, .new.stats, dist = current.value ) );
+        return( c( current.parameters, .new.stats, dist = current.value ) );
+    } # optimize.step (..)
+
+    # First we optimize epsilon, then rv144, then hvtn702, then back to epsilon again
+    #      ‘reltol’ Relative convergence tolerance.  The algorithm stops if
+    # it is unable to reduce the value by a factor of ‘reltol *
+    # (abs(val) + reltol)’ at a step.  Defaults to
+    # ‘sqrt(.Machine$double.eps)’, typically about ‘1e-8’.
+    optimize.iteratively <- function ( current.parameters, lower, upper, current.value = NULL, reltol = 1E-2, step.i = 1, max.steps = 5, be.verbose = FALSE ) {
+        .converged <- FALSE;
+        last.dist <- current.value;
+        while( !.converged && ( step.i < max.steps ) ) {
+            if( be.verbose ) {
+                cat( paste( "optimize.iteratively( step.i = ", step.i, " )", sep = "" ), fill = TRUE );
+            }
+            .step.i.result <- optimize.step( current.parameters = current.parameters, lower = lower, upper = upper, current.value = current.value, be.verbose = be.verbose );
+            if( is.null( .step.i.result ) ) {
+                .converged <- TRUE;
+            } else {
+                current.parameters <- .step.i.result[ all.parameters ];
+                current.value <- .step.i.result[[ "dist" ]];
+                if( !is.null( last.dist ) ) {
+                    if( last.dist == current.value ) {
+                        .converged <- TRUE;
+                    } else {
+                        .converged <- abs( last.dist - current.value ) < ( reltol * ( abs( last.dist ) + reltol ) )
+                    }
+                } else {
+                    last.dist <- current.value;
+                }
+            }
+            step.i <- step.i + 1;
+        } # End while !.converged && step.i < max.steps
+        if( be.verbose ) {
+            if( .converged ) {
+                cat( "CONVERGED.", fill = TRUE );
+                cat( paste( apply( cbind( names( current.parameters ), current.parameters ), 1, paste, collapse = "=" ), collapse = ", " ), fill = TRUE )
+                cat( current.value, fill = TRUE );
+            } else {
+                cat( "DID NOT CONVERGE (max steps reached).", fill = TRUE );
+            }
+        }
+        return( .step.i.result );
+    } # optimize.iteratively (..)
+
+    optima.by.candidate <- sapply( 1:nrow( candidate.parameter.sets.midpoint.bounded ), function( .candidate ) {
+        print( .candidate );
+        .lower.bounds <- candidate.parameter.sets.low.bounded[ .candidate, ];
+        .upper.bounds <- candidate.parameter.sets.high.bounded[ .candidate, ];
+        .midpoint <- candidate.parameter.sets.midpoint.bounded[ .candidate, ];
+        print( .midpoint );
+        .iterative.result <- optimize.iteratively( .midpoint, lower = .lower.bounds, upper = .upper.bounds, current.value = NULL, be.verbose = TRUE );
+        # current.parameters <- .iterative.result[ all.parameters ];
+        # current.stats <- .iterative.result[[ setdiff( names( .iterative.result ), all.parameters, "dist" ) ]];
+        # current.value <- .iterative.result[[ "dist" ]];
+        return( .iterative.result );
+    } );
+    optima.by.candidate.sorted <- optima.by.candidate[ , order( optima.by.candidate[ "dist", ] ), drop = FALSE ];
+
+        
+    return( list( fit = fit.rej, priors = priors, bounds = bounds, target.stats = target.stats, fn = .f.abc, sampled.modes = optima.by.cluster.sorted ) );
+} # runSim_rv144.hvtn702 (..)
+
+### ERE I AM testing...
+the.seed <- 98103;
+# To test replicability of the identified modes, uncomment this:
+# set.seed( the.seed ); the.seed <- floor( runif( 1, max = 1E5 ) );
+# num.sims <- 1000; # Fast for debugging.
+num.sims <- 10000; # For reals.
+
+set.seed( the.seed );
+
+## Ok, I think that we need to first determine the reasonable epsilon values from the RV144-like setting, then ask could you get zero (or very low) VE with the same epsilon by increasing only lambda and risk values, with placebo incidence going from an rv144-like value (~0.14) to a 702-like value (~3.3).
+## rv144 placebo incidence in the prespecified analysis (MITT) cohort was 0.1397 per 100 person years, 100*(74/52985) from N Engl J Med 2009; 361:2209-2220 DOI: 10.1056/NEJMoa0908492 December 3, 2009 (https://www.nejm.org/doi/full/10.1056/nejmoa0908492):
+# "HIV-1 infection was diagnosed in 132 subjects (56 in the vaccine group and 76 in the placebo group) during 52,985 person-years of follow-up in the intention-to-treat analysis, in 86 subjects (36 in the vaccine group and 50 in the placebo group) during 36,720 person-years of follow-up in the per-protocol analysis, and in 125 subjects (51 in the vaccine group and 74 in the placebo group) during 52,985 person-years of follow-up in the modified intention-to-treat analysis. One subject in the placebo group who was identified by hospital record as being seropositive for HIV after dying from Pneumocystis jirovecii pneumonia was included in the analysis before the unblinding of the study. This diagnosis of HIV-1 infection was the only one that occurred outside planned procedures."
+
+## hvtn 702 placebo incidence was 3.3 per 100 person-years (95% CI, 2.8 to 3.9), from n engl j med 384;12 nejm.org March 25, 2021 (https://www.nejm.org/doi/pdf/10.1056/NEJMoa2031499), page 1092:
+# "During the first 24 months of follow-up, 138 HIV-1 infections occurred in the vaccine group and 133 in the placebo group, for an estimated incidence rate of 3.4 per 100 person-years (95% confidence interval [CI], 2.8 to 4.0) and 3.3 per 100 person-years (95% CI, 2.8 to 3.9), respectively (hazard ratio, 1.02; 95% CI, 0.81 to 1.30; P=0.84) (Fig. 1A and Table 2). The incidence of HIV-1 infection was similar in the vaccine group and the placebo group in secondary analyses during 36 months of follow-up (hazard ratio, 1.05; 95% CI, 0.83 to 1.31), in the month 6.5 at-risk cohort between 6.5 months and 24 months (hazard ratio, 1.15; 95% CI, 0.84 to 1.58), and in the perprotocol cohort, as well as in other secondary analyses (Figs. S3 through S9)."
+
+# .sim <- runSim_rv144.hvtn702( reac = c( "numExecution" = num.sims ) );
+
+######
+## Some plotting. Run manually. See above.
+if( FALSE ) {
+    the.sim <- .sim;
+
+    fit <- the.sim$fit
+    bounds <- the.sim$bounds;
+    
+    # These are the original bounds, separated for use in optim:
+    lower.bounds <- sapply( bounds, function ( .bounds.for.x ) { .bounds.for.x[ 1 ] } );
+    upper.bounds <- sapply( bounds, function ( .bounds.for.x ) { .bounds.for.x[ 2 ] } );
+
+    plot(density(fit$param[, 1], from = lower.bounds[1],  to = upper.bounds[1]),
+         main = "epsilon", 
+         xlim = c(lower.bounds[1], upper.bounds[1]),
+         #ylim = c(0, 10),
+         col=2)
+    lines(density(fit$param[, 1], from = lower.bounds[1],  to = upper.bounds[1]), col = 2)
+    abline(v = VE.target, lty = 2, col = 1)
+    legend("topright", legend = c("per-contact VE", "Posterior"),
+           lty = c(1, 2), col = 1:2, lwd = 2)
+    
+    plot(density(fit$param[, 2], from = lower.bounds[2],  to = upper.bounds[2]),
+         main = "lambda", 
+         xlim = c(lower.bounds[2], upper.bounds[2]),
+         col=2)
+    lines(density(fit$param[, 2], from = lower.bounds[2],  to = upper.bounds[2]), col = 2)
+    #abline(v = VE.target, lty = 2, col = 1) # This is a bug, it plots VE target, not lambda
+    legend("topright", legend = c("Truth", "Posterior"),
+           lty = c(1, 2), col = 1:2, lwd = 2)
+    
+    plot(density(fit$param[, 3], from = lower.bounds[3],  to = upper.bounds[3]),
+         main = "risk", 
+         xlim = c(lower.bounds[3], upper.bounds[3]),
+         col=2)
+    lines(density(fit$param[, 3], from = lower.bounds[3],  to = upper.bounds[3]), col = 2)
+    #abline(v = VE.target, lty = 2, col = 1) # Another bug
+    legend("topright", legend = c("Truth", "Posterior"),
+           lty = c(1, 2), col = 1:2, lwd = 2)
+    
+    .df <- as.data.frame( fit$param ) #df of just the parameter combinations ABC sampled
+    names( .df ) <- c( "epsilon", "lambda", "risk" )
+    pdf( "lambda_risk.pdf" ); ggplot( .df, aes( x=lambda,y=risk ) ) + geom_point() + stat_density2d_filled(); dev.off()
+    pdf( "epsilon_risk.pdf" ); ggplot( .df, aes( x=epsilon,y=risk ) ) + geom_point() + stat_density2d_filled(); dev.off()
+    pdf( "epsilon_lambda.pdf" ); ggplot( .df, aes( x=epsilon,y=lambda ) ) + geom_point() + stat_density2d_filled(); dev.off()
+} # END IF FALSE
+
