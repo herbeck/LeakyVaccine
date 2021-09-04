@@ -20,7 +20,7 @@ library(ggplot2)
 library(pdfCluster)
 ```
 
-# Build model
+# Build the epidemic model
 Usage:  >si.ode.rv144.hvtn702.fn (..)
 ```{r model-odes}
 si.ode.rv144.hvtn702.fn <- function ( times, init, param ) {
@@ -123,7 +123,9 @@ si.ode.rv144.hvtn702.fn <- function ( times, init, param ) {
 }
 ```
 
-# Function to manipulate the model output object
+# Manipulate the model output
+The "mod" object is produced after each model run; it is an Epimodel output object. The following mod.manipulate(..) function takes the mod output and uses it to estimated incidence and vaccine efficacy and add those values to the mod object.
+
 Usage: >mod.manipulate (..)
 ```{r model-output-function}
 mod.manipulate <- function( mod ) {
@@ -186,16 +188,12 @@ mod.manipulate <- function( mod ) {
 }
 ```
 
+# Distance function
+This computes the distance as calculated internally in the abc function - but not where the distances are normalized using "normalise", which we think centralizes also (so makes each scaled stat have mean 0, sd 1) - the standard deviations are saved and included in the abc output and need to be passed into here, because after keeping only the closest X% of the samples, the remaining samples will have a different STDEV. So to get the right distances it's important to use the correct stdev. These values are not centralized before the distances are computed but this should not matter.
 
-## This computes the distance as calculated internally in the abc function - but not 
-# where the distances are normalized using "normalise", which we think centralizes also 
-# (so makes each scaled stat have mean 0, sd 1) - the standard deviations are saved and 
-# included in the abc output and need to be passed into here, because after keeping only the 
-# closest X% of the samples, the remaining samples will have a different STDEV. So to get the 
-# right distances it's important to use the correct stdev. These values are not centralized 
-# before the distances are computed but this should not matter.
-
-# example: calculate.abc.dist( fit.rej$stats, as.numeric( target.stats ), fit.rej$stats_normalization )
+Usage: >calculate.abc.dist ( .. )
+Example: >calculate.abc.dist( fit.rej$stats, as.numeric( target.stats ), fit.rej$stats_normalization )
+```{r}
 calculate.abc.dist <- function ( sampled.stats.matrix, target.stats, target.stat.stdevs ) {
     nss <- length( target.stats );
     stopifnot( ncol( sampled.stats.matrix ) == nss );
@@ -215,17 +213,26 @@ calculate.abc.dist <- function ( sampled.stats.matrix, target.stats, target.stat
     dist <- sqrt(sum1)
  
    return( dist );
-} # calculate.abc.dist ( .. )
+}
+```
 
-#------------------------------------------------------------------------------
+#######
 # sim execution
-#------------------------------------------------------------------------------
+#######
+
+# Defining the input parameters
+```{r}
 rv144.parameters <- c( "rv144.lambda", "rv144.high.risk.multiplier", "rv144.highRiskProportion", "rv144.lowRiskProportion" );
 hvtn702.parameters <- c( "hvtn702.lambda", "hvtn702.high.risk.multiplier", "hvtn702.highRiskProportion", "hvtn702.lowRiskProportion" );
 all.parameters <- c( "epsilon", rv144.parameters, hvtn702.parameters );
+```
 
+# Running the model
+
+Usage:  >run.and.compute.run.stats (..)
+```{r}
 run.and.compute.run.stats <- function (
-      epsilon,   #per contact vaccine efficacy
+      epsilon,          #per contact vaccine efficacy; true VE
       rv144.lambda,     #beta*c*prev,
       rv144.high.risk.multiplier,          # Risk multiplier for high risk group
       rv144.highRiskProportion,
@@ -238,10 +245,22 @@ run.and.compute.run.stats <- function (
       trialSize = 10000,  # Now we just have to add this magic number for size
       trial.evaluation.time = 3*365
 ) {
-      # Paul added the other params to this (risk here, others below):
+
+# The model function call dcm(..) includes: "param", "init", and "control": "dcm(param, init, control)"; this is Epimodel structure.
+  
+# Paul added the other params to this (risk here, others below):
+
+### Param ###  
+
+# defining the param object
+  
       param <- param.dcm(epsilon = epsilon, rv144.lambda = rv144.lambda, hvtn702.lambda = hvtn702.lambda, rv144.high.risk.multiplier = rv144.high.risk.multiplier, hvtn702.high.risk.multiplier = hvtn702.high.risk.multiplier )
 
-      # rv144 initial values
+### Init ###
+      
+# Defining the initial values
+      
+      # RV144 values
       rv144.Svh <- floor( rv144.highRiskProportion * vaccinatedProportion * trialSize );
       rv144.Sph <- floor( rv144.highRiskProportion * ( 1.0 - vaccinatedProportion ) * trialSize );
       rv144.Svl <- floor( ( 1.0 - rv144.highRiskProportion ) * rv144.lowRiskProportion * vaccinatedProportion * trialSize );
@@ -255,8 +274,7 @@ run.and.compute.run.stats <- function (
           stopifnot( rv144.Sp == rv144.Sv );
       }
 
-
-      # hvtn702 initial values
+      # HVTN702 values
       hvtn702.Svh <- floor( hvtn702.highRiskProportion * vaccinatedProportion * trialSize );
       hvtn702.Sph <- floor( hvtn702.highRiskProportion * ( 1.0 - vaccinatedProportion ) * trialSize );
       hvtn702.Svl <- floor( ( 1.0 - hvtn702.highRiskProportion ) * hvtn702.lowRiskProportion * vaccinatedProportion * trialSize );
@@ -270,6 +288,7 @@ run.and.compute.run.stats <- function (
           stopifnot( hvtn702.Sp == hvtn702.Sv );
       }
 
+# Defining the init object
       init <- init.dcm(rv144.Sph = rv144.Sph, rv144.Iph = 0,    #placebo, high risk
                        rv144.Spm = rv144.Spm, rv144.Ipm = 0,   #placebo, medium risk
                        rv144.Spl = rv144.Spl, rv144.Ipl = 0,    #placebo, low risk
@@ -301,67 +320,81 @@ run.and.compute.run.stats <- function (
       rv144.VE <- mod.with.stats.df$rv144.VE.cumul[ trial.evaluation.time ];
       hvtn702.VE <- mod.with.stats.df$hvtn702.VE.cumul[ trial.evaluation.time ];
       
-      ## The placebo incidence out stat vector is the _cumulative_ incidence at time trial.evaluation.time.
+      ## The placebo incidence out stat vector is the -cumulative- incidence at time trial.evaluation.time.
       rv144.placeboIncidence <- mod.with.stats.df$cumul.rv144.rate.Placebo.het[ trial.evaluation.time ];
       hvtn702.placeboIncidence <- mod.with.stats.df$cumul.hvtn702.rate.Placebo.het[ trial.evaluation.time ];
 
       c( rv144.VE = rv144.VE, rv144.placeboIncidence = rv144.placeboIncidence, hvtn702.VE = hvtn702.VE, hvtn702.placeboIncidence = hvtn702.placeboIncidence );
-} # run.and.compute.run.stats (..)
+}
+```
 
+# Optimization functions? 
 
-    # Ok, so there's two sets of model-specific parameters (rv144,
-    # hvtn702), and then one parameter that is shared (epsilon, the
-    # per-contact vaccine efficacy parameter), so the best way to
-    # optimize is using conditional optimization. That is, we hold
-    # epsilon fixed, and then do each model optimization separately,
-    # then hold those params fixed and optimize epsilon, and iterate
-    # until convergence.
+Ok, so there are two sets of model-specific parameters (based on RV144 and HVTN702), and then one parameter that is shared (epsilon, the true per-contact vaccine efficacy), so the best way to optimize is using conditional optimization. That is, we first hold epsilon fixed and do each model optimization separately, then hold those resulting parameters fixed and optimize epsilon, and iterate
+until convergence.
 
-    make.epsilon.abc.fn <- function ( other.parameters ) {
-        function( x ) {
+WHAT do all of these functions do?
+
+Where did the "other.parameters[[]]" object come from? Should it be "all.parameters[[]]"?
+
+```{r functions}
+make.epsilon.abc.fn <- function ( other.parameters ) {
+        function( x ) {   # this function calls the run.and.compute.run.stats() fn
             run.and.compute.run.stats( epsilon = x, rv144.lambda = other.parameters[[ "rv144.lambda" ]], rv144.high.risk.multiplier = other.parameters[[ "rv144.high.risk.multiplier" ]], rv144.highRiskProportion = other.parameters[[ "rv144.highRiskProportion" ]], rv144.lowRiskProportion = other.parameters[[ "rv144.lowRiskProportion" ]], hvtn702.lambda = other.parameters[[ "hvtn702.lambda" ]], hvtn702.high.risk.multiplier = other.parameters[[ "hvtn702.high.risk.multiplier" ]], hvtn702.highRiskProportion = other.parameters[[ "hvtn702.highRiskProportion" ]], hvtn702.lowRiskProportion = other.parameters[[ "hvtn702.lowRiskProportion" ]] )
         }
     }
-    make.rv144.abc.fn <- function ( other.parameters ) {
+    
+make.rv144.abc.fn <- function ( other.parameters ) {
         function( x ) {
             run.and.compute.run.stats( epsilon = other.parameters[[ "epsilon" ]], rv144.lambda = x[ 1 ], rv144.high.risk.multiplier = x[ 2 ], rv144.highRiskProportion = x[ 3 ], rv144.lowRiskProportion = x[ 4 ], hvtn702.lambda = other.parameters[[ "hvtn702.lambda" ]], hvtn702.high.risk.multiplier = other.parameters[[ "hvtn702.high.risk.multiplier" ]], hvtn702.highRiskProportion = other.parameters[[ "hvtn702.highRiskProportion" ]], hvtn702.lowRiskProportion = other.parameters[[ "hvtn702.lowRiskProportion" ]] )
         }
     }
-    make.hvtn702.abc.fn <- function ( other.parameters ) {
+    
+make.hvtn702.abc.fn <- function ( other.parameters ) {
         function( x ) {
             run.and.compute.run.stats( epsilon = other.parameters[[ "epsilon" ]], rv144.lambda = other.parameters[[ "rv144.lambda" ]], rv144.high.risk.multiplier = other.parameters[[ "rv144.high.risk.multiplier" ]], rv144.highRiskProportion = other.parameters[[ "rv144.highRiskProportion" ]], rv144.lowRiskProportion = other.parameters[[ "rv144.lowRiskProportion" ]], hvtn702.lambda = x[ 1 ], hvtn702.high.risk.multiplier = x[ 2 ], hvtn702.highRiskProportion = x[ 3 ], hvtn702.lowRiskProportion = x[ 4 ] )
         }
     }
 
-    make.epsilon.optim.fn <- function ( .f.epsilon.abc, .target.stats, .target.stat.stdevs = rep( 1, length( .target.stats ) ) ) {
+make.epsilon.optim.fn <- function ( .f.epsilon.abc, .target.stats, .target.stat.stdevs = rep( 1, length( .target.stats ) ) ) {
         function( x ) {
             .stats <- .f.epsilon.abc( x );
             .stats.matrix <- matrix( .stats, nrow = 1 );
             c( dist = calculate.abc.dist( .stats.matrix, .target.stats, ifelse( is.na( .target.stat.stdevs ), 1, .target.stat.stdevs ) ) )
         }
-    } # make.epsilon.optim.fn (..)
+    } 
+# make.epsilon.optim.fn (..)
 
-    make.rv144.optim.fn <- function ( .f.rv144.abc, .target.stats, .target.stat.stdevs = rep( 1, length( .target.stats ) ) ) {
+make.rv144.optim.fn <- function ( .f.rv144.abc, .target.stats, .target.stat.stdevs = rep( 1, length( .target.stats ) ) ) {
         function( x ) {
             .stats <- .f.rv144.abc( x );
             .stats.matrix <- matrix( .stats, nrow = 1 );
             c( dist = calculate.abc.dist( .stats.matrix, .target.stats, ifelse( is.na( .target.stat.stdevs ), 1, .target.stat.stdevs ) ) )
         }
-    } # make.rv144.optim.fn (..)
+    } 
+# make.rv144.optim.fn (..)
 
-    make.hvtn702.optim.fn <- function ( .f.hvtn702.abc, .target.stats, .target.stat.stdevs = rep( 1, length( .target.stats ) ) ) {
+make.hvtn702.optim.fn <- function ( .f.hvtn702.abc, .target.stats, .target.stat.stdevs = rep( 1, length( .target.stats ) ) ) {
         function( x ) {
             .stats <- .f.hvtn702.abc( x );
             .stats.matrix <- matrix( .stats, nrow = 1 );
             c( dist = calculate.abc.dist( .stats.matrix, .target.stats, ifelse( is.na( .target.stat.stdevs ), 1, .target.stat.stdevs ) ) )
         }
-    } # make.hvtn702.optim.fn (..)
+    } 
+# make.hvtn702.optim.fn (..)
+```
 
+#Does the following run the whole simulation? 
+This a single function?!?!
+
+I am so confused by the following steps.
+
+```{r}
 runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) {
     stopifnot( all( c( "numExecution" ) %in% names( reac ) ) );
 
     ## Number of parameters to optimize (3, 4, or 5).
-    num.params <- 9; # This is now fixed at 9.
+    num.params <- 9; # This is now fixed at 9 (Fixed at 9 by this line, or somewhere else?)
 
     num.sims <- unname( reac[ "numExecution" ] );
 
@@ -394,6 +427,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) {
     # modes are very close in one dimension and not in another
     # dimension, you can modify these scales to help balance that
     # distance cost across dimensions better.
+    
     placebo.incidence.target.scale.units <- 1;
     VE.target.scale.units <- 1;
 
@@ -492,7 +526,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) {
 
    # Note that we use a sliding window approach so there's actually twice as many bins as is stated here, and we may find the same modes multiple times. This is to balance focusing on relevant values of the other parameters while clustering the non-epsilon study-specific parameters by conditioning approximately on epsilon, and might need be tuned to consider different bin sizes (bin sizes are 1/num.epsilon.bins and overlap halfway through, with the lowest and highest bins being half-sized).
 
-    # Once we identify modes we determine their compatability across studies by whether the epsilons are near enough to each other, based on the overlap or not of their search windows, which are defined by using the logic of identifying outliers in a box plot. That is we walk out from the mode some number of IQR-defined units and define the search window as anything within that zone. For Tukey-style boxplots the number is 1.5 IQRs from the median defines an outlier. Here we can tune this multiplier (Tukey.IQR.multiplier) to change the window width that we use to define the search space for optimization and also for this overlap detection.
+    # Once we identify modes we determine their compatibility across studies by whether the epsilons are near enough to each other, based on the overlap or not of their search windows, which are defined by using the logic of identifying outliers in a box plot. That is we walk out from the mode some number of IQR-defined units and define the search window as anything within that zone. For Tukey-style boxplots the number is 1.5 IQRs from the median defines an outlier. Here we can tune this multiplier (Tukey.IQR.multiplier) to change the window width that we use to define the search space for optimization and also for this overlap detection.
 
     # Tukey.IQR.multiplier <- 1.5;
     # Tukey.IQR.multiplier <- 1.0;
@@ -574,7 +608,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) {
         low.Tukey.whisker.bound.by.hvtn702.cluster <- sapply( 1:ncol( medians.by.hvtn702.cluster ), function( .cluster ) { .tukey.low.whisker.candidate.values <- fit.rej.hvtn702$param[ hvtn702.cluster.member.minimizing.dist[[ .cluster ]],  ] - ( Tukey.IQR.multiplier * IQRs.by.hvtn702.cluster[ , .cluster ] ); ifelse( .tukey.low.whisker.candidate.values < mins.by.hvtn702.cluster[ , .cluster ], mins.by.hvtn702.cluster[ , .cluster ], .tukey.low.whisker.candidate.values ) } );
         high.Tukey.whisker.bound.by.hvtn702.cluster <- sapply( 1:ncol( medians.by.hvtn702.cluster ), function( .cluster ) { .tukey.low.whisker.candidate.values <- fit.rej.hvtn702$param[ hvtn702.cluster.member.minimizing.dist[[ .cluster ]],  ] + ( Tukey.IQR.multiplier * IQRs.by.hvtn702.cluster[ , .cluster ] ); ifelse( .tukey.low.whisker.candidate.values < mins.by.hvtn702.cluster[ , .cluster ], mins.by.hvtn702.cluster[ , .cluster ], .tukey.low.whisker.candidate.values ) } );
 
-        ## Ok, so the idea is that for this epsilon bin we now have rv144 and hvtn702 parameter clusters that are effectively independent, and we just want to try the combos that work. For now we can use this strategy but we need to keep track in case we are losing a lot of clusters this way: basically just try all compatible combinations based on overlap of the window we are calling the Tukey whisker bound, because it is based on the idea of multiplying the IQR by a constant and using that to determine a window of what is considered an outlier. So we have these windows on all the parameters but here the only overlapping parameter is epsilon.
+        ## Ok, so the idea is that for this epsilon bin we now have RV144 and HVTN702 parameter clusters that are effectively independent, and we just want to try the combos that work. For now we can use this strategy but we need to keep track in case we are losing a lot of clusters this way: basically just try all compatible combinations based on overlap of the window we are calling the Tukey whisker bound, because it is based on the idea of multiplying the IQR by a constant and using that to determine a window of what is considered an outlier. So we have these windows on all the parameters but here the only overlapping parameter is epsilon.
         for( rv144.cluster.i in 1:ncol( low.Tukey.whisker.bound.by.rv144.cluster ) ) {
             cat( paste( "rv144.cluster.i = ", rv144.cluster.i ), fill = TRUE );
             for( hvtn702.cluster.j in 1:ncol( low.Tukey.whisker.bound.by.hvtn702.cluster ) ) {
@@ -617,7 +651,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) {
         } # End foreach rv144.cluster.i
     } # End foreach epsilon.bin
 
-    # boxplot( fit.rej.dist ~ cluster.numbers )
+     boxplot( fit.rej.dist ~ cluster.numbers )
 
     ## TODO: Filter/merge the overlapping candidates so they are not redundant.
 
@@ -807,30 +841,42 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) {
     } );
     optima.by.candidate.sorted <- optima.by.candidate[ , order( optima.by.candidate[ "dist", ] ), drop = FALSE ];
 
-        
     return( list( fit = fit.rej, priors = priors, bounds = bounds, target.stats = target.stats, fn = .f.abc, sampled.modes = optima.by.cluster.sorted ) );
-} # runSim_rv144.hvtn702 (..)
+} 
+
+# runSim_rv144.hvtn702 (..)
+```
 
 ### ERE I AM testing...
+
+```{r}
 the.seed <- 98103;
 # To test replicability of the identified modes, uncomment this:
 # set.seed( the.seed ); the.seed <- floor( runif( 1, max = 1E5 ) );
 # num.sims <- 1000; # Fast for debugging.
-num.sims <- 10000; # For reals.
-
+num.sims <- 15; # For reals.
 set.seed( the.seed );
+```
 
-## Ok, I think that we need to first determine the reasonable epsilon values from the RV144-like setting, then ask could you get zero (or very low) VE with the same epsilon by increasing only lambda and risk values, with placebo incidence going from an rv144-like value (~0.14) to a 702-like value (~3.3).
-## rv144 placebo incidence in the prespecified analysis (MITT) cohort was 0.1397 per 100 person years, 100*(74/52985) from N Engl J Med 2009; 361:2209-2220 DOI: 10.1056/NEJMoa0908492 December 3, 2009 (https://www.nejm.org/doi/full/10.1056/nejmoa0908492):
-# "HIV-1 infection was diagnosed in 132 subjects (56 in the vaccine group and 76 in the placebo group) during 52,985 person-years of follow-up in the intention-to-treat analysis, in 86 subjects (36 in the vaccine group and 50 in the placebo group) during 36,720 person-years of follow-up in the per-protocol analysis, and in 125 subjects (51 in the vaccine group and 74 in the placebo group) during 52,985 person-years of follow-up in the modified intention-to-treat analysis. One subject in the placebo group who was identified by hospital record as being seropositive for HIV after dying from Pneumocystis jirovecii pneumonia was included in the analysis before the unblinding of the study. This diagnosis of HIV-1 infection was the only one that occurred outside planned procedures."
+OK, I think that we need to first determine the reasonable epsilon values from the RV144-like setting, then ask could you get zero (or very low) VE with the same epsilon by increasing only lambda and risk values, with placebo incidence going from an rv144-like value (~0.14) to a 702-like value (~3.3).
 
-## hvtn 702 placebo incidence was 3.3 per 100 person-years (95% CI, 2.8 to 3.9), from n engl j med 384;12 nejm.org March 25, 2021 (https://www.nejm.org/doi/pdf/10.1056/NEJMoa2031499), page 1092:
-# "During the first 24 months of follow-up, 138 HIV-1 infections occurred in the vaccine group and 133 in the placebo group, for an estimated incidence rate of 3.4 per 100 person-years (95% confidence interval [CI], 2.8 to 4.0) and 3.3 per 100 person-years (95% CI, 2.8 to 3.9), respectively (hazard ratio, 1.02; 95% CI, 0.81 to 1.30; P=0.84) (Fig. 1A and Table 2). The incidence of HIV-1 infection was similar in the vaccine group and the placebo group in secondary analyses during 36 months of follow-up (hazard ratio, 1.05; 95% CI, 0.83 to 1.31), in the month 6.5 at-risk cohort between 6.5 months and 24 months (hazard ratio, 1.15; 95% CI, 0.84 to 1.58), and in the perprotocol cohort, as well as in other secondary analyses (Figs. S3 through S9)."
+RV144 placebo incidence in the prespecified analysis (MITT) cohort was 0.1397 per 100 person years, 100*(74/52985) from NEJM 2009; 361:2209-2220 DOI: 10.1056/NEJMoa0908492 December 3, 2009 (https://www.nejm.org/doi/full/10.1056/nejmoa0908492):
+ "HIV-1 infection was diagnosed in 132 subjects (56 in the vaccine group and 76 in the placebo group) during 52,985 person-years of follow-up in the intention-to-treat analysis, in 86 subjects (36 in the vaccine group and 50 in the placebo group) during 36,720 person-years of follow-up in the per-protocol analysis, and in 125 subjects (51 in the vaccine group and 74 in the placebo group) during 52,985 person-years of follow-up in the modified intention-to-treat analysis. One subject in the placebo group who was identified by hospital record as being seropositive for HIV after dying from Pneumocystis jirovecii pneumonia was included in the analysis before the unblinding of the study. This diagnosis of HIV-1 infection was the only one that occurred outside planned procedures."
 
-# .sim <- runSim_rv144.hvtn702( reac = c( "numExecution" = num.sims ) );
+HVTN702 placebo incidence was 3.3 per 100 person-years (95% CI, 2.8 to 3.9), from NEJM 384;12 nejm.org March 25, 2021 (https://www.nejm.org/doi/pdf/10.1056/NEJMoa2031499), page 1092:
+"During the first 24 months of follow-up, 138 HIV-1 infections occurred in the vaccine group and 133 in the placebo group, for an estimated incidence rate of 3.4 per 100 person-years (95% confidence interval [CI], 2.8 to 4.0) and 3.3 per 100 person-years (95% CI, 2.8 to 3.9), respectively (hazard ratio, 1.02; 95% CI, 0.81 to 1.30; P=0.84) (Fig. 1A and Table 2). The incidence of HIV-1 infection was similar in the vaccine group and the placebo group in secondary analyses during 36 months of follow-up (hazard ratio, 1.05; 95% CI, 0.83 to 1.31), in the month 6.5 at-risk cohort between 6.5 months and 24 months (hazard ratio, 1.15; 95% CI, 0.84 to 1.58), and in the perprotocol cohort, as well as in other secondary analyses (Figs. S3 through S9)."
 
-######
-## Some plotting. Run manually. See above.
+#Running the whole simulation
+
+```{r}
+.sim <- runSim_rv144.hvtn702( reac = c( "numExecution" = num.sims ) );
+```
+
+# Some plotting 
+
+Run manually. See above.
+
+```{r}
 if( FALSE ) {
     the.sim <- .sim;
 
@@ -875,4 +921,5 @@ if( FALSE ) {
     pdf( "epsilon_risk.pdf" ); ggplot( .df, aes( x=epsilon,y=risk ) ) + geom_point() + stat_density2d_filled(); dev.off()
     pdf( "epsilon_lambda.pdf" ); ggplot( .df, aes( x=epsilon,y=lambda ) ) + geom_point() + stat_density2d_filled(); dev.off()
 } # END IF FALSE
+```
 
