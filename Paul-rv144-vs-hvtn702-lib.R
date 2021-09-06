@@ -336,7 +336,7 @@ run.and.compute.run.stats <- function (
         }
     } # make.hvtn702.optim.fn (..)
 
-runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) {
+runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numExecution >>1000 for best results.
     stopifnot( all( c( "numExecution" ) %in% names( reac ) ) );
 
     ## Number of parameters to optimize (3, 4, or 5).

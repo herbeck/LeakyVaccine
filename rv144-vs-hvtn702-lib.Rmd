@@ -651,7 +651,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) {
         } # End foreach rv144.cluster.i
     } # End foreach epsilon.bin
 
-     boxplot( fit.rej.dist ~ cluster.numbers )
+    # boxplot( fit.rej.dist ~ cluster.numbers )
 
     ## TODO: Filter/merge the overlapping candidates so they are not redundant.
 
@@ -803,6 +803,8 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) {
             } else {
                 current.parameters <- .step.i.result[ all.parameters ];
                 current.value <- .step.i.result[[ "dist" ]];
+                current.stats <-
+                    .step.i.result[ setdiff( names( .step.i.result ), c( all.parameters, "dist" ) ) ];
                 if( !is.null( last.dist ) ) {
                     if( last.dist == current.value ) {
                         .converged <- TRUE;
@@ -824,7 +826,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) {
                 cat( "DID NOT CONVERGE (max steps reached).", fill = TRUE );
             }
         }
-        return( .step.i.result );
+        return( c( current.parameters, current.stats, dist = unname( current.value ) ) );
     } # optimize.iteratively (..)
 
     optima.by.candidate <- sapply( 1:nrow( candidate.parameter.sets.midpoint.bounded ), function( .candidate ) {
@@ -839,9 +841,9 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) {
         # current.value <- .iterative.result[[ "dist" ]];
         return( .iterative.result );
     } );
-    optima.by.candidate.sorted <- optima.by.candidate[ , order( optima.by.candidate[ "dist", ] ), drop = FALSE ];
+    optima.by.candidate.sorted <- optima.by.candidate[ , order( as.numeric( optima.by.candidate[ "dist", ] ) ), drop = FALSE ];
 
-    return( list( fit = fit.rej, priors = priors, bounds = bounds, target.stats = target.stats, fn = .f.abc, sampled.modes = optima.by.cluster.sorted ) );
+    return( list( fit = fit.rej, priors = priors, bounds = bounds, target.stats = target.stats, fn = .f.abc, sampled.modes = optima.by.candidate.sorted ) );
 } 
 
 # runSim_rv144.hvtn702 (..)
@@ -853,8 +855,9 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) {
 the.seed <- 98103;
 # To test replicability of the identified modes, uncomment this:
 # set.seed( the.seed ); the.seed <- floor( runif( 1, max = 1E5 ) );
+num.sims <- 15; # Fast for superfast debugging.
 # num.sims <- 1000; # Fast for debugging.
-num.sims <- 15; # For reals.
+# num.sims <- 10000; # For reals.
 set.seed( the.seed );
 ```
 
