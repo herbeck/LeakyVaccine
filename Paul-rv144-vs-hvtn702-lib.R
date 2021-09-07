@@ -738,7 +738,10 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
             cat( paste( "epsilon =", .par ), fill = TRUE );
             cat( .new.value, fill = TRUE );
         }
-        if( .new.value < current.value ) {
+
+        # If they are printing the same to 6 digits, they are the same afaict
+        # MAGIC # (6 digits)
+        if( ( .new.value < current.value ) && ( sprintf( "%0.6f", .new.value ) != sprintf( "%0.6f", current.value ) ) ) {
             ## Update the current.parameters with this new epsilon value.
             if( be.verbose ) {
                 cat( paste( "ACCEPT epsilon change from ", current.parameters[[ "epsilon" ]], " to ", .par, sep = "" ), fill = TRUE );
