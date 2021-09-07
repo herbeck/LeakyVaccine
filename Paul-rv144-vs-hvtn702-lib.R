@@ -340,16 +340,22 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
     stopifnot( all( c( "numExecution" ) %in% names( reac ) ) );
 
     ## Number of parameters to optimize (3, 4, or 5).
-    num.params <- 9; # This is now fixed at 9.
+    num.params <- 9; # This is now fixed at 9 by definition, since we are exploraing a splace with a total of 9 = 1, 4, 4 params.
 
     num.sims <- unname( reac[ "numExecution" ] );
 
     ## TODO : REMOVE?
-    #abc.keep.num.sims <- 1000; # Number of samples to run through the clustering and optimizing steps.
-    abc.keep.num.sims <- floor( num.sims / 4 );
+    #abc.keep.num.sims <- 1000; 
+    if( num.sims <= 1000 ) {
+        # Number of samples to run through the clustering and optimizing steps.
+        abc.keep.num.sims <- floor( num.sims / 4 ); # MAGIC #
+    } else {
+        # Number of samples to run through the clustering and optimizing steps.
+        abc.keep.num.sims <- 2500; # MAGIC #
+    }
     stopifnot( num.sims > abc.keep.num.sims ); # It won't work to cluster uniformly drawn points. You first have to filter them by keeping those nearest the target.
 
-    # MAGIC #s
+    # MAGIC #s for the targets.
     rv144.VE <- 31.0;
     rv144.placeboIncidence <- 0.14;
     hvtn702.VE <- 0.0;
@@ -377,8 +383,8 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
     VE.target.scale.units <- 1;
 
     high.risk.multiplier.max <- 50;
-    lambda.min <- 1E-6;#1E-7;
-    lambda.max <- 1E-4;#1E-2;
+    lambda.min <- 1E-7;
+    lambda.max <- 1E-3;
     smallest.discernable.amount <- 5E-4; # determined by trial and error this is the smallest amount you can change the parameters from 0 or 1 for it to register a difference from those extremes, eg to avoid NaN and Inf
 
     target.stats <-
@@ -407,6 +413,9 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
 
     # In order of "x" in the above function.
     priors  <- lapply( bounds, function( .bounds ) { c( "unif", unlist( .bounds ) ) } );
+    # But for the lambda priors, make them exponential.
+    priors[[ "rv144.lambda" ]] <- c( "exponential", 10**(-mean(log10(bounds[["rv144.lambda"]]))) );
+    priors[[ "hvtn702.lambda" ]] <- c( "exponential", 10**(-mean(log10(bounds[["rv144.lambda"]]))) );
 
     ## PHASE 1: Find candidate starting places constructed from epsion-bin-specific, trial-specific local optima. Later (in phase 2) we will find 9-parameter local optima near each of these candidate starting places.
     ## First we draw num.sims draws, then for each study-specific distance (computed using just that study's two target stats), compute how far the closest abc.keep.num.sims are, and use all points within 1.5-fold (see fit.rej.dist.scaled) of the furthest of those, to ensure a minimum number of abc.keep.num.sims points but to usually keep additional points to help flesh out the contours of the space just below these peaks, which we think can possibly help with the clustering but it's not entirely clear yet.
@@ -472,21 +481,31 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
    # Note that we use a sliding window approach so there's actually twice as many bins as is stated here, and we may find the same modes multiple times. This is to balance focusing on relevant values of the other parameters while clustering the non-epsilon study-specific parameters by conditioning approximately on epsilon, and might need be tuned to consider different bin sizes (bin sizes are 1/num.epsilon.bins and overlap halfway through, with the lowest and highest bins being half-sized).
 
     # Once we identify modes we determine their compatability across studies by whether the epsilons are near enough to each other, based on the overlap or not of their search windows, which are defined by using the logic of identifying outliers in a box plot. That is we walk out from the mode some number of IQR-defined units and define the search window as anything within that zone. For Tukey-style boxplots the number is 1.5 IQRs from the median defines an outlier. Here we can tune this multiplier (Tukey.IQR.multiplier) to change the window width that we use to define the search space for optimization and also for this overlap detection.
+    Tukey.IQR.multiplier <- 0.5; # MAGIC #
+    # Tukey.IQR.multiplier <- 0.25;
 
-    # Tukey.IQR.multiplier <- 1.5;
-    # Tukey.IQR.multiplier <- 1.0;
-    Tukey.IQR.multiplier <- .25;
+    # If there are candidates from both studies but no bins overlap, do we force overlap of closest pair?
+    ensure.overlap.in.epsilon.bins <- TRUE; # MAGIC #
+
+    # What to do with overlapping bounds ? Use the intersection of the tukey whisker bounds? Otherwise, use the union.
+    merge.bounds.strategy.intersect <- FALSE; # MAGIC #
 
     # Now find optimal points near the sampled modes.
     
     ## Now we separately cluster the two trials except we group by epsilon bin.
-    candidate.parameter.sets.low <- matrix( NA, nrow = 0, ncol = length( all.parameters ) );
-    candidate.parameter.sets.high <- matrix( NA, nrow = 0, ncol = length( all.parameters ) );
-    num.epsilon.bins <- 10; # MAGIC #
-    #num.epsilon.bins <- 2; # MAGIC # for debugging when num.sims is only 1000
+    # This helps when debugging...
+    if( abc.keep.num.sims < 1000 ) {
+        num.epsilon.bins <- 2; # MAGIC #
+    } else {
+        num.epsilon.bins <- 10; # MAGIC #
+    }
     min.points.for.clustering <- 6; # MAGIC #, from "QH6214 qhull input error: not enough points(2) to construct initial simplex (need 6)"
     pdfCluster.hmult <- 1.05; # MAGIC #, tweaked it to get pdfCluster to run without crashing with the error message suggesting increasing n.grid -- even with max n.grid, hmult has to be just above 1, it seems. If it is too high, the clusters merge into one.
     be.verbose <- TRUE; # MAGIC #
+
+    # Walk up the epsilon range in overlapping windows (2*num.epsilon.bins - 1 of them).
+    candidate.parameter.sets.low <- matrix( NA, nrow = 0, ncol = length( all.parameters ) );
+    candidate.parameter.sets.high <- matrix( NA, nrow = 0, ncol = length( all.parameters ) );
     for( epsilon.bin in 1:(2*num.epsilon.bins - 1) ) {
         cat( paste( "epsilon.bin =", epsilon.bin ), fill = TRUE );
         bin.min.epsilon <- max( 0, ( epsilon.bin - 1 )/(2*num.epsilon.bins) );
@@ -554,6 +573,10 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
         high.Tukey.whisker.bound.by.hvtn702.cluster <- sapply( 1:ncol( medians.by.hvtn702.cluster ), function( .cluster ) { .tukey.low.whisker.candidate.values <- fit.rej.hvtn702$param[ hvtn702.cluster.member.minimizing.dist[[ .cluster ]],  ] + ( Tukey.IQR.multiplier * IQRs.by.hvtn702.cluster[ , .cluster ] ); ifelse( .tukey.low.whisker.candidate.values < mins.by.hvtn702.cluster[ , .cluster ], mins.by.hvtn702.cluster[ , .cluster ], .tukey.low.whisker.candidate.values ) } );
 
         ## Ok, so the idea is that for this epsilon bin we now have rv144 and hvtn702 parameter clusters that are effectively independent, and we just want to try the combos that work. For now we can use this strategy but we need to keep track in case we are losing a lot of clusters this way: basically just try all compatible combinations based on overlap of the window we are calling the Tukey whisker bound, because it is based on the idea of multiplying the IQR by a constant and using that to determine a window of what is considered an outlier. So we have these windows on all the parameters but here the only overlapping parameter is epsilon.
+        closest.pair.rv144.cluster.i <- NA;
+        closest.pair.hvtn702.cluster.j <- NA;
+        closest.pair.dist <- NA;
+        compatible.pair.found <- FALSE;
         for( rv144.cluster.i in 1:ncol( low.Tukey.whisker.bound.by.rv144.cluster ) ) {
             cat( paste( "rv144.cluster.i = ", rv144.cluster.i ), fill = TRUE );
             for( hvtn702.cluster.j in 1:ncol( low.Tukey.whisker.bound.by.hvtn702.cluster ) ) {
@@ -564,20 +587,45 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
                     if( be.verbose ) {
                         cat( paste( "Epsilon windows for rv144 cluster ", rv144.cluster.i, " and hvtn702 cluster ", hvtn702.cluster.j, " in epsilon bin ", epsilon.bin, " do not overlap.", sep = "" ), fill = TRUE );
                     }
+                    # But if they are the closest non-overlapping pair, keep note.
+                    .dist <- min( abs( low.Tukey.whisker.bound.by.hvtn702.cluster[ "epsilon", hvtn702.cluster.j ] - high.Tukey.whisker.bound.by.rv144.cluster[ "epsilon", rv144.cluster.i ] ), abs( low.Tukey.whisker.bound.by.rv144.cluster[ "epsilon", rv144.cluster.i ] - high.Tukey.whisker.bound.by.hvtn702.cluster[ "epsilon", hvtn702.cluster.j ] ) );
+                    if( is.na( closest.pair.dist ) || ( .dist < closest.pair.dist ) ) {
+                        if( be.verbose ) {
+                            cat( paste( "Found new closest non-overlapping pair: distance is", .dist ), fill = TRUE  );
+                        }
+                        closest.pair.dist <- .dist;
+                        closest.pair.rv144.cluster.i <- rv144.cluster.i;
+                        closest.pair.hvtn702.cluster.j <- hvtn702.cluster.j;
+                    }
                     next;
                 }
                 if( be.verbose ) {
                     cat( paste( "Epsilon windows for rv144 cluster ", rv144.cluster.i, " and hvtn702 cluster ", hvtn702.cluster.j, " in epsilon bin ", epsilon.bin, " ARE COMPATIBLE.", sep = "" ), fill = TRUE );
-                    low.epsilon.bound <-
-                        max(
-                            low.Tukey.whisker.bound.by.rv144.cluster[ "epsilon", rv144.cluster.i ],
-                            low.Tukey.whisker.bound.by.hvtn702.cluster[ "epsilon", hvtn702.cluster.j ]
-                            );
-                    high.epsilon.bound <-
-                        min(
-                            high.Tukey.whisker.bound.by.rv144.cluster[ "epsilon", rv144.cluster.i ],
-                            high.Tukey.whisker.bound.by.hvtn702.cluster[ "epsilon", hvtn702.cluster.j ]
-                            );
+                    compatible.pair.found <- TRUE;
+                    if( merge.bounds.strategy.intersect ) {
+                        low.epsilon.bound <-
+                            max(
+                                low.Tukey.whisker.bound.by.rv144.cluster[ "epsilon", rv144.cluster.i ],
+                                low.Tukey.whisker.bound.by.hvtn702.cluster[ "epsilon", hvtn702.cluster.j ]
+                                );
+                        high.epsilon.bound <-
+                            min(
+                                high.Tukey.whisker.bound.by.rv144.cluster[ "epsilon", rv144.cluster.i ],
+                                high.Tukey.whisker.bound.by.hvtn702.cluster[ "epsilon", hvtn702.cluster.j ]
+                                );
+                    } else { # if merge.bounds.strategy.intersect .. else ..
+                        # use the strategy "union" instead of "intersection"
+                        low.epsilon.bound <-
+                            min(
+                                low.Tukey.whisker.bound.by.rv144.cluster[ "epsilon", rv144.cluster.i ],
+                                low.Tukey.whisker.bound.by.hvtn702.cluster[ "epsilon", hvtn702.cluster.j ]
+                                );
+                        high.epsilon.bound <-
+                            max(
+                                high.Tukey.whisker.bound.by.rv144.cluster[ "epsilon", rv144.cluster.i ],
+                                high.Tukey.whisker.bound.by.hvtn702.cluster[ "epsilon", hvtn702.cluster.j ]
+                                );
+                    } # End if merge.bounds.strategy.intersect .. else ..
                     stopifnot( high.epsilon.bound > low.epsilon.bound );
                     candidate.parameter.sets.low <-
                         rbind( candidate.parameter.sets.low,
@@ -594,9 +642,54 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
                 }
             } # End foreach hvtn702.cluster.j
         } # End foreach rv144.cluster.i
+        if( !compatible.pair.found && ensure.overlap.in.epsilon.bins ) {
+            # Force a pairing even though no pairs overlapped.
+            rv144.cluster.i <- closest.pair.rv144.cluster.i;
+            hvtn702.cluster.j <- closest.pair.hvtn702.cluster.j;
+            ## TODO: Make this a function instead of copied code. It is verbatim copied from above.
+                if( be.verbose ) {
+                    cat( paste( "Epsilon windows for rv144 cluster ", rv144.cluster.i, " and hvtn702 cluster ", hvtn702.cluster.j, " in epsilon bin ", epsilon.bin, " ARE NOT COMPATIBLE BUT WE WILL PAIR THEM AS CLOSEST NON-COMPATIBLE PAIR.", sep = "" ), fill = TRUE );
+                    if( merge.bounds.strategy.intersect ) {
+                        low.epsilon.bound <-
+                            max(
+                                low.Tukey.whisker.bound.by.rv144.cluster[ "epsilon", rv144.cluster.i ],
+                                low.Tukey.whisker.bound.by.hvtn702.cluster[ "epsilon", hvtn702.cluster.j ]
+                                );
+                        high.epsilon.bound <-
+                            min(
+                                high.Tukey.whisker.bound.by.rv144.cluster[ "epsilon", rv144.cluster.i ],
+                                high.Tukey.whisker.bound.by.hvtn702.cluster[ "epsilon", hvtn702.cluster.j ]
+                                );
+                    } else { # if merge.bounds.strategy.intersect .. else ..
+                        # use the strategy "union" instead of "intersection"
+                        low.epsilon.bound <-
+                            min(
+                                low.Tukey.whisker.bound.by.rv144.cluster[ "epsilon", rv144.cluster.i ],
+                                low.Tukey.whisker.bound.by.hvtn702.cluster[ "epsilon", hvtn702.cluster.j ]
+                                );
+                        high.epsilon.bound <-
+                            max(
+                                high.Tukey.whisker.bound.by.rv144.cluster[ "epsilon", rv144.cluster.i ],
+                                high.Tukey.whisker.bound.by.hvtn702.cluster[ "epsilon", hvtn702.cluster.j ]
+                                );
+                    } # End if merge.bounds.strategy.intersect .. else ..
+                    stopifnot( high.epsilon.bound > low.epsilon.bound );
+                    candidate.parameter.sets.low <-
+                        rbind( candidate.parameter.sets.low,
+                              c( "epsilon" = low.epsilon.bound,
+                                low.Tukey.whisker.bound.by.rv144.cluster[ rv144.parameters, rv144.cluster.i ],
+                                low.Tukey.whisker.bound.by.hvtn702.cluster[ hvtn702.parameters, hvtn702.cluster.j ]
+                                ) );
+                    candidate.parameter.sets.high <-
+                        rbind( candidate.parameter.sets.high,
+                              c( "epsilon" = high.epsilon.bound,
+                                high.Tukey.whisker.bound.by.rv144.cluster[ rv144.parameters, rv144.cluster.i ],
+                                high.Tukey.whisker.bound.by.hvtn702.cluster[ hvtn702.parameters, hvtn702.cluster.j ]
+                                ) );
+                }
+        } # End if we need to force a pairing.
     } # End foreach epsilon.bin
-
-    # boxplot( fit.rej.dist ~ cluster.numbers )
+    cat( paste( "There are", nrow( candidate.parameter.sets.high ), "candidate parameter sets." ), fill = TRUE );
 
     ## TODO: Filter/merge the overlapping candidates so they are not redundant.
 
