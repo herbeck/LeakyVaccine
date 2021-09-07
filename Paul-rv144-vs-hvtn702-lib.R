@@ -380,7 +380,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
     # dimension, you can modify these scales to help balance that
     # distance cost across dimensions better.
     placebo.incidence.target.scale.units <- 1;
-    VE.target.scale.units <- 1;
+    VE.target.scale.units <- 0.1;
 
     high.risk.multiplier.max <- 50;
     lambda.min <- 1E-7;
