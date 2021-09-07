@@ -792,7 +792,10 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) {
             cat( paste( "epsilon =", .par ), fill = TRUE );
             cat( .new.value, fill = TRUE );
         }
-        if( .new.value < current.value ) {
+
+        # If they are printing the same to 6 digits, they are the same afaict
+        # MAGIC # (6 digits)
+        if( ( .new.value < current.value ) && ( sprintf( "%0.6f", .new.value ) != sprintf( "%0.6f", current.value ) ) ) {
             ## Update the current.parameters with this new epsilon value.
             if( be.verbose ) {
                 cat( paste( "ACCEPT epsilon change from ", current.parameters[[ "epsilon" ]], " to ", .par, sep = "" ), fill = TRUE );
@@ -822,7 +825,9 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) {
             cat( .new.value, fill = TRUE );
         }
 
-        if( .new.value < current.value ) {
+        # If they are printing the same to 6 digits, they are the same afaict
+        # MAGIC # (6 digits)
+        if( ( .new.value < current.value ) && ( sprintf( "%0.6f", .new.value ) != sprintf( "%0.6f", current.value ) ) ) {
             if( be.verbose ) {
                 cat( paste( "ACCEPT rv144 parameters change from ", paste( apply( cbind( rv144.parameters, current.parameters[ rv144.parameters ] ), 1, paste, collapse = "=" ), collapse = ", " ), " to ", paste( apply( cbind( rv144.parameters, .par ), 1, paste, collapse = "=" ), collapse = ", " ), sep = "" ), fill = TRUE );
             }
@@ -852,7 +857,9 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) {
             cat( .new.value, fill = TRUE );
         }
 
-        if( .new.value < current.value ) {
+        # If they are printing the same to 6 digits, they are the same afaict
+        # MAGIC # (6 digits)
+        if( ( .new.value < current.value ) && ( sprintf( "%0.6f", .new.value ) != sprintf( "%0.6f", current.value ) ) ) {
             if( be.verbose ) {
                 cat( paste( "ACCEPT hvtn702 parameters change from ", paste( apply( cbind( hvtn702.parameters, current.parameters[ hvtn702.parameters ] ), 1, paste, collapse = "=" ), collapse = ", " ), " to ", paste( apply( cbind( hvtn702.parameters, .par ), 1, paste, collapse = "=" ), collapse = ", " ), sep = "" ), fill = TRUE );
             }
