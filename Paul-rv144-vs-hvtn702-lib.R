@@ -402,11 +402,11 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
                    epsilon = c(smallest.discernable.amount, 1-smallest.discernable.amount), # This is just the full range 0 to 1
                    rv144.lambda = c(lambda.min, lambda.max),
                    rv144.high.risk.multiplier = c(1, high.risk.multiplier.max), # risk multiplier for high risk group
-                   rv144.highRiskProportion = c(smallest.discernable.amount, 1-smallest.discernable.amount), # This is just the full range 0 to 1
+                   rv144.highRiskProportion = c(smallest.discernable.amount, 0.5-smallest.discernable.amount), # This is the half range 0 to 0.5
                    rv144.lowRiskProportion = c(smallest.discernable.amount, 1-smallest.discernable.amount), # This is modified to avoid NaN/Inf
                    hvtn702.lambda = c(lambda.min, lambda.max),
                    hvtn702.high.risk.multiplier = c(1, high.risk.multiplier.max), # risk multiplier for high risk group
-                   hvtn702.highRiskProportion = c(smallest.discernable.amount, 1-smallest.discernable.amount), # This is just the full range 0 to 1
+                   hvtn702.highRiskProportion = c(smallest.discernable.amount, 0.5-smallest.discernable.amount), # This is the half range 0 to 0.5
                    hvtn702.lowRiskProportion = c(smallest.discernable.amount, 1-smallest.discernable.amount) # This is modified to avoid NaN/Inf
                    );            
     stopifnot( all( names( bounds ) == all.parameters ) );
