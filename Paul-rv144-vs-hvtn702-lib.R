@@ -480,9 +480,10 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
 
    # Note that we use a sliding window approach so there's actually twice as many bins as is stated here, and we may find the same modes multiple times. This is to balance focusing on relevant values of the other parameters while clustering the non-epsilon study-specific parameters by conditioning approximately on epsilon, and might need be tuned to consider different bin sizes (bin sizes are 1/num.epsilon.bins and overlap halfway through, with the lowest and highest bins being half-sized).
 
-    # Once we identify modes we determine their compatability across studies by whether the epsilons are near enough to each other, based on the overlap or not of their search windows, which are defined by using the logic of identifying outliers in a box plot. That is we walk out from the mode some number of IQR-defined units and define the search window as anything within that zone. For Tukey-style boxplots the number is 1.5 IQRs from the median defines an outlier. Here we can tune this multiplier (Tukey.IQR.multiplier) to change the window width that we use to define the search space for optimization and also for this overlap detection.
     Tukey.IQR.multiplier <- 0.5; # MAGIC #
     # Tukey.IQR.multiplier <- 0.25;
+
+    # Once we identify modes we determine their compatibility across studies by whether the epsilons are near enough to each other, based on the overlap or not of their search windows, which are defined by using the logic of identifying outliers in a box plot. That is we walk out from the mode some number of IQR-defined units and define the search window as anything within that zone. For Tukey-style boxplots the number is 1.5 IQRs from the median defines an outlier. Here we can tune this multiplier (Tukey.IQR.multiplier) to change the window width that we use to define the search space for optimization and also for this overlap detection.
 
     # If there are candidates from both studies but no bins overlap, do we force overlap of closest pair?
     ensure.overlap.in.epsilon.bins <- TRUE; # MAGIC #
@@ -572,7 +573,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
         low.Tukey.whisker.bound.by.hvtn702.cluster <- sapply( 1:ncol( medians.by.hvtn702.cluster ), function( .cluster ) { .tukey.low.whisker.candidate.values <- fit.rej.hvtn702$param[ hvtn702.cluster.member.minimizing.dist[[ .cluster ]],  ] - ( Tukey.IQR.multiplier * IQRs.by.hvtn702.cluster[ , .cluster ] ); ifelse( .tukey.low.whisker.candidate.values < mins.by.hvtn702.cluster[ , .cluster ], mins.by.hvtn702.cluster[ , .cluster ], .tukey.low.whisker.candidate.values ) } );
         high.Tukey.whisker.bound.by.hvtn702.cluster <- sapply( 1:ncol( medians.by.hvtn702.cluster ), function( .cluster ) { .tukey.low.whisker.candidate.values <- fit.rej.hvtn702$param[ hvtn702.cluster.member.minimizing.dist[[ .cluster ]],  ] + ( Tukey.IQR.multiplier * IQRs.by.hvtn702.cluster[ , .cluster ] ); ifelse( .tukey.low.whisker.candidate.values < mins.by.hvtn702.cluster[ , .cluster ], mins.by.hvtn702.cluster[ , .cluster ], .tukey.low.whisker.candidate.values ) } );
 
-        ## Ok, so the idea is that for this epsilon bin we now have rv144 and hvtn702 parameter clusters that are effectively independent, and we just want to try the combos that work. For now we can use this strategy but we need to keep track in case we are losing a lot of clusters this way: basically just try all compatible combinations based on overlap of the window we are calling the Tukey whisker bound, because it is based on the idea of multiplying the IQR by a constant and using that to determine a window of what is considered an outlier. So we have these windows on all the parameters but here the only overlapping parameter is epsilon.
+        ## Ok, so the idea is that for this epsilon bin we now have RV144 and HVTN702 parameter clusters that are effectively independent, and we just want to try the combos that work. For now we can use this strategy but we need to keep track in case we are losing a lot of clusters this way: basically just try all compatible combinations based on overlap of the window we are calling the Tukey whisker bound, because it is based on the idea of multiplying the IQR by a constant and using that to determine a window of what is considered an outlier. So we have these windows on all the parameters but here the only overlapping parameter is epsilon.
         closest.pair.rv144.cluster.i <- NA;
         closest.pair.hvtn702.cluster.j <- NA;
         closest.pair.dist <- NA;
@@ -828,7 +829,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
     # it is unable to reduce the value by a factor of ‘reltol *
     # (abs(val) + reltol)’ at a step.  Defaults to
     # ‘sqrt(.Machine$double.eps)’, typically about ‘1e-8’.
-    optimize.iteratively <- function ( current.parameters, lower, upper, current.value = NULL, reltol = 1E-2, step.i = 1, max.steps = 5, be.verbose = FALSE ) {
+    optimize.iteratively <- function ( current.parameters, lower, upper, current.value = NULL, reltol = 1E-2, step.i = 1, max.steps = 50, be.verbose = FALSE ) { # MAGIC # (max.steps)
         .converged <- FALSE;
         last.dist <- current.value;
         while( !.converged && ( step.i < max.steps ) ) {
