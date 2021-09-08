@@ -35,7 +35,7 @@ si.ode.rv144.hvtn702.fn <- function ( times, init, param ) {
     #Susceptible, Infected, placebo, high, medium, low
     #SIph.flow <- risk*lambda*Sph # line from original model, FYI
     rv144.SIph.flow <- rv144.high.risk.multiplier*(10^rv144.log10lambda)*rv144.Sph
-    #rv144.SIpm.flow <- (10^rv144.log10lambda)*rv144.Spl ### BUG HERE: Spl instead of Spm!!!
+    #rv144.SIpm.flow <- rv144.lambda*rv144.Spl ### BUG HERE: Spl instead of Spm!!!
     rv144.SIpm.flow <- (10^rv144.log10lambda)*rv144.Spm ### BUG FIXED
     rv144.SIpl.flow <- 0*(10^rv144.log10lambda)*rv144.Spl  #0 to give this group zero exposures
        # Could also use "1/high.risk.multiplier" if we don't want ZERO exposures
