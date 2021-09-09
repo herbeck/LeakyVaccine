@@ -1005,12 +1005,13 @@ if( FALSE ) {
          #ylim = c(0, 10),
          col=2)
     lines(density(fit.filtered$param[, 1], from = lower.bounds[1],  to = upper.bounds[1]), col = 2)
-    abline(v = VE.target, lty = 2, col = 1)
+    # There is not really a target for this parameter. This might be misleading.
+    #abline(v = the.sim$target.stats[[ "rv144.VE.target" ]], lty = 2, col = 1)
     legend("topright", legend = c("per-contact VE", "Posterior"),
            lty = c(1, 2), col = 1:2, lwd = 2)
     
     plot(density(fit.filtered$param[, 2], from = lower.bounds[2],  to = upper.bounds[2]),
-         main = "log10lambda", 
+         main = "RV144 log10lambda", 
          xlim = c(lower.bounds[2], upper.bounds[2]),
          col=2)
     lines(density(fit.filtered$param[, 2], from = lower.bounds[2],  to = upper.bounds[2]), col = 2)
@@ -1019,7 +1020,7 @@ if( FALSE ) {
            lty = c(1, 2), col = 1:2, lwd = 2)
     
     plot(density(fit.filtered$param[, 3], from = lower.bounds[3],  to = upper.bounds[3]),
-         main = "risk", 
+         main = "RV144 high risk multiplier", 
          xlim = c(lower.bounds[3], upper.bounds[3]),
          col=2)
     lines(density(fit.filtered$param[, 3], from = lower.bounds[3],  to = upper.bounds[3]), col = 2)
@@ -1027,11 +1028,12 @@ if( FALSE ) {
     legend("topright", legend = c("Truth", "Posterior"),
            lty = c(1, 2), col = 1:2, lwd = 2)
     
-    .df <- as.data.frame( fit.filtered$param ) #df of just the parameter combinations ABC sampled
+    ## This is just printing the rv144 contours, note.
+    .df <- as.data.frame( fit.filtered$param[ , c( "epsilon", "rv144.log10lambda", "rv144.high.risk.multiplier" ) ] );
     names( .df ) <- c( "epsilon", "log10lambda", "risk" )
-    pdf( "log10lambda_risk.pdf" ); ggplot( .df, aes( x=log10lambda,y=risk ) ) + geom_point() + stat_density2d_filled(); dev.off()
-    pdf( "epsilon_risk.pdf" ); ggplot( .df, aes( x=epsilon,y=risk ) ) + geom_point() + stat_density2d_filled(); dev.off()
-    pdf( "epsilon_log10lambda.pdf" ); ggplot( .df, aes( x=epsilon,y=log10lambda ) ) + geom_point() + stat_density2d_filled(); dev.off()
-}
+    pdf( "rv144log10lambda_rv144risk.pdf" ); ggplot( .df, aes( x=log10lambda,y=risk ) ) + geom_point() + stat_density2d_filled(); dev.off()
+    pdf( "epsilon_rv144risk.pdf" ); ggplot( .df, aes( x=epsilon,y=risk ) ) + geom_point() + stat_density2d_filled(); dev.off()
+    pdf( "epsilon_rv144log10lambda.pdf" ); ggplot( .df, aes( x=epsilon,y=log10lambda ) ) + geom_point() + stat_density2d_filled(); dev.off()
+} # END IF FALSE
 ```
 
