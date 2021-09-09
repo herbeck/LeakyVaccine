@@ -106,7 +106,7 @@ si.ode.rv144.hvtn702.fn <- function ( times, init, param ) {
 } # si.ode.rv144.hvtn702.fn (..)
 
 
-mod.manipulate <- function( mod ) {
+mod.manipulate.rv144.hvtn702 <- function( mod ) {
   #browser()
 
   # RV144
@@ -164,7 +164,7 @@ mod.manipulate <- function( mod ) {
   mod <- mutate_epi(mod, hvtn702.VE.cumul = 100 * ( 1 - cumul.hvtn702.rate.Vaccine.het/cumul.hvtn702.rate.Placebo.het ) )
 
   #return(mod)
-} # mod.manipulate (..)
+} # mod.manipulate.rv144.hvtn702 (..)
 
 ## This computes the distance as calculated internally in the abc function - but not 
 # where the distances are normalized using "normalise", which we think centralizes also 
@@ -203,7 +203,7 @@ rv144.parameters <- c( "rv144.log10lambda", "rv144.high.risk.multiplier", "rv144
 hvtn702.parameters <- c( "hvtn702.log10lambda", "hvtn702.high.risk.multiplier", "hvtn702.highRiskProportion", "hvtn702.lowRiskProportion" );
 all.parameters <- c( "epsilon", rv144.parameters, hvtn702.parameters );
 
-run.and.compute.run.stats <- function (
+run.and.compute.run.stats.rv144.hvtn702 <- function (
       epsilon,   #per contact vaccine efficacy
       rv144.log10lambda,     #log10( beta*c*prev ),
       rv144.high.risk.multiplier,          # Risk multiplier for high risk group
@@ -249,7 +249,7 @@ run.and.compute.run.stats <- function (
           stopifnot( hvtn702.Sp == hvtn702.Sv );
       }
 
-      init <- init.dcm(rv144.Sph = rv144.Sph, rv144.Iph = 0,    #placebo, high risk
+      init.rv144.hvtn702 <- init.dcm(rv144.Sph = rv144.Sph, rv144.Iph = 0,    #placebo, high risk
                        rv144.Spm = rv144.Spm, rv144.Ipm = 0,   #placebo, medium risk
                        rv144.Spl = rv144.Spl, rv144.Ipl = 0,    #placebo, low risk
                        rv144.Svh = rv144.Svh, rv144.Ivh = 0,    #vaccine
@@ -269,10 +269,10 @@ run.and.compute.run.stats <- function (
                        )
       
       control <- control.dcm( nsteps = trial.evaluation.time, new.mod = si.ode.rv144.hvtn702.fn );
-      mod <- dcm( param, init, control );
+      mod <- dcm( param, init.rv144.hvtn702, control );
       #print( mod )
       
-      mod.with.stats <- mod.manipulate( mod );
+      mod.with.stats <- mod.manipulate.rv144.hvtn702( mod );
       #print( mod.with.stats )
       mod.with.stats.df <- as.data.frame( mod.with.stats );
       
@@ -285,7 +285,62 @@ run.and.compute.run.stats <- function (
       hvtn702.placeboIncidence <- mod.with.stats.df$cumul.hvtn702.rate.Placebo.het[ trial.evaluation.time ];
 
       c( rv144.VE = rv144.VE, rv144.placeboIncidence = rv144.placeboIncidence, hvtn702.VE = hvtn702.VE, hvtn702.placeboIncidence = hvtn702.placeboIncidence );
+} # run.and.compute.run.stats.rv144.hvtn702 (..)
+
+run.and.compute.run.stats <- function (
+      epsilon,   #per contact vaccine efficacy
+      log10lambda,     #log10( beta*c*prev ),
+      high.risk.multiplier,          # Risk multiplier for high risk group
+      highRiskProportion,
+      lowRiskProportion,             # This is a proportion among those not high risk
+      vaccinatedProportion = 0.5,  # In lieu of naming vaccine and placebo arms separately (and their N)
+      trialSize = 10000,  # Now we just have to add this magic number for size
+      trial.evaluation.time = 3*365
+) {
+      # Paul added the other params to this (risk here, others below):
+      param <- param.dcm(epsilon = epsilon, log10lambda = log10lambda, high.risk.multiplier = high.risk.multiplier );
+
+      # initial values
+      Svh <- floor( highRiskProportion * vaccinatedProportion * trialSize );
+      Sph <- floor( highRiskProportion * ( 1.0 - vaccinatedProportion ) * trialSize );
+      Svl <- floor( ( 1.0 - highRiskProportion ) * lowRiskProportion * vaccinatedProportion * trialSize );
+      Spl <- floor( ( 1.0 - highRiskProportion ) * lowRiskProportion * ( 1.0 - vaccinatedProportion ) * trialSize );
+      Svm <- floor( ( 1.0 - highRiskProportion ) * ( 1.0 - lowRiskProportion ) * vaccinatedProportion * trialSize );
+      Spm <- floor( ( 1.0 - highRiskProportion ) * ( 1.0 - lowRiskProportion ) * ( 1.0 - vaccinatedProportion ) * trialSize );
+
+      Sp <- Spl + Spm + Sph;
+      Sv <- Svl + Svm + Svh;
+      if( vaccinatedProportion == 0.5 ) {
+          stopifnot( Sp == Sv );
+      }
+
+      init <- init.dcm(Sph = Sph, Iph = 0,    #placebo, high risk
+                       Spm = Spm, Ipm = 0,   #placebo, medium risk
+                       Spl = Spl, Ipl = 0,    #placebo, low risk
+                       Svh = Svh, Ivh = 0,    #vaccine
+                       Svm = Svm, Ivm = 0,   #vaccine
+                       Svl = Svl, Ivl = 0,    #vaccine
+                       SIph.flow = 0, SIpm.flow = 0, SIpl.flow = 0,
+                       SIvh.flow = 0, SIvm.flow = 0, SIvl.flow = 0
+                       );
+      
+      control <- control.dcm( nsteps = trial.evaluation.time, new.mod = si.ode.fn );
+      mod <- dcm( param, init, control );
+      #print( mod )
+      
+      mod.with.stats <- mod.manipulate( mod );
+      #print( mod.with.stats )
+      mod.with.stats.df <- as.data.frame( mod.with.stats );
+      
+      # heterogeneous risk using cumulative VE:
+      VE <- mod.with.stats.df$VE.cumul[ trial.evaluation.time ];
+      
+      ## The placebo incidence out stat vector is the _cumulative_ incidence at time trial.evaluation.time.
+      placeboIncidence <- mod.with.stats.df$cumul.rate.Placebo.het[ trial.evaluation.time ];
+
+      c( VE = VE, placeboIncidence = placeboIncidence );
 } # run.and.compute.run.stats (..)
+
 
 
     # Ok, so there's two sets of model-specific parameters (rv144,
@@ -298,17 +353,17 @@ run.and.compute.run.stats <- function (
 
     make.epsilon.abc.fn <- function ( other.parameters ) {
         function( x ) {
-            run.and.compute.run.stats( epsilon = x, rv144.log10lambda = other.parameters[[ "rv144.log10lambda" ]], rv144.high.risk.multiplier = other.parameters[[ "rv144.high.risk.multiplier" ]], rv144.highRiskProportion = other.parameters[[ "rv144.highRiskProportion" ]], rv144.lowRiskProportion = other.parameters[[ "rv144.lowRiskProportion" ]], hvtn702.log10lambda = other.parameters[[ "hvtn702.log10lambda" ]], hvtn702.high.risk.multiplier = other.parameters[[ "hvtn702.high.risk.multiplier" ]], hvtn702.highRiskProportion = other.parameters[[ "hvtn702.highRiskProportion" ]], hvtn702.lowRiskProportion = other.parameters[[ "hvtn702.lowRiskProportion" ]] )
+            run.and.compute.run.stats.rv144.hvtn702( epsilon = x, rv144.log10lambda = other.parameters[[ "rv144.log10lambda" ]], rv144.high.risk.multiplier = other.parameters[[ "rv144.high.risk.multiplier" ]], rv144.highRiskProportion = other.parameters[[ "rv144.highRiskProportion" ]], rv144.lowRiskProportion = other.parameters[[ "rv144.lowRiskProportion" ]], hvtn702.log10lambda = other.parameters[[ "hvtn702.log10lambda" ]], hvtn702.high.risk.multiplier = other.parameters[[ "hvtn702.high.risk.multiplier" ]], hvtn702.highRiskProportion = other.parameters[[ "hvtn702.highRiskProportion" ]], hvtn702.lowRiskProportion = other.parameters[[ "hvtn702.lowRiskProportion" ]] )
         }
     }
     make.rv144.abc.fn <- function ( other.parameters ) {
         function( x ) {
-            run.and.compute.run.stats( epsilon = other.parameters[[ "epsilon" ]], rv144.log10lambda = x[ 1 ], rv144.high.risk.multiplier = x[ 2 ], rv144.highRiskProportion = x[ 3 ], rv144.lowRiskProportion = x[ 4 ], hvtn702.log10lambda = other.parameters[[ "hvtn702.log10lambda" ]], hvtn702.high.risk.multiplier = other.parameters[[ "hvtn702.high.risk.multiplier" ]], hvtn702.highRiskProportion = other.parameters[[ "hvtn702.highRiskProportion" ]], hvtn702.lowRiskProportion = other.parameters[[ "hvtn702.lowRiskProportion" ]] )
+            run.and.compute.run.stats.rv144.hvtn702( epsilon = other.parameters[[ "epsilon" ]], rv144.log10lambda = x[ 1 ], rv144.high.risk.multiplier = x[ 2 ], rv144.highRiskProportion = x[ 3 ], rv144.lowRiskProportion = x[ 4 ], hvtn702.log10lambda = other.parameters[[ "hvtn702.log10lambda" ]], hvtn702.high.risk.multiplier = other.parameters[[ "hvtn702.high.risk.multiplier" ]], hvtn702.highRiskProportion = other.parameters[[ "hvtn702.highRiskProportion" ]], hvtn702.lowRiskProportion = other.parameters[[ "hvtn702.lowRiskProportion" ]] )
         }
     }
     make.hvtn702.abc.fn <- function ( other.parameters ) {
         function( x ) {
-            run.and.compute.run.stats( epsilon = other.parameters[[ "epsilon" ]], rv144.log10lambda = other.parameters[[ "rv144.log10lambda" ]], rv144.high.risk.multiplier = other.parameters[[ "rv144.high.risk.multiplier" ]], rv144.highRiskProportion = other.parameters[[ "rv144.highRiskProportion" ]], rv144.lowRiskProportion = other.parameters[[ "rv144.lowRiskProportion" ]], hvtn702.log10lambda = x[ 1 ], hvtn702.high.risk.multiplier = x[ 2 ], hvtn702.highRiskProportion = x[ 3 ], hvtn702.lowRiskProportion = x[ 4 ] )
+            run.and.compute.run.stats.rv144.hvtn702( epsilon = other.parameters[[ "epsilon" ]], rv144.log10lambda = other.parameters[[ "rv144.log10lambda" ]], rv144.high.risk.multiplier = other.parameters[[ "rv144.high.risk.multiplier" ]], rv144.highRiskProportion = other.parameters[[ "rv144.highRiskProportion" ]], rv144.lowRiskProportion = other.parameters[[ "rv144.lowRiskProportion" ]], hvtn702.log10lambda = x[ 1 ], hvtn702.high.risk.multiplier = x[ 2 ], hvtn702.highRiskProportion = x[ 3 ], hvtn702.lowRiskProportion = x[ 4 ] )
         }
     }
 
@@ -419,7 +474,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
 
     # First we just draw num.sims draws from the priors, independently. Keep everything drawn. Compute the 4-parameter target stats from runs with these 9-parameter random starting places, and the standard deviations of these 4-parameter stats (which we use to scale the distance function on the target stats for balancing the optimization evenly across the parameters, see below).
     .f.abc <- function( x ) {
-        run.and.compute.run.stats( epsilon = x[ 1 ], rv144.log10lambda = x[ 2 ], rv144.high.risk.multiplier = x[ 3 ], rv144.highRiskProportion = x[ 4 ], rv144.lowRiskProportion = x[ 5 ], hvtn702.log10lambda = x[ 6 ], hvtn702.high.risk.multiplier = x[ 7 ], hvtn702.highRiskProportion = x[ 8 ], hvtn702.lowRiskProportion = x[ 9 ] )
+        run.and.compute.run.stats.rv144.hvtn702( epsilon = x[ 1 ], rv144.log10lambda = x[ 2 ], rv144.high.risk.multiplier = x[ 3 ], rv144.highRiskProportion = x[ 4 ], rv144.lowRiskProportion = x[ 5 ], hvtn702.log10lambda = x[ 6 ], hvtn702.high.risk.multiplier = x[ 7 ], hvtn702.highRiskProportion = x[ 8 ], hvtn702.lowRiskProportion = x[ 9 ] )
     }
     fit.rej <- ABC_rejection(model = .f.abc,
                          prior = priors,
@@ -912,39 +967,54 @@ if( FALSE ) {
     fit <- the.sim$fit
     bounds <- the.sim$bounds;
     
+    # Contour plotting
+    fit.dist <-
+        calculate.abc.dist( fit$stats, as.numeric( target.stats ), ifelse( is.na( fit$stats_normalization ), 1, fit$stats_normalization ) * target.stat.scale.units );
+
+    dist.units <- quantile( fit.dist, probs = 0.025 ) # top 2.5%
+    dist.units.for.contour.plot <- 1.0; # Show all the data within 1 unit (so, the top 2.5%).
+    fit.dist.scaled <- fit.dist / dist.units;
+    
+    abc.keep.sim <- fit.dist.scaled < dist.units.for.contour.plot;
+    fit.filtered <- fit;
+    fit.filtered$param <- fit$param[ abc.keep.sim, , drop = FALSE ];
+    fit.filtered$stats <- fit$stats[ abc.keep.sim, , drop = FALSE ];
+    fit.filtered$weights <- fit$weights[ abc.keep.sim ];
+    fit.filtered.dist <- fit.dist[ abc.keep.sim ];
+
     # These are the original bounds, separated for use in optim:
     lower.bounds <- sapply( bounds, function ( .bounds.for.x ) { .bounds.for.x[ 1 ] } );
     upper.bounds <- sapply( bounds, function ( .bounds.for.x ) { .bounds.for.x[ 2 ] } );
 
-    plot(density(fit$param[, 1], from = lower.bounds[1],  to = upper.bounds[1]),
+    plot(density(fit.filtered$param[, 1], from = lower.bounds[1],  to = upper.bounds[1]),
          main = "epsilon", 
          xlim = c(lower.bounds[1], upper.bounds[1]),
          #ylim = c(0, 10),
          col=2)
-    lines(density(fit$param[, 1], from = lower.bounds[1],  to = upper.bounds[1]), col = 2)
+    lines(density(fit.filtered$param[, 1], from = lower.bounds[1],  to = upper.bounds[1]), col = 2)
     abline(v = VE.target, lty = 2, col = 1)
     legend("topright", legend = c("per-contact VE", "Posterior"),
            lty = c(1, 2), col = 1:2, lwd = 2)
     
-    plot(density(fit$param[, 2], from = lower.bounds[2],  to = upper.bounds[2]),
+    plot(density(fit.filtered$param[, 2], from = lower.bounds[2],  to = upper.bounds[2]),
          main = "log10lambda", 
          xlim = c(lower.bounds[2], upper.bounds[2]),
          col=2)
-    lines(density(fit$param[, 2], from = lower.bounds[2],  to = upper.bounds[2]), col = 2)
+    lines(density(fit.filtered$param[, 2], from = lower.bounds[2],  to = upper.bounds[2]), col = 2)
     #abline(v = VE.target, lty = 2, col = 1) # This is a bug, it plots VE target, not lambda
     legend("topright", legend = c("Truth", "Posterior"),
            lty = c(1, 2), col = 1:2, lwd = 2)
     
-    plot(density(fit$param[, 3], from = lower.bounds[3],  to = upper.bounds[3]),
+    plot(density(fit.filtered$param[, 3], from = lower.bounds[3],  to = upper.bounds[3]),
          main = "risk", 
          xlim = c(lower.bounds[3], upper.bounds[3]),
          col=2)
-    lines(density(fit$param[, 3], from = lower.bounds[3],  to = upper.bounds[3]), col = 2)
+    lines(density(fit.filtered$param[, 3], from = lower.bounds[3],  to = upper.bounds[3]), col = 2)
     #abline(v = VE.target, lty = 2, col = 1) # Another bug
     legend("topright", legend = c("Truth", "Posterior"),
            lty = c(1, 2), col = 1:2, lwd = 2)
     
-    .df <- as.data.frame( fit$param ) #df of just the parameter combinations ABC sampled
+    .df <- as.data.frame( fit.filtered$param ) #df of just the parameter combinations ABC sampled
     names( .df ) <- c( "epsilon", "log10lambda", "risk" )
     pdf( "log10lambda_risk.pdf" ); ggplot( .df, aes( x=log10lambda,y=risk ) ) + geom_point() + stat_density2d_filled(); dev.off()
     pdf( "epsilon_risk.pdf" ); ggplot( .df, aes( x=epsilon,y=risk ) ) + geom_point() + stat_density2d_filled(); dev.off()
