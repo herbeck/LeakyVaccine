@@ -1028,12 +1028,38 @@ if( FALSE ) {
     legend("topright", legend = c("Truth", "Posterior"),
            lty = c(1, 2), col = 1:2, lwd = 2)
     
-    ## This is just printing the rv144 contours, note.
-    .df <- as.data.frame( fit.filtered$param[ , c( "epsilon", "rv144.log10lambda", "rv144.high.risk.multiplier" ) ] );
-    names( .df ) <- c( "epsilon", "log10lambda", "risk" )
-    pdf( "rv144log10lambda_rv144risk.pdf" ); ggplot( .df, aes( x=log10lambda,y=risk ) ) + geom_point() + stat_density2d_filled(); dev.off()
-    pdf( "epsilon_rv144risk.pdf" ); ggplot( .df, aes( x=epsilon,y=risk ) ) + geom_point() + stat_density2d_filled(); dev.off()
-    pdf( "epsilon_rv144log10lambda.pdf" ); ggplot( .df, aes( x=epsilon,y=log10lambda ) ) + geom_point() + stat_density2d_filled(); dev.off()
+    ## This is just printing the rv144 contours, see below for 702 contours.
+    .rv144.df <- as.data.frame( fit.filtered$param[ , c( "epsilon", "rv144.log10lambda", "rv144.high.risk.multiplier", "rv144.highRiskProportion", "rv144.lowRiskProportion" ) ] );
+    names( .rv144.df ) <- c( "epsilon", "log10lambda", "risk", "highProp", "lowPropOfNonHigh" );
+    .rv144.df <- cbind( .rv144.df, data.frame( "lowProp" = .rv144.df$lowPropOfNonHigh * ( 1 - .rv144.df$highProp ) ) );
+    pdf( "rv144log10lambda_rv144risk.pdf" ); ggplot( .rv144.df, aes( x=log10lambda,y=risk ) ) + geom_point() + stat_density2d_filled() + ggtitle( "RV144 log risk (log10lambda) vs RV144 high-risk FC over normal (risk)" ); dev.off()
+    pdf( "epsilon_rv144risk.pdf" ); ggplot( .rv144.df, aes( x=epsilon,y=risk ) ) + geom_point() + stat_density2d_filled() + ggtitle( "Per-contact VE (epsilon) vs RV144 high-risk group FC over normal (risk)" ); dev.off()
+    pdf( "epsilon_rv144log10lambda.pdf" ); ggplot( .rv144.df, aes( x=epsilon,y=log10lambda ) ) + geom_point() + stat_density2d_filled() + ggtitle( "Per-contact VE (epsilon) vs RV144 baseline log risk (log10lambda)" ); dev.off()
+    pdf( "epsilon_rv144highProp.pdf" ); ggplot( .rv144.df, aes( x=epsilon,y=highProp ) ) + geom_point() + stat_density2d_filled() + ggtitle( "Per-contact VE (epsilon) vs RV144 % of pop at high risk (highPop)" ); dev.off()
+    pdf( "epsilon_rv144lowProp.pdf" ); ggplot( .rv144.df, aes( x=epsilon,y=lowProp ) ) + geom_point() + stat_density2d_filled() + ggtitle( "Per-contact VE (epsilon) vs RV144 % of pop at low risk (lowPop)" ); dev.off()
+    pdf( "rv144log10lambda_rv144highProp.pdf" ); ggplot( .rv144.df, aes( x=log10lambda,y=highProp ) ) + geom_point() + stat_density2d_filled() + ggtitle( "RV144 baseline log risk (log10lambda) vs % of pop at high risk (highPop)" ); dev.off()
+    pdf( "rv144log10lambda_rv144lowProp.pdf" ); ggplot( .rv144.df, aes( x=log10lambda,y=lowProp ) ) + geom_point() + stat_density2d_filled() + ggtitle( "RV144 baseline log risk (log10lambda) vs % of pop at low risk (lowPop)" ); dev.off()
+    pdf( "rv144lowProp_rv144highProp.pdf" ); ggplot( .rv144.df, aes( x=lowProp,y=highProp ) ) + geom_point() + stat_density2d_filled() + ggtitle( "RV144 % of pop at low risk (lowPop) vs % of pop at high risk (highPop)" ); dev.off()
+    pdf( "rv144risk_rv144highProp.pdf" ); ggplot( .rv144.df, aes( x=risk,y=highProp ) ) + geom_point() + stat_density2d_filled() + ggtitle( "RV144 high-risk FC over normal (risk) vs % of pop at high risk (highPop)" ); dev.off()
+    pdf( "rv144risk_rv144lowProp.pdf" ); ggplot( .rv144.df, aes( x=risk,y=lowProp ) ) + geom_point() + stat_density2d_filled() + ggtitle( "RV144 high-risk group FC over normal (risk) vs % of pop at zero risk (lowPop)" ); dev.off()
+
+    ## This is just printing the hvtn702 contours, see above for rv144 contours.
+    .hvtn702.df <- as.data.frame( fit.filtered$param[ , c( "epsilon", "hvtn702.log10lambda", "hvtn702.high.risk.multiplier", "hvtn702.highRiskProportion", "hvtn702.lowRiskProportion" ) ] );
+    names( .hvtn702.df ) <- c( "epsilon", "log10lambda", "risk", "highProp", "lowPropOfNonHigh" );
+    .hvtn702.df <- cbind( .hvtn702.df, data.frame( "lowProp" = .hvtn702.df$lowPropOfNonHigh * ( 1 - .hvtn702.df$highProp ) ) );
+    pdf( "hvtn702log10lambda_hvtn702risk.pdf" ); ggplot( .hvtn702.df, aes( x=log10lambda,y=risk ) ) + geom_point() + stat_density2d_filled() + ggtitle( "HVTN702 log risk (log10lambda) vs HVTN702 high-risk FC over normal (risk)" ); dev.off()
+    pdf( "epsilon_hvtn702risk.pdf" ); ggplot( .hvtn702.df, aes( x=epsilon,y=risk ) ) + geom_point() + stat_density2d_filled() + ggtitle( "Per-contact VE (epsilon) vs HVTN702 high-risk group FC over normal (risk)" ); dev.off()
+    pdf( "epsilon_hvtn702log10lambda.pdf" ); ggplot( .hvtn702.df, aes( x=epsilon,y=log10lambda ) ) + geom_point() + stat_density2d_filled() + ggtitle( "Per-contact VE (epsilon) vs HVTN702 baseline log risk (log10lambda)" ); dev.off()
+    pdf( "epsilon_hvtn702highProp.pdf" ); ggplot( .hvtn702.df, aes( x=epsilon,y=highProp ) ) + geom_point() + stat_density2d_filled() + ggtitle( "Per-contact VE (epsilon) vs HVTN702 % of pop at high risk (highPop)" ); dev.off()
+    pdf( "epsilon_hvtn702lowProp.pdf" ); ggplot( .hvtn702.df, aes( x=epsilon,y=lowProp ) ) + geom_point() + stat_density2d_filled() + ggtitle( "Per-contact VE (epsilon) vs HVTN702 % of pop at low risk (lowPop)" ); dev.off()
+    pdf( "hvtn702log10lambda_hvtn702highProp.pdf" ); ggplot( .hvtn702.df, aes( x=log10lambda,y=highProp ) ) + geom_point() + stat_density2d_filled() + ggtitle( "HVTN702 baseline log risk (log10lambda) vs % of pop at high risk (highPop)" ); dev.off()
+    pdf( "hvtn702log10lambda_hvtn702lowProp.pdf" ); ggplot( .hvtn702.df, aes( x=log10lambda,y=lowProp ) ) + geom_point() + stat_density2d_filled() + ggtitle( "HVTN702 baseline log risk (log10lambda) vs % of pop at low risk (lowPop)" ); dev.off()
+    pdf( "hvtn702lowProp_hvtn702highProp.pdf" ); ggplot( .hvtn702.df, aes( x=lowProp,y=highProp ) ) + geom_point() + stat_density2d_filled() + ggtitle( "HVTN702 % of pop at low risk (lowPop) vs % of pop at high risk (highPop)" ); dev.off()
+    pdf( "hvtn702risk_hvtn702highProp.pdf" ); ggplot( .hvtn702.df, aes( x=risk,y=highProp ) ) + geom_point() + stat_density2d_filled() + ggtitle( "HVTN702 high-risk FC over normal (risk) vs % of pop at high risk (highPop)" ); dev.off()
+    pdf( "hvtn702risk_hvtn702lowProp.pdf" ); ggplot( .hvtn702.df, aes( x=risk,y=lowProp ) ) + geom_point() + stat_density2d_filled() + ggtitle( "HVTN702 high-risk group FC over normal (risk) vs % of pop at zero risk (lowPop)" ); dev.off()
+
+    
+    
 } # END IF FALSE
 ```
 
