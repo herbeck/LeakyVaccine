@@ -830,6 +830,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
                 if( be.verbose ) {
                     cat( paste( "Epsilon windows for rv144 cluster ", rv144.cluster.i, " and hvtn702 cluster ", hvtn702.cluster.j, " in epsilon bin ", epsilon.bin, " ARE COMPATIBLE.", sep = "" ), fill = TRUE );
                 }
+                compatible.pair.found <- TRUE;
                 add.candidate.complete.parameter.set( rv144.cluster.i, hvtn702.cluster.j );
             } # End foreach hvtn702.cluster.j
         } # End foreach rv144.cluster.i
