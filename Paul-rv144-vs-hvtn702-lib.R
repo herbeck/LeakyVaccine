@@ -417,7 +417,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
 
     pdfCluster.hmult <- 1.05; # MAGIC #, tweaked it to get pdfCluster to run without crashing with the error message suggesting increasing n.grid -- even with max n.grid, hmult has to be just above 1, it seems. If it is too high, the clusters merge into one. Tune this (> 1 to prevent crashing) higher to get the clusters to merge more.
 
-    be.verbose <- FALSE; # MAGIC # (just governs output printed to screen)
+    be.verbose <- TRUE; # MAGIC # (just governs output printed to screen)
     ######################################################################
 
 
