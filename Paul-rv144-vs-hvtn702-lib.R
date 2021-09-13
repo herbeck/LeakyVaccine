@@ -521,29 +521,35 @@ calculate.abc.dist <- function ( sampled.stats.matrix, target.stats, target.stat
     } # make.hvtn702.optim.fn (..)
 
     # Filter the samples (perhaps subsetted samples from abc) to keep points up to max.dist.scaled units away, where one unit is eg the closest 5% (units.quantile) of the data.
-    filter.fit.to.keep.fewer.points <-
+    compute.trial.specific.candidate.modes.from.subset.of.sampled.points <-
         function (
                   the.fit.bin,
-                  trial.target.stats,
-                  units.quantile = ( abc.keep.num.sims / num.sims )
+                  trial.parameters.names,
+                  trial.target.stats.names,
+                  target.stats,
+                  target.stat.scale.units,
+                  units.quantile,
+                  max.dist.scaled,
+                  pdfCluster.hmult,
+                  Tukey.IQR.multiplier
                   ) {
         the.fit.trial.dist <-
-            calculate.abc.dist( the.fit.bin$stats[ , trial.target.stats ], as.numeric( target.stats[ trial.target.stats ] ), ifelse( is.na( the.fit.bin$stats_normalization[ trial.target.stats ] ), 1, the.fit.bin$stats_normalization[ trial.target.stats ] ) * target.stat.scale.units[ trial.target.stats ] );
+            calculate.abc.dist( the.fit.bin$stats[ , trial.target.stats.names ], as.numeric( target.stats[ trial.target.stats.names ] ), ifelse( is.na( the.fit.bin$stats_normalization[ trial.target.stats.names ] ), 1, the.fit.bin$stats_normalization[ trial.target.stats.names ] ) * target.stat.scale.units[ trial.target.stats.names ] );
 
         # Scale distance by units defined by the max distance of the closest units.quantile fraction of the points.
         trial.dist.units <- quantile( the.fit.trial.dist, probs = units.quantile )
         the.fit.trial.dist.scaled <- the.fit.trial.dist / trial.dist.units;
     
-        abc.trial.keep.sim <- the.fit.trial.dist.scaled < max.the.fit.dist.scaled;
-        cat( paste( "Keeping ", sum( abc.trial.keep.sim ), " trial-specific parameter sets because they are within ", max.the.fit.dist.scaled, " scaled units on the trial-specific distance measure, where one unit has ", sprintf( "%0.2f", 100*( abc.keep.num.sims / num.sims ) ), "% of the original ", nrow( the.fit.bin$param ), " draws in this epsilon bin.", sep = "" ), fill = TRUE );
+        abc.trial.keep.sim <- the.fit.trial.dist.scaled < max.dist.scaled;
+        cat( paste( "Keeping ", sum( abc.trial.keep.sim ), " trial-specific parameter sets because they are within ", max.dist.scaled, " scaled units on the trial-specific distance measure, where one unit has ", sprintf( "%0.2f", 100*units.quantile ), "% of the original ", nrow( the.fit.bin$param ), " draws in this epsilon bin.", sep = "" ), fill = TRUE );
     
         the.fit.trial <- the.fit.bin;
-        the.fit.trial$param <- the.fit.trial$param[ abc.trial.keep.sim, c( "epsilon", trial.parameters ), drop = FALSE ];
-        the.fit.trial$stats <- the.fit.trial$stats[ abc.trial.keep.sim, trial.target.stats, drop = FALSE ];
+        the.fit.trial$param <- the.fit.trial$param[ abc.trial.keep.sim, c( "epsilon", trial.parameters.names ), drop = FALSE ];
+        the.fit.trial$stats <- the.fit.trial$stats[ abc.trial.keep.sim, trial.target.stats.names, drop = FALSE ];
         the.fit.trial$weights <- the.fit.trial$weights[ abc.trial.keep.sim ];
         the.fit.trial.dist <- the.fit.trial.dist[ abc.trial.keep.sim ];
 
-        cl.trial <- suppressWarnings( pdfCluster( the.fit.trial$param[ , trial.parameters, drop = FALSE ], bwtype="adaptive", hmult=pdfCluster.hmult, n.grid=nrow( the.fit.trial$param ) ) );
+        cl.trial <- suppressWarnings( pdfCluster( the.fit.trial$param[ , trial.parameters.names, drop = FALSE ], bwtype="adaptive", hmult=pdfCluster.hmult, n.grid=nrow( the.fit.trial$param ) ) );
         trial.cluster.numbers <- groups( cl.trial );
         # Helpful when debugging - run through the next line.. it'll print when done
         cat( "trial cluster sizes:", fill = TRUE );
@@ -561,7 +567,7 @@ calculate.abc.dist <- function ( sampled.stats.matrix, target.stats, target.stat
         low.Tukey.whisker.bound.by.trial.cluster <- sapply( 1:ncol( medians.by.trial.cluster ), function( .cluster ) { .tukey.low.whisker.candidate.values <- the.fit.trial$param[ trial.cluster.member.minimizing.dist[[ .cluster ]],  ] - ( Tukey.IQR.multiplier * IQRs.by.trial.cluster[ , .cluster ] ); ifelse( .tukey.low.whisker.candidate.values < mins.by.trial.cluster[ , .cluster ], mins.by.trial.cluster[ , .cluster ], .tukey.low.whisker.candidate.values ) } );
         high.Tukey.whisker.bound.by.trial.cluster <- sapply( 1:ncol( medians.by.trial.cluster ), function( .cluster ) { .tukey.low.whisker.candidate.values <- the.fit.trial$param[ trial.cluster.member.minimizing.dist[[ .cluster ]],  ] + ( Tukey.IQR.multiplier * IQRs.by.trial.cluster[ , .cluster ] ); ifelse( .tukey.low.whisker.candidate.values < mins.by.trial.cluster[ , .cluster ], mins.by.trial.cluster[ , .cluster ], .tukey.low.whisker.candidate.values ) } );
         return( list( low = low.Tukey.whisker.bound.by.trial.cluster, high = high.Tukey.whisker.bound.by.trial.cluster ) );
-    } # filter.to.keep.fewer.points (..)
+    } # compute.trial.specific.candidate.modes.from.subset.of.sampled.points (..)
 
 
 
@@ -653,8 +659,8 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
     ######################################################################
     target.stats <-
         data.frame( rv144.VE.target, rv144.placebo.incidence.target, hvtn702.VE.target, hvtn702.placebo.incidence.target );        
-    rv144.target.stats <- c( "rv144.VE.target", "rv144.placebo.incidence.target" );
-    hvtn702.target.stats <- c( "hvtn702.VE.target", "hvtn702.placebo.incidence.target" );
+    rv144.target.stats.names <- c( "rv144.VE.target", "rv144.placebo.incidence.target" );
+    hvtn702.target.stats.names <- c( "hvtn702.VE.target", "hvtn702.placebo.incidence.target" );
 
     ## Note that we target the cumulative incidence at the end of the trial.
     target.stat.scale.units <- c( "rv144.VE.target" = VE.target.scale.units, "rv144.placebo.incidence.target" = placebo.incidence.target.scale.units, "hvtn702.VE.target" = VE.target.scale.units, "hvtn702.placebo.incidence.target" = placebo.incidence.target.scale.units );
@@ -694,9 +700,6 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
     colnames( fit.rej$stats ) <- names( target.stats );
     names( fit.rej$stats_normalization ) <- names( target.stats );
 
-    # fit.rej.dist <-
-    #     calculate.abc.dist( fit.rej$stats, as.numeric( target.stats ), ifelse( is.na( fit.rej$stats_normalization ), 1, fit.rej$stats_normalization ) * target.stat.scale.units );
-
     ## Great, we will now consider bins of epsilon (the only parameter that is shared across the two studies) and within each bin we will cluster the non-epsilon parameters for each study and construct a set of 9-parameter candidate starting places based on study-specific modes that share approximately common epsilon parameters across the studies. For example if there is a mode at around epsilon = 0.5 for both studies, we want to construct a 9-parameter starting place with epsilon = 0.5 and the study-specific maximizing parameters for the non-epsilon parameters when epsilon is 0.5.
 
    # Note that we use a sliding window approach so there's actually 2*num.epsilon.bins-1 total bins, and we may find the same modes multiple times. This is to balance focusing on relevant values of the other parameters while clustering the non-epsilon study-specific parameters by conditioning approximately on epsilon, and might need be tuned to consider different bin sizes (bin sizes are 1/num.epsilon.bins and overlap halfway through).
@@ -730,12 +733,14 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
         fit.rej.bin$weights <- fit.rej$weights[ sample.is.in.bin ];
     
         ### rv144
-        rv144.Tukey.whisker.bounds.by.trial.cluster <- filter.to.keep.fewer.points( rv144.target.stats );
+        rv144.Tukey.whisker.bounds.by.trial.cluster <-
+            compute.trial.specific.candidate.modes.from.subset.of.sampled.points( fit.rej.bin, rv144.parameters, rv144.target.stats.names, target.stats, target.stat.scale.units, units.quantile = ( abc.keep.num.sims / num.sims ), max.dist.scaled = max.dist.scaled, pdfCluster.hmult = pdfCluster.hmult, Tukey.IQR.multiplier = Tukey.IQR.multiplier );
         low.Tukey.whisker.bound.by.rv144.cluster <- rv144.Tukey.whisker.bounds.by.trial.cluster[[ "low" ]];
         high.Tukey.whisker.bound.by.rv144.cluster <- rv144.Tukey.whisker.bounds.by.trial.cluster[[ "high" ]];
 
         ### hvtn702
-        hvtn702.Tukey.whisker.bounds.by.trial.cluster <- filter.to.keep.fewer.points( hvtn702.target.stats );
+        hvtn702.Tukey.whisker.bounds.by.trial.cluster <-
+            compute.trial.specific.candidate.modes.from.subset.of.sampled.points( fit.rej.bin, hvtn702.parameters, hvtn702.target.stats.names, target.stats, target.stat.scale.units, units.quantile = ( abc.keep.num.sims / num.sims ), max.dist.scaled = max.dist.scaled, pdfCluster.hmult = pdfCluster.hmult, Tukey.IQR.multiplier = Tukey.IQR.multiplier );
         low.Tukey.whisker.bound.by.hvtn702.cluster <- hvtn702.Tukey.whisker.bounds.by.trial.cluster[[ "low" ]];
         high.Tukey.whisker.bound.by.hvtn702.cluster <- hvtn702.Tukey.whisker.bounds.by.trial.cluster[[ "high" ]];
 
