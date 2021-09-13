@@ -531,17 +531,22 @@ calculate.abc.dist <- function ( sampled.stats.matrix, target.stats, target.stat
                   units.quantile,
                   max.dist.scaled,
                   pdfCluster.hmult,
-                  Tukey.IQR.multiplier
+                  Tukey.IQR.multiplier,
+                  be.verbose = FALSE
                   ) {
+        trial.target.stat.stdevs <-
+            ifelse( is.na( the.fit.bin$stats_normalization[ trial.target.stats.names ] ), 1, the.fit.bin$stats_normalization[ trial.target.stats.names ] ) * target.stat.scale.units[ trial.target.stats.names ];
         the.fit.trial.dist <-
-            calculate.abc.dist( the.fit.bin$stats[ , trial.target.stats.names ], as.numeric( target.stats[ trial.target.stats.names ] ), ifelse( is.na( the.fit.bin$stats_normalization[ trial.target.stats.names ] ), 1, the.fit.bin$stats_normalization[ trial.target.stats.names ] ) * target.stat.scale.units[ trial.target.stats.names ] );
+            calculate.abc.dist( the.fit.bin$stats[ , trial.target.stats.names ], as.numeric( target.stats[ trial.target.stats.names ] ), trial.target.stat.stdevs );
 
         # Scale distance by units defined by the max distance of the closest units.quantile fraction of the points.
         trial.dist.units <- quantile( the.fit.trial.dist, probs = units.quantile )
         the.fit.trial.dist.scaled <- the.fit.trial.dist / trial.dist.units;
     
         abc.trial.keep.sim <- the.fit.trial.dist.scaled < max.dist.scaled;
-        cat( paste( "Keeping ", sum( abc.trial.keep.sim ), " trial-specific parameter sets because they are within ", max.dist.scaled, " scaled units on the trial-specific distance measure, where one unit has ", sprintf( "%0.2f", 100*units.quantile ), "% of the original ", nrow( the.fit.bin$param ), " draws in this epsilon bin.", sep = "" ), fill = TRUE );
+        if( be.verbose ) {
+            cat( paste( "Keeping ", sum( abc.trial.keep.sim ), " trial-specific parameter sets because they are within ", max.dist.scaled, " scaled units on the trial-specific distance measure, where one unit has ", sprintf( "%0.2f", 100*units.quantile ), "% of the original ", nrow( the.fit.bin$param ), " draws in this epsilon bin.", sep = "" ), fill = TRUE );
+        }
     
         the.fit.trial <- the.fit.bin;
         the.fit.trial$param <- the.fit.trial$param[ abc.trial.keep.sim, c( "epsilon", trial.parameters.names ), drop = FALSE ];
@@ -551,9 +556,10 @@ calculate.abc.dist <- function ( sampled.stats.matrix, target.stats, target.stat
 
         cl.trial <- suppressWarnings( pdfCluster( the.fit.trial$param[ , trial.parameters.names, drop = FALSE ], bwtype="adaptive", hmult=pdfCluster.hmult, n.grid=nrow( the.fit.trial$param ) ) );
         trial.cluster.numbers <- groups( cl.trial );
-        # Helpful when debugging - run through the next line.. it'll print when done
-        cat( "trial cluster sizes:", fill = TRUE );
-        print( table( trial.cluster.numbers ) );
+        if( be.verbose ) {
+            # Helpful when debugging - run through the next line.. it'll print when done
+            print( table( trial.cluster.numbers ) );
+        }
 
         medians.by.trial.cluster <- sapply( 1:max( trial.cluster.numbers, na.rm = TRUE ), function( .cluster ) { apply( the.fit.trial$param[ !is.na( trial.cluster.numbers ) & ( trial.cluster.numbers == .cluster ), , drop = FALSE ], 2, median ) } );
         mins.by.trial.cluster <- sapply( 1:max( trial.cluster.numbers, na.rm = TRUE ), function( .cluster ) { apply( the.fit.trial$param[ !is.na( trial.cluster.numbers ) & ( trial.cluster.numbers == .cluster ), , drop = FALSE ], 2, min ) } );
@@ -569,7 +575,173 @@ calculate.abc.dist <- function ( sampled.stats.matrix, target.stats, target.stat
         return( list( low = low.Tukey.whisker.bound.by.trial.cluster, high = high.Tukey.whisker.bound.by.trial.cluster ) );
     } # compute.trial.specific.candidate.modes.from.subset.of.sampled.points (..)
 
+    # For better balancing of the costs we use target.stat.scale.units; see above.
+    optimize.step <- function ( current.parameters, target.stats, target.stat.stdevs, lower, upper, current.value = NULL, be.verbose = FALSE ) {
+        is.anything.changed <- FALSE;
+          
+        ## First, update epsilon
+        .f.epsilon.abc <- make.epsilon.abc.fn( current.parameters );
+        .f.epsilon <- make.epsilon.optim.fn( .f.epsilon.abc, target.stats, target.stat.stdevs );
 
+        if( is.null( current.value ) ) {
+            current.value <- unlist( .f.epsilon( current.parameters[[ "epsilon" ]] ) );
+        }
+        # Save the starting parameters and value, jic.
+        starting.parameters <- current.parameters;
+        starting.value <- current.value;
+
+        if( be.verbose ) {
+            cat( paste( apply( cbind( names( starting.parameters ), starting.parameters ), 1, paste, collapse = "=" ), collapse = ", " ), fill = TRUE )
+            cat( starting.value, fill = TRUE );
+        }
+
+        .optim.result <- optim( current.parameters[[ "epsilon" ]], .f.epsilon, lower = lower[[ "epsilon" ]], upper = upper[[ "epsilon" ]], method = "L-BFGS-B" );
+        .par <- .optim.result$par;
+        names( .par ) <- "epsilon";
+
+        .new.value <- .optim.result$value;
+        if( be.verbose ) {
+            cat( paste( "epsilon =", .par ), fill = TRUE );
+            cat( .new.value, fill = TRUE );
+        }
+
+        # If they are printing the same to 6 digits, they are the same afaict
+        # MAGIC # (6 digits)
+        if( ( .new.value < current.value ) && ( sprintf( "%0.6f", .new.value ) != sprintf( "%0.6f", current.value ) ) ) {
+            ## Update the current.parameters with this new epsilon value.
+            if( be.verbose ) {
+                cat( paste( "ACCEPT epsilon change from ", current.parameters[[ "epsilon" ]], " to ", .par, sep = "" ), fill = TRUE );
+            }
+            current.parameters[[ "epsilon" ]] <- .par;
+            current.value <- .new.value;
+            is.anything.changed <- TRUE;
+        } else {
+            if( be.verbose ) {
+                cat( "REJECT epsilon change", fill = TRUE );
+                ## TODO: REMOVE
+                print( .optim.result );
+            }
+        }
+
+        ## Next, update rv144 parameters
+        .f.rv144.abc <- make.rv144.abc.fn( current.parameters );
+        .f.rv144 <- make.rv144.optim.fn( .f.rv144.abc, target.stats, target.stat.stdevs );
+
+        .optim.result <- optim( current.parameters[ rv144.parameters ], .f.rv144, lower = lower[ rv144.parameters ], upper = upper[ rv144.parameters ], method = "L-BFGS-B" );
+        .par <- .optim.result$par;
+        names( .par ) <- rv144.parameters;
+
+        .new.value <- .optim.result$value;
+        if( be.verbose ) {
+            cat( paste( apply( cbind( rv144.parameters, .par ), 1, paste, collapse = "=" ), collapse = ", " ), fill = TRUE )
+            cat( .new.value, fill = TRUE );
+        }
+
+        # If they are printing the same to 6 digits, they are the same afaict
+        # MAGIC # (6 digits)
+        if( ( .new.value < current.value ) && ( sprintf( "%0.6f", .new.value ) != sprintf( "%0.6f", current.value ) ) ) {
+            if( be.verbose ) {
+                cat( paste( "ACCEPT rv144 parameters change from ", paste( apply( cbind( rv144.parameters, current.parameters[ rv144.parameters ] ), 1, paste, collapse = "=" ), collapse = ", " ), " to ", paste( apply( cbind( rv144.parameters, .par ), 1, paste, collapse = "=" ), collapse = ", " ), sep = "" ), fill = TRUE );
+            }
+            ## Update the current.parameters with this new epsilon value.
+            current.parameters[ rv144.parameters ] <- .par;
+            current.value <- .new.value;
+            is.anything.changed <- TRUE;
+        } else {
+            if( be.verbose ) {
+                cat( "REJECT rv144 parameters change", fill = TRUE );
+                ## TODO: REMOVE
+                print( .optim.result );
+            }
+        }
+
+        ## Next, update hvtn702 parameters
+        .f.hvtn702.abc <- make.hvtn702.abc.fn( current.parameters );
+        .f.hvtn702 <- make.hvtn702.optim.fn( .f.hvtn702.abc, target.stats, target.stat.stdevs );
+
+        .optim.result <- optim( current.parameters[ hvtn702.parameters ], .f.hvtn702, lower = lower[ hvtn702.parameters ], upper = upper[ hvtn702.parameters ], method = "L-BFGS-B" );
+        .par <- .optim.result$par;
+        names( .par ) <- hvtn702.parameters;
+
+        .new.value <- .optim.result$value;
+        if( be.verbose ) {
+            cat( paste( apply( cbind( hvtn702.parameters, .par ), 1, paste, collapse = "=" ), collapse = ", " ), fill = TRUE )
+            cat( .new.value, fill = TRUE );
+        }
+
+        # If they are printing the same to 6 digits, they are the same afaict
+        # MAGIC # (6 digits)
+        if( ( .new.value < current.value ) && ( sprintf( "%0.6f", .new.value ) != sprintf( "%0.6f", current.value ) ) ) {
+            if( be.verbose ) {
+                cat( paste( "ACCEPT hvtn702 parameters change from ", paste( apply( cbind( hvtn702.parameters, current.parameters[ hvtn702.parameters ] ), 1, paste, collapse = "=" ), collapse = ", " ), " to ", paste( apply( cbind( hvtn702.parameters, .par ), 1, paste, collapse = "=" ), collapse = ", " ), sep = "" ), fill = TRUE );
+            }
+            ## Update the current.parameters with this new epsilon value.
+            current.parameters[ hvtn702.parameters ] <- .par;
+            current.value <- .new.value;
+            is.anything.changed <- TRUE;
+        } else {
+            if( be.verbose ) {
+                cat( "REJECT hvtn702 parameters change", fill = TRUE );
+                ## TODO: REMOVE
+                print( .optim.result );
+            }
+        }
+
+        .f.epsilon.abc <- make.epsilon.abc.fn( current.parameters );
+        .new.stats <- .f.epsilon.abc( current.parameters[[ "epsilon" ]] );
+
+        if( !is.anything.changed ) {
+            return( NULL );
+        }
+        if( be.verbose ) {
+            print( c( current.parameters, .new.stats, dist = current.value ) );
+        }
+        return( c( current.parameters, .new.stats, dist = current.value ) );
+    } # optimize.step (..)
+
+    # First we optimize epsilon, then rv144, then hvtn702, then back to epsilon again
+    #      ‘reltol’ Relative convergence tolerance.  The algorithm stops if
+    # it is unable to reduce the value by a factor of ‘reltol *
+    # (abs(val) + reltol)’ at a step.
+    optimize.iteratively <- function ( current.parameters, target.stats, target.stat.stdevs, lower, upper, current.value = NULL, reltol = 1E-2, step.i = 1, max.steps = 50, be.verbose = FALSE ) {
+        .converged <- FALSE;
+        last.dist <- current.value;
+        while( !.converged && ( step.i < max.steps ) ) {
+            if( be.verbose ) {
+                cat( paste( "optimize.iteratively( step.i = ", step.i, " )", sep = "" ), fill = TRUE );
+            }
+            .step.i.result <-
+                optimize.step( current.parameters = current.parameters, target.stats = target.stats, target.stat.stdevs = target.stat.stdevs, lower = lower, upper = upper, current.value = current.value, be.verbose = be.verbose );
+            if( is.null( .step.i.result ) ) {
+                .converged <- TRUE;
+            } else {
+                current.parameters <- .step.i.result[ all.parameters ];
+                current.value <- .step.i.result[[ "dist" ]];
+                current.stats <-
+                    .step.i.result[ setdiff( names( .step.i.result ), c( all.parameters, "dist" ) ) ];
+                if( !is.null( last.dist ) ) {
+                    if( last.dist == current.value ) {
+                        .converged <- TRUE;
+                    } else {
+                        .converged <- abs( last.dist - current.value ) < ( reltol * ( abs( last.dist ) + reltol ) )
+                    }
+                } else {
+                    last.dist <- current.value;
+                }
+            }
+            step.i <- step.i + 1;
+        } # End while !.converged && step.i < max.steps
+        if( be.verbose ) {
+            if( .converged ) {
+                cat( "CONVERGED.", fill = TRUE );
+                cat( paste( apply( cbind( names( current.parameters ), current.parameters ), 1, paste, collapse = "=" ), collapse = ", " ), fill = TRUE )
+                cat( current.value, fill = TRUE );
+            } else {
+                cat( "DID NOT CONVERGE (max steps reached).", fill = TRUE );
+            }
+        }
+        return( c( current.parameters, current.stats, dist = unname( current.value ) ) );
+    } # optimize.iteratively (..)
 
 runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numExecution >>1000 for best results.
     stopifnot( all( c( "numExecution" ) %in% names( reac ) ) );
@@ -648,9 +820,12 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
 
     min.points.for.clustering <- 6; # MAGIC # >= 6, from "QH6214 qhull input error: not enough points(2) to construct initial simplex (need 6)"
 
+    optimize.iteratively.max.steps <- 50; # MAGIC # governs limit on times optimize.iteratively(..) is called.
+    optimize.iteratively.reltol <- 1E-2; # MAGIC # governs convergence criteria for optimize.iteratively(..) (when the dist target changes by less than this fraction in one iteration, the optimization is deemed to have converged).
+
     pdfCluster.hmult <- 1.05; # MAGIC #, tweaked it to get pdfCluster to run without crashing with the error message suggesting increasing n.grid -- even with max n.grid, hmult has to be just above 1, it seems. If it is too high, the clusters merge into one. Tune this (> 1 to prevent crashing) higher to get the clusters to merge more.
 
-    be.verbose <- TRUE; # MAGIC # (just governs output printed to screen)
+    be.verbose <- FALSE; # MAGIC # (just governs output printed to screen)
     ######################################################################
 
 
@@ -690,15 +865,20 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
     .f.abc <- function( x ) {
         run.and.compute.run.stats.rv144.hvtn702( epsilon = x[ 1 ], rv144.log10lambda = x[ 2 ], rv144.high.risk.multiplier = x[ 3 ], rv144.highRiskProportion = x[ 4 ], rv144.lowRiskProportion = x[ 5 ], hvtn702.log10lambda = x[ 6 ], hvtn702.high.risk.multiplier = x[ 7 ], hvtn702.highRiskProportion = x[ 8 ], hvtn702.lowRiskProportion = x[ 9 ] )
     }
-    fit.rej <- ABC_rejection(model = .f.abc,
-                         prior = priors,
-                         nb_simul = num.sims,
-                         summary_stat_target = as.numeric( target.stats ),
-                         tol = 1.0, # Keep all of them for the moment; see below.
-                         progress_bar = TRUE)
+    fit.rej <- ABC_rejection(
+                             model = .f.abc,
+                             prior = priors,
+                             nb_simul = num.sims,
+                             summary_stat_target = as.numeric( target.stats ),
+                             tol = 1.0, # Keep all of them for the moment; see below.
+                             progress_bar = be.verbose
+               );
     colnames( fit.rej$param ) <- all.parameters;
     colnames( fit.rej$stats ) <- names( target.stats );
     names( fit.rej$stats_normalization ) <- names( target.stats );
+
+    target.stat.stdevs <-
+        ifelse( is.na( fit.rej$stats_normalization ), 1, fit.rej$stats_normalization ) * target.stat.scale.units;
 
     ## Great, we will now consider bins of epsilon (the only parameter that is shared across the two studies) and within each bin we will cluster the non-epsilon parameters for each study and construct a set of 9-parameter candidate starting places based on study-specific modes that share approximately common epsilon parameters across the studies. For example if there is a mode at around epsilon = 0.5 for both studies, we want to construct a 9-parameter starting place with epsilon = 0.5 and the study-specific maximizing parameters for the non-epsilon parameters when epsilon is 0.5.
 
@@ -845,7 +1025,9 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
             add.candidate.complete.parameter.set( rv144.cluster.i, hvtn702.cluster.j );
         } # End if we need to force a pairing.
     } # End foreach epsilon.bin
-    cat( paste( "There are", nrow( candidate.parameter.sets.high ), "candidate parameter sets." ), fill = TRUE );
+    if( be.verbose ) {
+        cat( paste( "There are", nrow( candidate.parameter.sets.high ), "candidate parameter sets." ), fill = TRUE );
+    }
 
     ## TODO: Filter/merge the overlapping candidates so they are not redundant.
 
@@ -866,14 +1048,17 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
     candidate.parameter.sets.midpoint.bounded <- t( apply( candidate.parameter.sets.midpoint, 1, function( .candidate.parameter.set.midpoint ) { ifelse( .candidate.parameter.set.midpoint > bounds.high, bounds.high, ifelse( .candidate.parameter.set.midpoint < bounds.low, bounds.low, .candidate.parameter.set.midpoint ) ) } ) );
 
     ### PHASE 2:  from these candidate starting places constructed from epsion-bin-specific, trial-specific local optima, find modes in the 9-parameter space by conditional optimization.
-
     optima.by.candidate <- sapply( 1:nrow( candidate.parameter.sets.midpoint.bounded ), function( .candidate ) {
-        print( .candidate );
+        if( be.verbose ) {
+            cat( .candidate, fill = TRUE );
+        }
         .lower.bounds <- candidate.parameter.sets.low.bounded[ .candidate, ];
         .upper.bounds <- candidate.parameter.sets.high.bounded[ .candidate, ];
         .midpoint <- candidate.parameter.sets.midpoint.bounded[ .candidate, ];
-        print( .midpoint );
-        .iterative.result <- optimize.iteratively( .midpoint, lower = .lower.bounds, upper = .upper.bounds, current.value = NULL, be.verbose = TRUE );
+        if( be.verbose ) {
+            print( .midpoint );
+        }
+        .iterative.result <- optimize.iteratively( .midpoint, target.stats, target.stat.stdevs, lower = .lower.bounds, upper = .upper.bounds, current.value = NULL, reltol = optimize.iteratively.reltol, step.i = 1, max.steps = optimize.iteratively.max.steps, be.verbose = be.verbose );
         # current.parameters <- .iterative.result[ all.parameters ];
         # current.stats <- .iterative.result[[ setdiff( names( .iterative.result ), all.parameters, "dist" ) ]];
         # current.value <- .iterative.result[[ "dist" ]];
