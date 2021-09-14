@@ -395,7 +395,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
     max.dist.scaled <- 1.05; # MAGIC #
 
     # Once we identify modes we determine their compatibility across studies by whether the epsilons are near enough to each other, based on the overlap or not of their search windows, which are defined by using the logic of identifying outliers in a box plot. That is we walk out from the mode some number of IQR-defined units and define the search window as anything within that zone. For Tukey-style boxplots the number is 1.5 IQRs from the median defines an outlier. Here we can tune this multiplier (Tukey.IQR.multiplier) to change the window width that we use to define the search space for optimization and also for this overlap detection.
-    Tukey.IQR.multiplier <- 0.5; # MAGIC # governing the window size we use when optimizing and when merging trial-specific candidate optima (this is applied to epsilon only for merging).
+    Tukey.IQR.multiplier <- 1.5; # MAGIC # governing the window size we use when optimizing and when merging trial-specific candidate optima (this is applied to epsilon only for merging).
 
     # If there are candidates from both studies but no bins overlap, do we force overlap of closest pair?
     ensure.overlap.in.epsilon.bins <- TRUE; # MAGIC # (keep TRUE to ensure candidates are explored in farther-distance epsilon bins.)
