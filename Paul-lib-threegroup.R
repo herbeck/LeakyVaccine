@@ -7,6 +7,8 @@ library(ggplot2)
 library(pdfCluster)
 
 si.ode.threegroup.fn <- function ( times, init, param ) {
+    print( init );
+    print( param );
   with(as.list(c(init, param)), {
     
     # Flows
@@ -17,16 +19,16 @@ si.ode.threegroup.fn <- function ( times, init, param ) {
     #PLACEBO arm
     #Susceptible, Infected, placebo, high, medium, low
     #SIph.flow <- risk*lambda*Sph # line from original model, FYI
-    SIph.flow <- high.risk.multiplier*(10^log10lambda)*Sph
-    SIpm.flow <- (10^log10lambda)*Spm
-    SIpl.flow <- 0*(10^log10lambda)*Spl  #0 to give this group zero exposures
+    SIph.flow <- unname( high.risk.multiplier*(10^log10lambda)*Sph )  # Because this can't go negative, high.risk.multiplier must be <= 1/(10^log10lambda). See bounds defs.
+    SIpm.flow <- unname( (10^log10lambda)*Spm )
+    SIpl.flow <- unname( 0*(10^log10lambda)*Spl )  #0 to give this group zero exposures
        # Could also use "1/high.risk.multiplier" if we don't want ZERO exposures
     
     #VACCINE arm
     #Susceptible, Infected, vaccine, high, medium, low
-    SIvh.flow <- high.risk.multiplier*(10^log10lambda)*(1-epsilon)*Svh
-    SIvm.flow <- (10^log10lambda)*(1-epsilon)*Svm
-    SIvl.flow <- 0*(10^log10lambda)*(1-epsilon)*Svl  #0 to give this group zero exposures
+    SIvh.flow <- unname( high.risk.multiplier*(10^log10lambda)*(1-epsilon)*Svh )
+    SIvm.flow <- unname( (10^log10lambda)*(1-epsilon)*Svm )
+    SIvl.flow <- unname( 0*(10^log10lambda)*(1-epsilon)*Svl )  #0 to give this group zero exposures
        # Could also use "1/high.risk.multiplier" if we don't want ZERO exposures
     
     # ODEs
@@ -49,13 +51,14 @@ si.ode.threegroup.fn <- function ( times, init, param ) {
 
 
     #Output
-    list(c(
+    list(c(0,0, # hack/test
            dSph,dIph,
            dSpm,dIpm,
            dSpl,dIpl,
            dSvh,dIvh,
            dSvm,dIvm,
            dSvl,dIvl,
+           0, # hack/test
            SIph.flow,SIpm.flow,SIpl.flow,
            SIvh.flow,SIvm.flow,SIvl.flow
            ))
@@ -120,12 +123,14 @@ run.and.compute.run.stats.threegroup <- function (
           stopifnot( Sp == Sv );
       }
 
-      init <- init.dcm(Sph = Sph, Iph = 0,    #placebo, high risk
+      init <- init.dcm(Sxx = 0, Ixx = 0, #hack/test
+                       Sph = Sph, Iph = 0,    #placebo, high risk
                        Spm = Spm, Ipm = 0,   #placebo, medium risk
                        Spl = Spl, Ipl = 0,    #placebo, low risk
                        Svh = Svh, Ivh = 0,    #vaccine
                        Svm = Svm, Ivm = 0,   #vaccine
                        Svl = Svl, Ivl = 0,    #vaccine
+                       SIxx.flow = 0, # hack/test
                        SIph.flow = 0, SIpm.flow = 0, SIpl.flow = 0,
                        SIvh.flow = 0, SIvm.flow = 0, SIvl.flow = 0
                        );

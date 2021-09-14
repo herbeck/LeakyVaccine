@@ -384,7 +384,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
     VE.target.scale.units <- 0.1; # MAGIC #
 
     # MAGIC #s tune to modify bounds for the parameters; this could eliminate some degenerate parameter combos (degenerate in the sense that they make the model effectively a two-component model).
-    high.risk.multiplier.max <- 50;
+    high.risk.multiplier.max <- 50; # Note that high.risk.multiplier.max must be < 1/(10^log10lambda.max) to ensure that the flow does not go negative within the ode; see ode def in Paul-lib-threegroup.R
     log10lambda.min <- -7;
     log10lambda.max <- -3;
 

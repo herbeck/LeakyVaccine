@@ -17,13 +17,13 @@ si.ode.twogroup.fn <- function ( times, init, param ) {
     #PLACEBO arm
     #Susceptible, Infected, placebo, high, medium, low
     #SIph.flow <- risk*lambda*Sph # line from original model, FYI
-    SIph.flow <- high.risk.multiplier*(10^log10lambda)*Sph
-    SIpl.flow <- (10^log10lambda)*Spl
+    SIph.flow <- unname( high.risk.multiplier*(10^log10lambda)*Sph ) # Because this can't go negative, high.risk.multiplier must be <= 1/(10^log10lambda). See bounds defs.
+    SIpl.flow <- unname( (10^log10lambda)*Spl )
 
     #VACCINE arm
     #Susceptible, Infected, vaccine, high, medium, low
-    SIvh.flow <- high.risk.multiplier*(10^log10lambda)*(1-epsilon)*Svh
-    SIvl.flow <- (10^log10lambda)*(1-epsilon)*Svl
+    SIvh.flow <- unname( high.risk.multiplier*(10^log10lambda)*(1-epsilon)*Svh )
+    SIvl.flow <- unname( (10^log10lambda)*(1-epsilon)*Svl )
 
     # ODEs
     # placebo; heterogeneous high.risk.multiplier
@@ -95,7 +95,7 @@ run.and.compute.run.stats.twogroup <- function (
       trial.evaluation.time = 3*365
 ) {
       param <- param.dcm(epsilon = epsilon, log10lambda = log10lambda, high.risk.multiplier = high.risk.multiplier );
-
+ 
       # initial values
       Svh <- floor( highRiskProportion * vaccinatedProportion * trialSize );
       Sph <- floor( highRiskProportion * ( 1.0 - vaccinatedProportion ) * trialSize );
@@ -119,7 +119,6 @@ run.and.compute.run.stats.twogroup <- function (
       control <- control.dcm( nsteps = trial.evaluation.time, new.mod = si.ode.twogroup.fn );
       mod <- dcm( param, init, control );
       #print( mod )
-
       mod.with.stats <- mod.manipulate.twogroup( mod );
       #print( mod.with.stats )
       mod.with.stats.df <- as.data.frame( mod.with.stats );

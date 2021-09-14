@@ -380,9 +380,9 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
     VE.target.scale.units <- 0.1; # MAGIC #
 
     # MAGIC #s tune to modify bounds for the parameters; this could eliminate some degenerate parameter combos (degenerate in the sense that they make the model effectively a two-component model).
-    high.risk.multiplier.max <- 5000; # Note orders of magnitude larger range is allowed here vs the three-parameter model, since in that model it seemed that the high risk group was high, and we are limiting the lambda here.
+    high.risk.multiplier.max <- 995; # Note orders of magnitude larger range is allowed here vs the three-parameter model, since in that model it seemed that the high risk group was high, and we are limiting the lambda here. Note also that high.risk.multiplier.max must be < 1/(10^log10lambda.max) to ensure that the flow does not go negative within the ode; see ode def in Paul-lib-twogroup.R
     log10lambda.min <- -7;
-    log10lambda.max <- -3;
+    log10lambda.max <- -3; # Note restriction - see note above on high.risk.multiplier.max
 
     # MAGIC # but this doesn't really seem to be a tunable parameter, but I basically just set it arbitrarily to a value that I think is enough to get some change; it might need tuning in future.
     smallest.discernable.amount <- 5E-4; # determined by trial and error this is the smallest amount you can change the parameters from 0 or 1 for it to register a difference from those extremes, eg to avoid NaN and Inf
