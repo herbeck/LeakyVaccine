@@ -6,7 +6,7 @@ library(EasyABC)
 library(ggplot2)
 library(pdfCluster)
 
-si.ode.onetrial.fn <- function ( times, init, param ) {
+si.ode.threegroup.fn <- function ( times, init, param ) {
   with(as.list(c(init, param)), {
     
     # Flows
@@ -60,11 +60,11 @@ si.ode.onetrial.fn <- function ( times, init, param ) {
            SIvh.flow,SIvm.flow,SIvl.flow
            ))
   })
-} # si.ode.onetrial.fn (..)
-mod.manipulate.onetrial <- function( mod ) {
+} # si.ode.threegroup.fn (..)
+mod.manipulate.threegroup <- function( mod ) {
   #browser()
 
-  # ONETRIAL
+  # THREEGROUP
   mod <- mutate_epi(mod, total.Svh.Svm.Svl = Svh + Svm + Svl) #all susceptible in heterogeneous risk vaccine pop
   mod <- mutate_epi(mod, total.Sph.Spm.Spl = Sph + Spm + Spl) #all susceptible in heterogeneous risk placebo pop
   mod <- mutate_epi(mod, total.Ivh.Ivm.Ivl = Ivh + Ivm + Ivl) #all infected in heterogeneous risk vaccine pop
@@ -91,9 +91,9 @@ mod.manipulate.onetrial <- function( mod ) {
   mod <- mutate_epi(mod, VE.cumul = 100 * ( 1 - cumul.rate.Vaccine.het/cumul.rate.Placebo.het ) )
 
   return( mod );
-} # mod.manipulate.onetrial (..)
+} # mod.manipulate.threegroup (..)
 
-run.and.compute.run.stats.onetrial <- function (
+run.and.compute.run.stats.threegroup <- function (
       epsilon,   #per contact vaccine efficacy
       log10lambda,     #log10( beta*c*prev ),
       high.risk.multiplier,          # Risk multiplier for high risk group
@@ -130,11 +130,11 @@ run.and.compute.run.stats.onetrial <- function (
                        SIvh.flow = 0, SIvm.flow = 0, SIvl.flow = 0
                        );
       
-      control <- control.dcm( nsteps = trial.evaluation.time, new.mod = si.ode.onetrial.fn );
+      control <- control.dcm( nsteps = trial.evaluation.time, new.mod = si.ode.threegroup.fn );
       mod <- dcm( param, init, control );
       #print( mod )
       
-      mod.with.stats <- mod.manipulate.onetrial( mod );
+      mod.with.stats <- mod.manipulate.threegroup( mod );
       #print( mod.with.stats )
       mod.with.stats.df <- as.data.frame( mod.with.stats );
       
@@ -145,7 +145,7 @@ run.and.compute.run.stats.onetrial <- function (
       placeboIncidence <- mod.with.stats.df$cumul.rate.Placebo.het[ trial.evaluation.time ];
 
       c( VE = VE, placeboIncidence = placeboIncidence );
-} # run.and.compute.run.stats.onetrial (..)
+} # run.and.compute.run.stats.threegroup (..)
 
 common.parameters <- c( "epsilon" );
 trial.parameters <- c( "log10lambda", "high.risk.multiplier", "highRiskProportion", "lowRiskProportion" );
