@@ -1,4 +1,4 @@
-source( "Paul-lib.R" )
+source( "Paul-lib-threegroup.R" )
 
 rv144.parameters <- paste( "rv144", trial.parameters, sep = "." );
 hvtn702.parameters <- paste( "hvtn702", trial.parameters, sep = "." );
@@ -21,7 +21,7 @@ run.and.compute.run.stats.rv144.hvtn702 <- function (
       trialSize = 10000,  # Now we just have to add this magic number for size
       trial.evaluation.time = 3*365
 ) {
-    rv144.results <- run.and.compute.run.stats.onetrial(
+    rv144.results <- run.and.compute.run.stats.threegroup(
       epsilon = epsilon,   # common
       log10lambda = rv144.log10lambda,
       high.risk.multiplier = rv144.high.risk.multiplier,
@@ -31,7 +31,7 @@ run.and.compute.run.stats.rv144.hvtn702 <- function (
       trialSize = trialSize,
       trial.evaluation.time = trial.evaluation.time
     );
-    hvtn702.results <- run.and.compute.run.stats.onetrial(
+    hvtn702.results <- run.and.compute.run.stats.threegroup(
       epsilon = epsilon,   # common
       log10lambda = hvtn702.log10lambda,
       high.risk.multiplier = hvtn702.high.risk.multiplier,
