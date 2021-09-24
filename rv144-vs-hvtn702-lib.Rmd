@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Load packages
+
 ```{r load-packages}
 library(deSolve)
 library(tidyverse)
@@ -21,7 +22,9 @@ library(pdfCluster)
 ```
 
 # Build the epidemic model
-Usage:  >si.ode.rv144.hvtn702.fn (..)
+
+Usage: \>si.ode.rv144.hvtn702.fn (..)
+
 ```{r model-odes}
 si.ode.rv144.hvtn702.fn <- function ( times, init, param ) {
   with(as.list(c(init, param)), {
@@ -29,7 +32,7 @@ si.ode.rv144.hvtn702.fn <- function ( times, init, param ) {
     # Flows
     # the number of people moving from the S to I compartment at each time step
     
-    # RV144
+    # RV144 (HIV vaccine trial that took place in Thailand)
     
     #PLACEBO arm
     #Susceptible, Infected, placebo, high, medium, low
@@ -69,7 +72,8 @@ si.ode.rv144.hvtn702.fn <- function ( times, init, param ) {
     drv144.Svl <- -rv144.SIvl.flow
     drv144.Ivl <- rv144.SIvl.flow  #0*rv144.lambda*(1-epsilon)*rv144.Svl
 
-    # HVTN702
+    # HVTN 702 (HIV vaccine trial that took place in South Africa)
+    
     # the number of people moving from S to I at each time step
     #Susceptible, Infected, placebo, high, medium, low
     hvtn702.SIph.flow <- hvtn702.high.risk.multiplier*(10^hvtn702.log10lambda)*hvtn702.Sph
@@ -124,10 +128,12 @@ si.ode.rv144.hvtn702.fn <- function ( times, init, param ) {
 ```
 
 # Manipulate the model output
-The "mod" object is produced after each model run; it is an Epimodel output object. The following mod.manipulate(..) function takes the mod output and uses it to estimated incidence and vaccine efficacy and add those values to the mod object.
 
-Usage: >mod.manipulate (..)
-```{r model-output-function}
+The "mod" Epimodel object is produced after each model run. The following mod.manipulate(..) function takes the mod output and uses it to estimate incidence and (estimated/clinical/observed) vaccine efficacy and add those values to the mod object.
+
+Usage: \>mod.manipulate (..)
+
+```{r mod-manipulate-function}
 mod.manipulate <- function( mod ) {
   #browser()
 
@@ -189,11 +195,12 @@ mod.manipulate <- function( mod ) {
 ```
 
 # Distance function
+
 This computes the distance as calculated internally in the abc function - but not where the distances are normalized using "normalise", which we think centralizes also (so makes each scaled stat have mean 0, sd 1) - the standard deviations are saved and included in the abc output and need to be passed into here, because after keeping only the closest X% of the samples, the remaining samples will have a different STDEV. So to get the right distances it's important to use the correct stdev. These values are not centralized before the distances are computed but this should not matter.
 
-Usage: >calculate.abc.dist ( .. )
-Example: >calculate.abc.dist( fit.rej$stats, as.numeric( target.stats ), fit.rej$stats_normalization )
-```{r}
+Usage: \>calculate.abc.dist ( .. ) Example: \>calculate.abc.dist( fit.rej$stats, as.numeric( target.stats ), fit.rej$stats_normalization )
+
+```{r calculate-abc-dist}
 calculate.abc.dist <- function ( sampled.stats.matrix, target.stats, target.stat.stdevs ) {
     nss <- length( target.stats );
     stopifnot( ncol( sampled.stats.matrix ) == nss );
@@ -216,21 +223,25 @@ calculate.abc.dist <- function ( sampled.stats.matrix, target.stats, target.stat
 }
 ```
 
-#######
+####### 
+
 # sim execution
-#######
+
+####### 
 
 # Defining the input parameters
-```{r}
+
+```{r input-parameters}
 rv144.parameters <- c( "rv144.log10lambda", "rv144.high.risk.multiplier", "rv144.highRiskProportion", "rv144.lowRiskProportion" );
 hvtn702.parameters <- c( "hvtn702.log10lambda", "hvtn702.high.risk.multiplier", "hvtn702.highRiskProportion", "hvtn702.lowRiskProportion" );
 all.parameters <- c( "epsilon", rv144.parameters, hvtn702.parameters );
 ```
 
-# Running the model
+# Running the trial model
 
-Usage:  >run.and.compute.run.stats (..)
-```{r}
+Usage: \>run.and.compute.run.stats (..)
+
+```{r run-and-compute-stats}
 run.and.compute.run.stats <- function (
       epsilon,          #per contact vaccine efficacy; true VE
       rv144.log10lambda,     #log10( beta*c*prev ),
@@ -328,16 +339,11 @@ run.and.compute.run.stats <- function (
 }
 ```
 
-# Optimization functions? 
+# Optimization functions
 
-Ok, so there are two sets of model-specific parameters (based on RV144 and HVTN702), and then one parameter that is shared (epsilon, the true per-contact vaccine efficacy), so the best way to optimize is using conditional optimization. That is, we first hold epsilon fixed and do each model optimization separately, then hold those resulting parameters fixed and optimize epsilon, and iterate
-until convergence.
+Ok, so there are two sets of model-specific parameters (based on RV144 and HVTN702), and then one parameter that is shared (*epsilon*, the per-exposure vaccine efficacy), so the best way to optimize is using conditional optimization. That is, we first hold *epsilon* fixed and do each model optimization separately, then hold those resulting parameters fixed and optimize *epsilon*, and iterate until convergence.
 
-WHAT do all of these functions do?
-
-Where did the "other.parameters[[]]" object come from? Should it be "all.parameters[[]]"?
-
-```{r functions}
+```{r optimization-functions}
 make.epsilon.abc.fn <- function ( other.parameters ) {
         function( x ) {   # this function calls the run.and.compute.run.stats() fn
             run.and.compute.run.stats( epsilon = x, rv144.log10lambda = other.parameters[[ "rv144.log10lambda" ]], rv144.high.risk.multiplier = other.parameters[[ "rv144.high.risk.multiplier" ]], rv144.highRiskProportion = other.parameters[[ "rv144.highRiskProportion" ]], rv144.lowRiskProportion = other.parameters[[ "rv144.lowRiskProportion" ]], hvtn702.log10lambda = other.parameters[[ "hvtn702.log10lambda" ]], hvtn702.high.risk.multiplier = other.parameters[[ "hvtn702.high.risk.multiplier" ]], hvtn702.highRiskProportion = other.parameters[[ "hvtn702.highRiskProportion" ]], hvtn702.lowRiskProportion = other.parameters[[ "hvtn702.lowRiskProportion" ]] )
@@ -384,12 +390,9 @@ make.hvtn702.optim.fn <- function ( .f.hvtn702.abc, .target.stats, .target.stat.
 # make.hvtn702.optim.fn (..)
 ```
 
-#Does the following run the whole simulation? 
-This a single function?!?!
+# Function to run the whole simulation
 
-I am so confused by the following steps.
-
-```{r}
+```{r simulation}
 runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) {
     stopifnot( all( c( "numExecution" ) %in% names( reac ) ) );
 
@@ -943,37 +946,37 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) {
 # runSim_rv144.hvtn702 (..)
 ```
 
-### ERE I AM testing...
+### Testing and setting seed and number of simulations
 
-```{r}
+```{r set-seed-sims}
 the.seed <- 98103;
 # To test replicability of the identified modes, uncomment this:
 # set.seed( the.seed ); the.seed <- floor( runif( 1, max = 1E5 ) );
-num.sims <- 15; # Fast for superfast debugging.
+num.sims <- 100; # Fast for superfast debugging.
 # num.sims <- 1000; # Fast for debugging.
 # num.sims <- 10000; # For reals.
 set.seed( the.seed );
 ```
 
-OK, I think that we need to first determine the reasonable epsilon values from the RV144-like setting, then ask could you get zero (or very low) VE with the same epsilon by increasing only lambda and risk values, with placebo incidence going from an rv144-like value (~0.14) to a 702-like value (~3.3).
+# Some more background
 
-RV144 placebo incidence in the prespecified analysis (MITT) cohort was 0.1397 per 100 person years, 100*(74/52985) from NEJM 2009; 361:2209-2220 DOI: 10.1056/NEJMoa0908492 December 3, 2009 (https://www.nejm.org/doi/full/10.1056/nejmoa0908492):
- "HIV-1 infection was diagnosed in 132 subjects (56 in the vaccine group and 76 in the placebo group) during 52,985 person-years of follow-up in the intention-to-treat analysis, in 86 subjects (36 in the vaccine group and 50 in the placebo group) during 36,720 person-years of follow-up in the per-protocol analysis, and in 125 subjects (51 in the vaccine group and 74 in the placebo group) during 52,985 person-years of follow-up in the modified intention-to-treat analysis. One subject in the placebo group who was identified by hospital record as being seropositive for HIV after dying from Pneumocystis jirovecii pneumonia was included in the analysis before the unblinding of the study. This diagnosis of HIV-1 infection was the only one that occurred outside planned procedures."
+OK, I think that we need to first determine the reasonable *epsilon* values from the RV144-like setting, then ask could you get zero (or very low) VE with the same *epsilon* by increasing only *lambda* and *risk* values, with placebo incidence going from an RV144-like value (\~0.14) to a HVTN 702-like value (\~3.3).
 
-HVTN702 placebo incidence was 3.3 per 100 person-years (95% CI, 2.8 to 3.9), from NEJM 384;12 nejm.org March 25, 2021 (https://www.nejm.org/doi/pdf/10.1056/NEJMoa2031499), page 1092:
-"During the first 24 months of follow-up, 138 HIV-1 infections occurred in the vaccine group and 133 in the placebo group, for an estimated incidence rate of 3.4 per 100 person-years (95% confidence interval [CI], 2.8 to 4.0) and 3.3 per 100 person-years (95% CI, 2.8 to 3.9), respectively (hazard ratio, 1.02; 95% CI, 0.81 to 1.30; P=0.84) (Fig. 1A and Table 2). The incidence of HIV-1 infection was similar in the vaccine group and the placebo group in secondary analyses during 36 months of follow-up (hazard ratio, 1.05; 95% CI, 0.83 to 1.31), in the month 6.5 at-risk cohort between 6.5 months and 24 months (hazard ratio, 1.15; 95% CI, 0.84 to 1.58), and in the perprotocol cohort, as well as in other secondary analyses (Figs. S3 through S9)."
+RV144 placebo incidence in the prespecified analysis (MITT) cohort was 0.1397 per 100 person years, 100\*(74/52985) from NEJM 2009; 361:2209-2220 DOI: 10.1056/NEJMoa0908492 December 3, 2009 (<https://www.nejm.org/doi/full/10.1056/nejmoa0908492>): "HIV-1 infection was diagnosed in 132 subjects (56 in the vaccine group and 76 in the placebo group) during 52,985 person-years of follow-up in the intention-to-treat analysis, in 86 subjects (36 in the vaccine group and 50 in the placebo group) during 36,720 person-years of follow-up in the per-protocol analysis, and in 125 subjects (51 in the vaccine group and 74 in the placebo group) during 52,985 person-years of follow-up in the modified intention-to-treat analysis. One subject in the placebo group who was identified by hospital record as being seropositive for HIV after dying from Pneumocystis jirovecii pneumonia was included in the analysis before the unblinding of the study. This diagnosis of HIV-1 infection was the only one that occurred outside planned procedures."
 
-#Running the whole simulation
+HVTN702 placebo incidence was 3.3 per 100 person-years (95% CI, 2.8 to 3.9), from NEJM 384;12 nejm.org March 25, 2021 (<https://www.nejm.org/doi/pdf/10.1056/NEJMoa2031499>), page 1092: "During the first 24 months of follow-up, 138 HIV-1 infections occurred in the vaccine group and 133 in the placebo group, for an estimated incidence rate of 3.4 per 100 person-years (95% confidence interval [CI], 2.8 to 4.0) and 3.3 per 100 person-years (95% CI, 2.8 to 3.9), respectively (hazard ratio, 1.02; 95% CI, 0.81 to 1.30; P=0.84) (Fig. 1A and Table 2). The incidence of HIV-1 infection was similar in the vaccine group and the placebo group in secondary analyses during 36 months of follow-up (hazard ratio, 1.05; 95% CI, 0.83 to 1.31), in the month 6.5 at-risk cohort between 6.5 months and 24 months (hazard ratio, 1.15; 95% CI, 0.84 to 1.58), and in the perprotocol cohort, as well as in other secondary analyses (Figs. S3 through S9)."
 
-```{r}
+# Run the simulation
+
+```{r run-sim}
 .sim <- runSim_rv144.hvtn702( reac = c( "numExecution" = num.sims ) );
 ```
 
-# Some plotting 
+# Some plotting
 
-Run manually. See above.
+Run manually.
 
-```{r}
+```{r plots}
 if( FALSE ) {
     the.sim <- .sim;
 
@@ -1078,4 +1081,3 @@ if( FALSE ) {
     
 } # END IF FALSE
 ```
-
