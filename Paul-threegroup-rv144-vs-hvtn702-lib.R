@@ -701,8 +701,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
     candidate.parameter.sets.bounded <-
         bound.candidate.parameter.sets( candidate.parameter.sets );
     num.candidates <- nrow( candidate.parameter.sets.bounded[[ "midpoint" ]] );
-    stopifnot( length( candidate.parameter.sets ) == num.candidates );
-
+    stopifnot( nrow( candidate.parameter.sets[[ "high" ]] ) == num.candidates );
     ## These are the only PHASE 1 outputs that are used below in subsequent phases:
     # target.stat.stdevs
     # candidate.parameter.sets.bounded
