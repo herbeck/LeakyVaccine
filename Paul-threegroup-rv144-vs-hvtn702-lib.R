@@ -720,7 +720,7 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
     optima.by.candidate.sorted <-
         optima.by.candidate[ , order( as.numeric( optima.by.candidate[ "dist", ] ) ), drop = FALSE ];
         
-    sim.result <- list( fit = fit.rej, priors = priors, bounds = bounds, target.stats = target.stats, fn = .f.abc, sampled.modes = optima.by.candidate.sorted );
+    sim.results <- list( fit = fit.rej, priors = priors, bounds = bounds, target.stats = target.stats, fn = .f.abc, sampled.modes = optima.by.candidate.sorted );
 
     detach( name = "params.list" );
 
