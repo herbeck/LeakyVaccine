@@ -101,11 +101,14 @@ run.and.compute.run.stats.threegroup <- function (
       highRiskProportion,
       lowRiskProportion,             # This is a proportion among those not high risk
       vaccinatedProportion = 0.5,  # In lieu of naming vaccine and placebo arms separately (and their N)
+      VE.start = 0, # must be scalar
+      VE.end = 0, # can be a vector
       trialSize = 10000,  # Now we just have to add this magic number for size
-      trial.evaluation.time = 3*365
+      sim.ndays = base::max( VE.end )
 ) {
-      # Paul added the other params to this (risk here, others below):
-      param <- param.dcm(epsilon = epsilon, log10lambda = log10lambda, log10riskmultiplier = log10riskmultiplier );
+    stopifnot( length( VE.start ) == 1 );
+
+    param <- param.dcm( epsilon = epsilon, log10lambda = log10lambda, log10riskmultiplier = log10riskmultiplier );
 
       # initial values
       Svh <- floor( highRiskProportion * vaccinatedProportion * trialSize );
@@ -133,7 +136,7 @@ run.and.compute.run.stats.threegroup <- function (
                        SIvh.flow = 0, SIvm.flow = 0, SIvl.flow = 0
                        );
       
-      control <- control.dcm( nsteps = trial.evaluation.time, new.mod = si.ode.threegroup.fn );
+      control <- control.dcm( nsteps = sim.ndays, new.mod = si.ode.threegroup.fn );
       mod <- dcm( param, init, control );
       #print( mod )
       
@@ -142,12 +145,30 @@ run.and.compute.run.stats.threegroup <- function (
       mod.with.stats.df <- as.data.frame( mod.with.stats );
       
       # heterogeneous risk using cumulative VE:
-      VE <- mod.with.stats.df$VE.cumul[ trial.evaluation.time ];
-      
-      ## The placebo incidence out stat vector is the _cumulative_ incidence at time trial.evaluation.time.
-      placeboIncidence <- mod.with.stats.df$cumul.rate.Placebo.het[ trial.evaluation.time ];
+      if( VE.start <= 1 ) { # 0 or 1 because the start and end are inclusive.
+          VE <- mod.with.stats.df$VE.cumul[ VE.end ];
+      } else {
+          cum.since.start.rate.Vaccine.het <-
+              ( # VE.start - 1 because the start and end are inclusive.
+               ( mod.with.stats.df$total.Ivh.Ivm.Ivl[ VE.end ] - mod.with.stats.df$total.Ivh.Ivm.Ivl[ max( 1, VE.start - 1 ) ] ) /
+               ( mod.with.stats.df$cumul.Svh.Svm.Svl[ VE.end ] - mod.with.stats.df$cumul.Svh.Svm.Svl[ max( 1, VE.start - 1 ) ] )
+              );
+          cum.since.start.rate.Placebo.het <-
+              (
+               ( mod.with.stats.df$total.Iph.Ipm.Ipl[ VE.end ] - mod.with.stats.df$total.Iph.Ipm.Ipl[ max( 1, VE.start - 1 ) ] ) /
+               ( mod.with.stats.df$cumul.Sph.Spm.Spl[ VE.end ] - mod.with.stats.df$cumul.Sph.Spm.Spl[ max( 1, VE.start - 1 ) ] )
+              );
+          VE <- 100 *
+              ( 1 -
+               ( cum.since.start.rate.Vaccine.het / cum.since.start.rate.Placebo.het )
+              );
+      }
+      ## The placebo incidence out stat vector is the _cumulative_ incidence at time sim.ndays.
+      placeboIncidence <- mod.with.stats.df$cumul.rate.Placebo.het[ VE.end ];
 
-      c( VE = VE, placeboIncidence = placeboIncidence );
+    .rv <- data.frame( VE = VE, placeboIncidence = placeboIncidence );
+    rownames( .rv ) <- VE.end;
+    return( .rv );
 } # run.and.compute.run.stats.threegroup (..)
 
 common.parameters <- c( "epsilon" );
