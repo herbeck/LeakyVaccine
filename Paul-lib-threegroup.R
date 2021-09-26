@@ -7,8 +7,6 @@ library(ggplot2)
 library(pdfCluster)
 
 si.ode.threegroup.fn <- function ( times, init, param ) {
-    print( init );
-    print( param );
   with(as.list(c(init, param)), {
     
     # Flows
@@ -19,31 +17,31 @@ si.ode.threegroup.fn <- function ( times, init, param ) {
     #PLACEBO arm
     #Susceptible, Infected, placebo, high, medium, low
     #SIph.flow <- risk*lambda*Sph # line from original model, FYI
-    SIph.flow <- unname( high.risk.multiplier*(10^log10lambda)*Sph )  # Because this can't go negative, high.risk.multiplier must be <= 1/(10^log10lambda). See bounds defs.
+    SIph.flow <- unname( (10^log10riskmultiplier)*(10^log10lambda)*Sph )  # Because this can't go negative, (10^log10riskmultiplier) must be <= 1/(10^log10lambda). See bounds defs.
     SIpm.flow <- unname( (10^log10lambda)*Spm )
     SIpl.flow <- unname( 0*(10^log10lambda)*Spl )  #0 to give this group zero exposures
-       # Could also use "1/high.risk.multiplier" if we don't want ZERO exposures
+       # Could also use "1/(10^log10riskmultiplier)" if we don't want ZERO exposures
     
     #VACCINE arm
     #Susceptible, Infected, vaccine, high, medium, low
-    SIvh.flow <- unname( high.risk.multiplier*(10^log10lambda)*(1-epsilon)*Svh )
+    SIvh.flow <- unname( (10^log10riskmultiplier)*(10^log10lambda)*(1-epsilon)*Svh )
     SIvm.flow <- unname( (10^log10lambda)*(1-epsilon)*Svm )
     SIvl.flow <- unname( 0*(10^log10lambda)*(1-epsilon)*Svl )  #0 to give this group zero exposures
-       # Could also use "1/high.risk.multiplier" if we don't want ZERO exposures
+       # Could also use "1/(10^log10riskmultiplier)" if we don't want ZERO exposures
     
     # ODEs
-    # placebo; heterogeneous high.risk.multiplier
+    # placebo; heterogeneous (10^log10riskmultiplier)
     # original ODE:  dSph <- -SIph.flow
     dSph <- -SIph.flow
-    dIph <- SIph.flow  #high.risk.multiplier*lambda*Sph
+    dIph <- SIph.flow  #(10^log10riskmultiplier)*lambda*Sph
     dSpm <- -SIpm.flow
     dIpm <- SIpm.flow  #lambda*Spm
     dSpl <- -SIpl.flow
     dIpl <- SIpl.flow  #0*lambda*Spl
     
-    # vaccine; heterogeneous high.risk.multiplier
+    # vaccine; heterogeneous (10^log10riskmultiplier)
     dSvh <- -SIvh.flow
-    dIvh <- SIvh.flow  #high.risk.multiplier*lambda*(1-epsilon)*Svh
+    dIvh <- SIvh.flow  #(10^log10riskmultiplier)*lambda*(1-epsilon)*Svh
     dSvm <- -SIvm.flow
     dIvm <- SIvm.flow  #lambda*Svm
     dSvl <- -SIvl.flow
@@ -99,7 +97,7 @@ mod.manipulate.threegroup <- function( mod ) {
 run.and.compute.run.stats.threegroup <- function (
       epsilon,   #per contact vaccine efficacy
       log10lambda,     #log10( beta*c*prev ),
-      high.risk.multiplier,          # Risk multiplier for high risk group
+      log10riskmultiplier,          # log10( risk multiplier for high risk group )
       highRiskProportion,
       lowRiskProportion,             # This is a proportion among those not high risk
       vaccinatedProportion = 0.5,  # In lieu of naming vaccine and placebo arms separately (and their N)
@@ -107,7 +105,7 @@ run.and.compute.run.stats.threegroup <- function (
       trial.evaluation.time = 3*365
 ) {
       # Paul added the other params to this (risk here, others below):
-      param <- param.dcm(epsilon = epsilon, log10lambda = log10lambda, high.risk.multiplier = high.risk.multiplier );
+      param <- param.dcm(epsilon = epsilon, log10lambda = log10lambda, log10riskmultiplier = log10riskmultiplier );
 
       # initial values
       Svh <- floor( highRiskProportion * vaccinatedProportion * trialSize );
@@ -153,4 +151,4 @@ run.and.compute.run.stats.threegroup <- function (
 } # run.and.compute.run.stats.threegroup (..)
 
 common.parameters <- c( "epsilon" );
-trial.parameters <- c( "log10lambda", "high.risk.multiplier", "highRiskProportion", "lowRiskProportion" );
+trial.parameters <- c( "log10lambda", "log10riskmultiplier", "highRiskProportion", "lowRiskProportion" );

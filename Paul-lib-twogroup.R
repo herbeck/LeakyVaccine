@@ -17,25 +17,25 @@ si.ode.twogroup.fn <- function ( times, init, param ) {
     #PLACEBO arm
     #Susceptible, Infected, placebo, high, medium, low
     #SIph.flow <- risk*lambda*Sph # line from original model, FYI
-    SIph.flow <- unname( high.risk.multiplier*(10^log10lambda)*Sph ) # Because this can't go negative, high.risk.multiplier must be <= 1/(10^log10lambda). See bounds defs.
+    SIph.flow <- unname( (10^(log10riskmultiplier+log10lambda))*Sph ) # Because this can't go negative, log10riskmultiplier+log10lambda must be < 0. See bounds defs.
     SIpl.flow <- unname( (10^log10lambda)*Spl )
 
     #VACCINE arm
     #Susceptible, Infected, vaccine, high, medium, low
-    SIvh.flow <- unname( high.risk.multiplier*(10^log10lambda)*(1-epsilon)*Svh )
+    SIvh.flow <- unname( (10^log10riskmultiplier)*(10^log10lambda)*(1-epsilon)*Svh )
     SIvl.flow <- unname( (10^log10lambda)*(1-epsilon)*Svl )
 
     # ODEs
-    # placebo; heterogeneous high.risk.multiplier
+    # placebo; heterogeneous (10^log10riskmultiplier)
     # original ODE:  dSph <- -SIph.flow
     dSph <- -SIph.flow
-    dIph <- SIph.flow  #high.risk.multiplier*lambda*Sph
+    dIph <- SIph.flow  #(10^log10riskmultiplier)*lambda*Sph
     dSpl <- -SIpl.flow
     dIpl <- SIpl.flow  #lambda*Spl
 
-    # vaccine; heterogeneous high.risk.multiplier
+    # vaccine; heterogeneous (10^log10riskmultiplier)
     dSvh <- -SIvh.flow
-    dIvh <- SIvh.flow  #high.risk.multiplier*lambda*(1-epsilon)*Svh
+    dIvh <- SIvh.flow  #(10^log10riskmultiplier)*lambda*(1-epsilon)*Svh
     dSvl <- -SIvl.flow
     dIvl <- SIvl.flow  #lambda*Svl
 
@@ -88,13 +88,13 @@ mod.manipulate.twogroup <- function( mod ) {
 run.and.compute.run.stats.twogroup <- function (
       epsilon,   #per contact vaccine efficacy
       log10lambda,     #log10( beta*c*prev ),
-      high.risk.multiplier,          # Risk multiplier for high risk group
+      log10riskmultiplier,          # log10( risk multiplier for high risk group )
       highRiskProportion,
       vaccinatedProportion = 0.5,  # In lieu of naming vaccine and placebo arms separately (and their N)
       trialSize = 10000,  # Now we just have to add this magic number for size
       trial.evaluation.time = 3*365
 ) {
-      param <- param.dcm(epsilon = epsilon, log10lambda = log10lambda, high.risk.multiplier = high.risk.multiplier );
+      param <- param.dcm(epsilon = epsilon, log10lambda = log10lambda, log10riskmultiplier = log10riskmultiplier );
  
       # initial values
       Svh <- floor( highRiskProportion * vaccinatedProportion * trialSize );
@@ -133,4 +133,4 @@ run.and.compute.run.stats.twogroup <- function (
 } # run.and.compute.run.stats.twogroup (..)
 
 common.parameters <- c( "epsilon" );
-trial.parameters <- c( "log10lambda", "high.risk.multiplier", "highRiskProportion" );
+trial.parameters <- c( "log10lambda", "log10riskmultiplier", "highRiskProportion" );
