@@ -290,7 +290,7 @@ optimize.iteratively <- function ( current.parameters, target.stats, target.stat
             cat( "DID NOT CONVERGE (max steps reached).", fill = TRUE );
         }
     }
-    return( c( current.parameters, current.stats, dist = unname( current.value ) ) );
+    return( c( current.parameters, unlist( current.stats ), dist = unname( current.value ) ) );
 } # optimize.iteratively (..)
 
 # turn the input params (eg from enclosing Shiny app), for some reason called "reac" (maybe something to do with Shiny?), into the full parameter set that we need in order to run the analysis.
@@ -397,14 +397,11 @@ runSim_hvtn705.create.params.list <- function ( reac ) {
 } # runSim_hvtn705.create.params.list ()
 
 # uses params, so do within "with( runSim_hvtn705.create.params.list( reac ), .."
-draw.from.priors <- function () {
+draw.from.priors <- function ( .f.abc ) {
     ## PHASE 1: Find candidate complete 9-parameter starting places constructed from merging epsion-bin-specific, trial-specific local optima that share common ranges of epsilon across the two trials. Later (in phase 2) we will find 9-parameter local optima near each of these candidate starting places.
     ## First we draw num.sims draws, then for each candidate epsilon bin we compute the study-specific distances for points falling in that bin (computed using just that study's two target stats), and cluster all points within 1.05-fold (see max.dist.scaled) of the furthest of the set of the top (abc.keep.num.sims/num.sims) (eg 2.5%) of samples within that bin, to ensure a minimum number of points and the extra points up to max.dist.scaled ensures that we keep additional points to help flesh out the contours of the space just below these peaks. This might possibly help with the clustering but it's not entirely clear yet how sensitive things are to max.dist.scaled.
 
     # First we just draw num.sims draws from the priors, independently. Keep everything drawn. Compute the 4-parameter target stats from runs with these 9-parameter random starting places, and the standard deviations of these 4-parameter stats (which we use to scale the distance function on the target stats for balancing the optimization evenly across the parameters, see below).
-    .f.abc <- function( x ) {
-        unlist( run.and.compute.run.stats.hvtn705( epsilon = x[ 1 ], hvtn705.log10lambda = x[ 2 ], hvtn705.log10riskmultiplier = x[ 3 ], hvtn705.highRiskProportion = x[ 4 ], hvtn705.lowRiskProportion = x[ 5 ] ) )
-    }
     fit.rej <- ABC_rejection(
                              model = .f.abc,
                              prior = priors,
@@ -418,7 +415,7 @@ draw.from.priors <- function () {
     names( fit.rej$stats_normalization ) <- names( target.stats );
 
     return( fit.rej );
-} # draw.from.priors ()
+} # draw.from.priors ( .. )
 
 # Define functions that operate on hvtn705.Tukey.whisker.bounds.by.trial.cluster:
 # Once we find a pair with overlapping epsilon windows (one from each trial) we use this to add a new set of bounds to the candidate.parameter.sets.high and candidate.parameter.sets.low values, which are returned by this.
@@ -543,9 +540,12 @@ runSim_hvtn705 <- function( reac = c( "numExecution" = 10 ) ) { # Use numExecuti
     ## To restart from a saved one do this instead:
 
     ## TODO: REMOVE
-    #load( file = "fit.rej.10k.with24mo.threegroup.Rda" )
-    fit.rej <- draw.from.priors(); 
-    #save( fit.rej, file = "fit.rej.10k.with24mo.threegroup.Rda" )
+    #load( file = "fit.rej.hvtn705.10k.threegroup.Rda" )
+    .f.abc <- function( x ) {
+        unlist( run.and.compute.run.stats.hvtn705( epsilon = x[ 1 ], hvtn705.log10lambda = x[ 2 ], hvtn705.log10riskmultiplier = x[ 3 ], hvtn705.highRiskProportion = x[ 4 ], hvtn705.lowRiskProportion = x[ 5 ] ) )
+    }
+    fit.rej <- draw.from.priors( .f.abc ); 
+    #save( fit.rej, file = "fit.rej.hvtn705.10k.threegroup.Rda" )
     
     # Note that this is all we need to retain from the original fit.rej for phase 2:
     target.stat.stdevs <-

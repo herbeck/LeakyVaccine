@@ -474,14 +474,11 @@ runSim_rv144.hvtn702.create.params.list <- function ( reac ) {
 } # runSim_rv144.hvtn702.create.params.list ()
 
 # uses params, so do within "with( runSim_rv144.hvtn702.create.params.list( reac ), .."
-draw.from.priors <- function () {
+draw.from.priors <- function ( .f.abc ) {
     ## PHASE 1: Find candidate complete 9-parameter starting places constructed from merging epsion-bin-specific, trial-specific local optima that share common ranges of epsilon across the two trials. Later (in phase 2) we will find 9-parameter local optima near each of these candidate starting places.
     ## First we draw num.sims draws, then for each candidate epsilon bin we compute the study-specific distances for points falling in that bin (computed using just that study's two target stats), and cluster all points within 1.05-fold (see max.dist.scaled) of the furthest of the set of the top (abc.keep.num.sims/num.sims) (eg 2.5%) of samples within that bin, to ensure a minimum number of points and the extra points up to max.dist.scaled ensures that we keep additional points to help flesh out the contours of the space just below these peaks. This might possibly help with the clustering but it's not entirely clear yet how sensitive things are to max.dist.scaled.
 
     # First we just draw num.sims draws from the priors, independently. Keep everything drawn. Compute the 4-parameter target stats from runs with these 9-parameter random starting places, and the standard deviations of these 4-parameter stats (which we use to scale the distance function on the target stats for balancing the optimization evenly across the parameters, see below).
-    .f.abc <- function( x ) {
-        unlist( run.and.compute.run.stats.rv144.hvtn702( epsilon = x[ 1 ], rv144.log10lambda = x[ 2 ], rv144.log10riskmultiplier = x[ 3 ], rv144.highRiskProportion = x[ 4 ], rv144.lowRiskProportion = x[ 5 ], hvtn702.log10lambda = x[ 6 ], hvtn702.log10riskmultiplier = x[ 7 ], hvtn702.highRiskProportion = x[ 8 ], hvtn702.lowRiskProportion = x[ 9 ] ) )
-    }
     fit.rej <- ABC_rejection(
                              model = .f.abc,
                              prior = priors,
@@ -495,7 +492,7 @@ draw.from.priors <- function () {
     names( fit.rej$stats_normalization ) <- names( target.stats );
 
     return( fit.rej );
-} # draw.from.priors ()
+} # draw.from.priors ( .. )
 
 # Define functions that operate on rv144.Tukey.whisker.bounds.by.trial.clusterand hvtn702.Tukey.whisker.bounds.by.trial.cluster:
 # Once we find a pair with overlapping epsilon windows (one from each trial) we use this to add a new set of bounds to the candidate.parameter.sets.high and candidate.parameter.sets.low values, which are returned by this.
@@ -682,7 +679,10 @@ runSim_rv144.hvtn702 <- function( reac = c( "numExecution" = 10 ) ) { # Use numE
 
     ## TODO: REMOVE
     #load( file = "fit.rej.10k.with24mo.threegroup.Rda" )
-    fit.rej <- draw.from.priors(); 
+    .f.abc <- function( x ) {
+        unlist( run.and.compute.run.stats.rv144.hvtn702( epsilon = x[ 1 ], rv144.log10lambda = x[ 2 ], rv144.log10riskmultiplier = x[ 3 ], rv144.highRiskProportion = x[ 4 ], rv144.lowRiskProportion = x[ 5 ], hvtn702.log10lambda = x[ 6 ], hvtn702.log10riskmultiplier = x[ 7 ], hvtn702.highRiskProportion = x[ 8 ], hvtn702.lowRiskProportion = x[ 9 ] ) )
+    }
+    fit.rej <- draw.from.priors( .f.abc ); 
     #save( fit.rej, file = "fit.rej.10k.with24mo.threegroup.Rda" )
     
     # Note that this is all we need to retain from the original fit.rej for phase 2:
