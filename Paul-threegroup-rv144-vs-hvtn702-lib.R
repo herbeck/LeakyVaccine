@@ -493,6 +493,8 @@ draw.from.priors <- function () {
     colnames( fit.rej$param ) <- all.parameters;
     colnames( fit.rej$stats ) <- names( target.stats );
     names( fit.rej$stats_normalization ) <- names( target.stats );
+
+    return( fit.rej );
 } # draw.from.priors ()
 
 # Define functions that operate on rv144.Tukey.whisker.bounds.by.trial.clusterand hvtn702.Tukey.whisker.bounds.by.trial.cluster:
