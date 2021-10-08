@@ -1,0 +1,12 @@
+
+version: '3.7'
+services:
+  client:
+    container_name: LeakyVaccine
+    build:
+        context: .
+        dockerfile: source/dockerfile
+    ports:
+      - "3838:3838"
+      - "80:80"
+      

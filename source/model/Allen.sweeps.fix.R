@@ -1,7 +1,3 @@
-## Allen Roberts
-## April 2021
-## Investigate waning estimated vaccine efficacy under different levels of heterogeneity and initial conditions
-
 rm(list = ls())
 
 library(deSolve)
@@ -13,21 +9,21 @@ library(ggplot2)
 library(viridis)
 
 ## Helper functions
-source("ve_sim_fns.R")
+source("model/ve_sim_fns.R")
 
-beta <- 0.004   #transmission rate (per contact)
-c <- 25/365    #contact rate (contacts per day). Sets underlying risk in low risk group.
-prev <- 0.10    #needs some more consideration
+beta <- 0.004   # transmission rate (per contact)
+c <- 25/365    # contact rate (contacts per day). Sets underlying risk in low risk group.
+prev <- 0.10   # needs some more consideration
 lambda <- beta*c*prev
-1-exp(-lambda*365) ## Annual risk 
-epsilon <- 0.30  #per contact vaccine efficacy
-n <- 5000 ## Sample size
-inc <- 0.04 ## Overall estimated annual risk to calibrate to
+1-exp(-lambda*365) # Annual risk 
+epsilon <- 0.30  # per contact vaccine efficacy
+n <- 5000     # Sample size
+inc <- 0.04   # Overall estimated annual risk to calibrate to
 nsteps <- 365*3
 
 ## Test different proportions in high risk group
 prop_highs <- seq(0.05, 0.5, by = 0.05)
-output <- data.frame(prop_high = rep(prop_highs, each = nsteps), step = 1:nsteps, cum_efficacy = NA, inst_efficacy = NA)
+output <- data.frame(prop_high = rep(prop_highs, each = nsteps), step = 1:nsteps, cumulative_efficacy = NA, inst_efficacy = NA)
 
 for(prop_high in prop_highs) {
   
@@ -47,20 +43,20 @@ for(prop_high in prop_highs) {
                    SIvh.flow = 0, SIvl.flow = 0)
   control <- control.dcm(nsteps = nsteps, new.mod = si_ode)
   
-  param <- param.dcm(lambda = lambda, epsilon = epsilon, inc = inc, prop_high = prop_high)
+  param <- param.dcm(lambda = lambda, epsilon = epsilon, inc = inc, prop_high = prop_high, n=n)
   mod <- dcm(param, init, control)
   mod
   
   mod <- mod.manipulate(mod)
   
-  output$cum_efficacy[output$prop_high == prop_high] <- mod$epi$VE2.cumul[, 1]
+  output$cumulative_efficacy[output$prop_high == prop_high] <- mod$epi$VE2.cumul[, 1]
   output$inst_efficacy[output$prop_high == prop_high] <- mod$epi$VE2.inst[, 1]
   
 }
 
 out <- output %>%
-  pivot_longer(cols = c("cum_efficacy", "inst_efficacy"), names_to = "metric")
-  
+  pivot_longer(cols = c("cumulative efficacy", "inst_efficacy"), names_to = "metric")
+
 ve_by_prop_high <- ggplot(data = out, aes(x = step, y = value, group = prop_high)) +
   geom_line(aes(color = prop_high)) +
   geom_abline(intercept = epsilon, slope = 0, linetype = "dashed") +
@@ -71,6 +67,20 @@ ve_by_prop_high <- ggplot(data = out, aes(x = step, y = value, group = prop_high
   ggtitle(paste("Incidence = ", inc, "VE =", epsilon)) +
   theme_classic()
 
+#Plot just cumulative efficacy
+
+out.cumulative <- output %>%
+  pivot_longer(cols = c("cumulative_efficacy"), names_to = "metric")
+
+ve_by_prop_high <- ggplot(data = out.cumulative, aes(x = step, y = value, group = prop_high)) +
+  geom_line(aes(color = prop_high)) +
+  geom_abline(intercept = epsilon, slope = 0, linetype = "dashed") +
+  scale_color_viridis(name = "Proportion high risk") +
+  labs(x = "Time (days)", y = "Estimated VE") +
+  scale_y_continuous(limits = c(0, 0.5), breaks = seq(0, 1, by = 0.1)) +
+  facet_wrap(~metric) +
+  ggtitle(paste("Incidence = ", inc, "Per-exposure VE =", epsilon)) +
+  theme_classic()
 
 ## Test different incidence levels
 incs <- seq(0.01, 0.06, by = 0.005)
@@ -96,13 +106,13 @@ for(inc in incs) {
                    SIvh.flow = 0, SIvl.flow = 0)
   control <- control.dcm(nsteps = nsteps, new.mod = si_ode)
   
-  param <- param.dcm(lambda = lambda, epsilon = epsilon, inc = inc, prop_high = prop_high)
+  param <- param.dcm(lambda = lambda, epsilon = epsilon, inc = inc, prop_high = prop_high, n=n)
   mod <- dcm(param, init, control)
   mod
   
   mod <- mod.manipulate(mod)
   
-  output$cum_efficacy[output$inc == inc] <- mod$epi$VE2.cumul[, 1]
+  output$cumulative_efficacy[output$inc == inc] <- mod$epi$VE2.cumul[, 1]
   output$inst_efficacy[output$inc == inc] <- mod$epi$VE2.inst[, 1]
   
 }
@@ -118,6 +128,21 @@ ve_by_inc <- ggplot(data = out, aes(x = step, y = value, group = inc)) +
   scale_y_continuous(limits = c(0, 0.5), breaks = seq(0, 1, by = 0.1)) +
   facet_wrap(~metric) +
   ggtitle(paste("Prop high = ", prop_high, "VE =", epsilon)) +
+  theme_classic()
+
+#Plot just cumulative efficacy
+
+out.cumulative <- output %>%
+  pivot_longer(cols = c("cumulative_efficacy"), names_to = "metric")
+
+ve_by_inc <- ggplot(data = out.cumulative, aes(x = step, y = value, group = inc)) +
+  geom_line(aes(color = inc)) +
+  geom_abline(intercept = epsilon, slope = 0, linetype = "dashed") +
+  scale_color_viridis(name = "Incidence") +
+  labs(x = "Time (days)", y = "Estimated VE") +
+  scale_y_continuous(limits = c(0, 0.5), breaks = seq(0, 1, by = 0.1)) +
+  facet_wrap(~metric) +
+  ggtitle(paste("Prop high = ", prop_high, "Per-exposure VE =", epsilon)) +
   theme_classic()
 
 ## Test different vaccine efficacies
@@ -145,7 +170,7 @@ for(epsilon in epsilons) {
                    SIvh.flow = 0, SIvl.flow = 0)
   control <- control.dcm(nsteps = nsteps, new.mod = si_ode)
   
-  param <- param.dcm(lambda = lambda, epsilon = epsilon, inc = inc, prop_high = prop_high)
+  param <- param.dcm(lambda = lambda, epsilon = epsilon, inc = inc, prop_high = prop_high, n=n)
   mod <- dcm(param, init, control)
   mod
   
@@ -164,7 +189,7 @@ ve_by_epsilon <- ggplot(data = out, aes(x = step, y = value, group = epsilon)) +
   geom_abline(aes(intercept = epsilon, slope = 0, colour = epsilon), linetype = "dashed") +
   scale_color_viridis(name = "Epsilon") +
   labs(x = "Time (days)", y = "Estimated vaccine efficacy") +
- # scale_y_continuous(limits = c(0, 0.5), breaks = seq(0, 1, by = 0.1)) +
+  # scale_y_continuous(limits = c(0, 0.5), breaks = seq(0, 1, by = 0.1)) +
   facet_wrap(~metric) +
   ggtitle(paste("Prop high = ", prop_high, "Incidence =", inc)) +
   theme_classic()
@@ -206,4 +231,3 @@ dev.off()
 #      col = 1:4)
 # legend("topright", legend = c("Instantanteous VE, homogeneous risk", "Inst VE, heterogeneous risk", "Cumulative VE, homogeneous risk", "Cumul VE, heterogeneous risk"),
 #        col = 1:4, lwd = 2, cex = 0.9, bty = "n")
-
