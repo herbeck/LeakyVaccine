@@ -34,7 +34,7 @@ From Gomes et al., 2016:  "This effect is more pronounced in the control group a
 
 ### Model setup  
 
-We are modeling a closed population SI deterministic compartmental model meant to simulate a vaccine trial. We are not modeling infections from I to S but rather only infections from the outside (non-trial) population, with the infection rate based on the population prevalence `prev` (of viremic individuals), the exposure rate (serodiscordant sexual contacts per time) `c`, and the transmission rate (per contact) `beta`. The per contact effect of vaccination is `epsilon`, and with this iteration of the model `epsilon` is: 1) not time-varying (the per contact vaccine effect does not decay over time); and 2) assumes a homogeneous effect (does not vary by mark / viral genotype). This model structure also removes the possibility of indirect effects from vaccination.  
+We are modeling a closed population SI deterministic compartmental model meant to simulate a vaccine trial. We are not modeling infections from I to S but rather only infections from the outside (non-trial) population, with the infection rate based on the population prevalence `prev` (of viremic individuals), the exposure rate (serodiscordant sexual contacts per time) `c`, and the transmission rate (per contact) `p`. The per contact effect of vaccination is `epsilon`, and with this iteration of the model `epsilon` is: 1) not time-varying (the per contact vaccine effect does not decay over time); and 2) assumes a homogeneous effect (does not vary by mark / viral genotype). This model structure also removes the possibility of indirect effects from vaccination.  
 
 We are, with this early iteration, including just three subgroups in the heterogeneous exposure population: high, medium, and low exposure. Right now we do not know the correct size of these subgroups (i.e. fraction of the population) or their relative contribution to overall incidence. First pass is 10% high risk, 80% medium risk, 10% low risk (and low risk is set at zero risk), as this, in combination with a 10% `risk` multiplier, results in 3.5% incidence in a putative population with no vaccine (placebo arm) and no exposure heterogeneity.  
 
@@ -59,7 +59,7 @@ Iv = infected vaccinated
 
 Svh = susceptible vaccinated high exposure  
 Svm = susceptible vaccinated medium exposure  
-SvL = susceptible vaccinated low exposure (zero in this instance)  
+Svl = susceptible vaccinated low exposure (zero in this instance)  
 Ivh = infected vaccinated high exposure  
 Ivm = infected vaccinated medium exposure  
 Ivl = infected vaccinated low exposure (zero in this instance)  
@@ -86,10 +86,14 @@ si_ode <- function(times, init, param){
     
     # Flows
     # the number of people moving from S to I at each time step
+   
+    #Homogeneous risk
     #Susceptible, Infected, placebo
     SIp.flow <- lambda*Sp
+    #Susceptible, Infected, vaccine
     SIv.flow <- lambda*(1-epsilon)*Sv
     
+    #Heterogeneous risk
     #Susceptible, Infected, placebo, high, medium, low
     SIph.flow <- risk*lambda*Sph
     SIpm.flow <- lambda*Spm
@@ -98,6 +102,8 @@ si_ode <- function(times, init, param){
     
     #Susceptible, Infected, vaccine, high, medium, low
     SIvh.flow <- risk*lambda*(1-epsilon)*Svh
+    # Paul fixed this bug:
+    #SIvm.flow <- lambda*(1-epsilon)*Spl
     SIvm.flow <- lambda*(1-epsilon)*Svm
     #SIvl.flow <- 0*lambda*(1-epsilon)*Svl  #zero risk in the low risk group 
     SIvl.flow <- (1/risk)*lambda*(1-epsilon)*Svl  #inverse risk 
@@ -192,7 +198,7 @@ return(mod)
 
 ```{r parameters}
 
-beta <- 0.004   #transmission rate (per contact)
+beta <- 0.00375   #transmission rate (per contact)
 c <- 90/365    #contact rate (contacts per day)
 prev <- 0.10    #needs some consideration
 #prev <- 0.01
@@ -206,115 +212,39 @@ risk <- 10.0   #risk multiplier
 
 We are using the EpiModel framework, http://www.epimodel.org/, with help from Sam Jenness (Emory University).  
 
-Note that this code chunk includes the model initiation piece, in which among other things we initialize the overall population size and the size of any subpopulations defined by exposure risk. 
+Note that this code chunk includes the model initiation piece, in which among other things we initialize the overall population size and the size of any sub-populations defined by exposure risk. 
 
 First pass at the size of these risk subpopulations are 10% high risk, 80% medium risk, and 10% no (zero) risk. (This parameterization is tough:  Dimitrov et al 2015 even suggest that the MAJORITY of individuals in trials are NOT exposed; https://pubmed.ncbi.nlm.nih.gov/25569838/)
   
 ```{r EpiModel}
 
 param <- param.dcm(lambda = lambda, epsilon = epsilon, risk = risk)
-init <- init.dcm(Sp = 10000, Ip = 0,  #placebo, homogeneous risk population
-                 Sv = 10000, Iv = 0,  #vaccine, homogeneous risk population
+init <- init.dcm(Sp = 10000, Ip = 0,
+                 Sv = 10000, Iv = 0,
                  Sph = 1000, Iph = 0,    #placebo, high risk
-                 Spm = 6000, Ipm = 0,    #placebo, medium risk
-                 Spl = 3000, Ipl = 0,    #placebo, low risk
+                 Spm = 5500, Ipm = 0,    #placebo, medium risk
+                 Spl = 3500, Ipl = 0,    #placebo, low risk
                  Svh = 1000, Ivh = 0,    #vaccine, high risk
-                 Svm = 6000, Ivm = 0,    #vaccine, medium risk
-                 Svl = 3000, Ivl = 0,    #vaccine, low risk
+                 Svm = 5500, Ivm = 0,    #vaccine, medium risk
+                 Svl = 3500, Ivl = 0,    #vaccine, low risk
                  SIp.flow = 0, SIv.flow = 0, 
                  SIph.flow = 0, SIpm.flow = 0, SIpl.flow = 0,
                  SIvh.flow = 0, SIvm.flow = 0, SIvl.flow = 0)
 
-control <- control.dcm(nsteps = 365*3, new.mod = si_ode)
+control <- control.dcm(nsteps = 365*6, new.mod = si_ode)
 mod <- dcm(param, init, control)
-mod <- mod.manipulate(mod)
 mod
+
+mod <- mod.manipulate(mod)
 
 ```
 
 
 ### Model plots  
 
-#### Start with homogeneous risk
-Let's start by showing two populations with homogeneous risk but different forces of infection (incidence in the placebo arm). Let's set the first population incidence at 0.3 infections/100 py.
-
-Let's plot the cumulative infections in each population.
-
-Run the model with low incidence parameters (0.03 inf/100py)
-```{r parameters low incidence homogeneous}
-
-beta <- 0.004   #transmission rate (per contact)
-c <- 90/365    #contact rate (contacts per day)
-prev <- 0.10    #needs some consideration
-#prev <- 0.01
-lambda <- beta*c*prev
-#lambda <- 0.000008398975
-epsilon <- 0.30  #per contact vaccine efficacy
-risk <- 10.0   #risk multiplier
-```
-
-```{r EpiModel}
-
-param <- param.dcm(lambda = lambda, epsilon = epsilon, risk = risk)
-init <- init.dcm(Sp = 10000, Ip = 0,  #placebo, homogeneous risk population
-                 Sv = 10000, Iv = 0,  #vaccine, homogeneous risk population
-                 Sph = 1000, Iph = 0,    #placebo, high risk
-                 Spm = 6000, Ipm = 0,    #placebo, medium risk
-                 Spl = 3000, Ipl = 0,    #placebo, low risk
-                 Svh = 1000, Ivh = 0,    #vaccine, high risk
-                 Svm = 6000, Ivm = 0,    #vaccine, medium risk
-                 Svl = 3000, Ivl = 0,    #vaccine, low risk
-                 SIp.flow = 0, SIv.flow = 0, 
-                 SIph.flow = 0, SIpm.flow = 0, SIpl.flow = 0,
-                 SIvh.flow = 0, SIvm.flow = 0, SIvl.flow = 0)
-
-control <- control.dcm(nsteps = 365*3, new.mod = si_ode)
-mod <- dcm(param, init, control)
-mod <- mod.manipulate(mod)
-```
-
-```{r}
-lambda <- lambda*2   #transmission rate (per contact)
-
-param <- param.dcm(lambda = lambda, epsilon = epsilon, risk = risk)
-init <- init.dcm(Sp = 10000, Ip = 0,  #placebo, homogeneous risk population
-                 Sv = 10000, Iv = 0,  #vaccine, homogeneous risk population
-                 Sph = 1000, Iph = 0,    #placebo, high risk
-                 Spm = 7000, Ipm = 0,    #placebo, medium risk
-                 Spl = 2000, Ipl = 0,    #placebo, low risk
-                 Svh = 1000, Ivh = 0,    #vaccine, high risk
-                 Svm = 7000, Ivm = 0,    #vaccine, medium risk
-                 Svl = 2000, Ivl = 0,    #vaccine, low risk
-                 SIp.flow = 0, SIv.flow = 0, 
-                 SIph.flow = 0, SIpm.flow = 0, SIpl.flow = 0,
-                 SIvh.flow = 0, SIvm.flow = 0, SIvl.flow = 0)
-
-control <- control.dcm(nsteps = 365*3, new.mod = si_ode)
-mod <- dcm(param, init, control)
-
-mod <- mod.manipulate(mod)
-
-```
-
-```{r}
-
-plot(mod, y = c("Ip", "total.Iph.Ipm.Ipl"),
-     alpha = 0.8, 
-     main = "Cumulative infections",
-     legend = FALSE,
-     ylab = "infected individuals",
-     xlab = "days",
-     col = c("blue", "red"))
-legend("bottomright", legend = c("homogeneous risk, incidence = 0.3", "homogeneous risk, incidence = 3.0"), col = c("blue", "red"), lwd = 2, cex = 0.9, bty = "n")
-```
-
-
-
-Let's show the cumulative infections in a (placebo) population with and without exposure heterogeneity, over the course of a standard 3 year trial. The population size is 10000. 
+First let's show the cumulative infections in a (placebo) population with and without exposure heterogeneity, over the course of a standard 3 year trial. The population size is 10000. 
 
 This exposure heterogeneity is set (first pass, qualitatively calibrated) to equal size of the high risk and low risk, with an `x` risk multiplier (not specifying whether this risk is elevated due to individual contact rate, the per-contact transmission probability, or the prevalence of viremia in the contacts of the high risk individuals).  
-
-Let's plot the cumulative infections in each population.
  
 ```{r}
 
@@ -328,7 +258,7 @@ plot(mod, y = c("Ip", "total.Iph.Ipm.Ipl"),
 legend("bottomright", legend = c("homogeneous risk", "heterogeneous risk"), col = c("blue", "red"), lwd = 2, cex = 0.9, bty = "n")
 ```
 
-Now let's plot hazard / instantaneous incidence in these two populations.  
+Let's just plot hazard/instantaneous incidence in these two populations.  
 
 ```{r}
 
@@ -337,12 +267,12 @@ Now let's plot hazard / instantaneous incidence in these two populations.
 plot(mod, y=c("rate.Placebo", "rate.Placebo.het"),
      alpha = 0.8,
      ylim = c(0, 4.5),
-     main = "Hazard",
+     main = "Instantaneous incidence",
      xlab = "days",
      ylab = "infections per 100 person yrs",
      legend = FALSE,
      col = c("blue", "red"))
-legend("bottomright", legend = c("homogen. risk", "heterogen. risk"), col = c("blue", "red"), lwd = 2, cex = 0.9, bty = "n")
+legend("bottomright", legend = c("homogeneous risk", "heterogeneous risk"), col = c("blue", "red"), lwd = 2, cex = 0.9, bty = "n")
 
 par(mfrow=c(1,1))
 ```
@@ -351,7 +281,7 @@ Now we roll out a vaccine, first in the population with homogeneous exposure.
 
 ```{r}
 
-mod <- mod.manipulate(mod)
+#mod <- mod.manipulate(mod)
 
 plot(mod, y=c("cumul.rate.Placebo", "cumul.rate.Vaccine"),
      alpha = 0.8,
@@ -368,7 +298,7 @@ Vaccine now in the heterogeneous risk population, added to the above plot
 
 ```{r}
 
-mod <- mod.manipulate(mod)
+#mod <- mod.manipulate(mod)
 
 plot(mod, y=c("cumul.rate.Placebo", "cumul.rate.Vaccine", "cumul.rate.Placebo.het", "cumul.rate.Vaccine.het"),
      alpha = 0.8,
@@ -384,7 +314,7 @@ legend("bottomright", legend = c("placebo, homogeneous risk", "vaccine, homogene
 Instantaneous incidence / hazard, for the same comparison
 
 ```{r}
-mod <- mod.manipulate(mod)
+#mod <- mod.manipulate(mod)
 
 plot(mod, y=c("rate.Placebo", "rate.Vaccine"),
      alpha = 0.8,
@@ -401,17 +331,17 @@ Vaccine now in the heterogeneous risk
 
 ```{r}
 
-mod <- mod.manipulate(mod)
+#mod <- mod.manipulate(mod)
 
 plot(mod, y=c("rate.Placebo", "rate.Vaccine", "rate.Placebo.het", "rate.Vaccine.het"),
      alpha = 0.8,
-     ylim = c(0, 4.5),
-     main = "Hazard",
+     ylim = c(0, 6.0),
+     main = "HIV vaccine trial incidence",
      xlab = "days",
      ylab = "infections per 100 person yrs",
      legend = FALSE,
      col = c("blue", "green", "red", "orange"))
-legend("bottomright", legend = c("placebo, homogeneous risk", "vaccine, homogeneous risk", "placebo, heterogeneous risk", "vaccine, heterogeneous risk"), col = c("blue", "green", "red", "orange"), lwd = 2, cex = 0.9, bty = "n")
+legend("bottomright", legend = c("placebo, homogeneous risk", "vaccine, homogeneous risk", "placebo, heterogeneous risk", "vaccine, heterogeneous risk"), col = c("blue", "green", "red", "orange"), lwd = 2, cex = 0.8, bty = "n")
 ```
 
 Now we can move to vaccine efficacy estimates. We use hazard (instantaneous incidence) rather than cumulative incidence.
@@ -420,12 +350,12 @@ Now we can move to vaccine efficacy estimates. We use hazard (instantaneous inci
 
 plot(mod, y=c("VE1.inst", "VE2.inst"),
      alpha = 0.8,
-     main = "Vaccine efficacy",
+     main = "Vaccine efficacy over time",
      legend = FALSE, 
      xlab = "days",
-     ylab = "Vaccine efficacy",
+     ylab = "Estimated vaccine efficacy",
      col = c("blue", "red"))
-legend("topright", legend = c("VE, homogeneous risk", "VE, heterogeneous risk"), col = c("blue", "red"), lwd = 2, cex = 0.9, bty = "n")
+legend("topright", legend = c("estimated VE, homogeneous risk", "estimated VE, heterogeneous risk"), col = c("blue", "red"), lwd = 2, cex = 0.9, bty = "n")
 ```
 
 This simple example shows that exposure heterogeneity in a simplified HIV vaccine trial can result in waning *realized* vaccine efficacy, even as the per-contact vaccine efficacy (`epsilon`) remains the same. Also note that exposure heterogeneity in a longitudinal trial or study population may result in elevated incidence in the early stages of the study, as the high risk subgroup is depleted more quickly than the medium and low risk subgroups.  
@@ -456,8 +386,7 @@ Set the target stats:
 ```{r target.stats, eval=FALSE, include=TRUE}
 
 time <- c(360,720,1080)  # 3 years
-#placebo.incidence <- c(0.39, 0.32, 0.28)    # RV144 incidence per 100 person years; adjust accordingly
-placebo.incidence <- c(3.0, 3.0, 3.0)  # HVTN 702 incidence
+placebo.incidence <- c(0.39, 0.32, 0.28)    # incidence per 100 person years; adjust accordingly
 vaccine.incidence <- c(0.15, 0.21, 0.20)
 VE.target <- c(0.6, 0.4, 0.3)
 target.stats <- data.frame(time, placebo.incidence, vaccine.incidence, VE.target)
@@ -491,12 +420,12 @@ f <- function(x) {
                      risk = x[2])
   init <- init.dcm(Sp = 5000, Ip = 0,
                  Sv = 5000, Iv = 0,
-                 Sph = 1000, Iph = 0,    #placebo, high risk
-                 Spm = 3000, Ipm = 0,   #placebo, medium risk
-                 Spl = 6000, Ipl = 0,    #placebo, low risk
-                 Svh = 1000, Ivh = 0,    #vaccine
-                 Svm = 3000, Ivm = 0,    #vaccine
-                 Svl = 6000, Ivl = 0,    #vaccine
+                 Sph = 2500, Iph = 0,    #placebo, high risk
+                 Spm = 5000, Ipm = 0,   #placebo, medium risk
+                 Spl = 2500, Ipl = 0,    #placebo, low risk
+                 Svh = 2500, Ivh = 0,    #vaccine
+                 Svm = 5000, Ivm = 0,    #vaccine
+                 Svl = 2500, Ivl = 0,    #vaccine
                  SIp.flow = 0, SIv.flow = 0, 
                  SIph.flow = 0, SIpm.flow = 0, SIpl.flow = 0,
                  SIvh.flow = 0, SIvm.flow = 0, SIvl.flow = 0)
@@ -524,7 +453,7 @@ priors  <- list(#c("unif", 0.003, 0.008),      # beta
                 #c("unif", 60/365, 120/365))    # c 
                 c("unif", 0.0000005, 0.000005),  # lambda
                 #c("unif", 0.01, 0.5))         # epsilon
-                c("unif", 7, 15))            # risk multiplier
+                c("unif", 3, 15))            # risk multiplier
 ```
 
 
@@ -546,7 +475,7 @@ For this I just use ABC_rejection from the `easyABC` R package, which just draws
 
 fit.rej <- ABC_rejection(model = f,
                      prior = priors,
-                     nb_simul = 1000,
+                     nb_simul = 2000,
                      summary_stat_target = target.stats$placebo.incidence,
                      tol = 0.25,
                      progress_bar = TRUE)
@@ -586,18 +515,18 @@ We can use the median values of `lambda` and `risk` from this run to see what RV
 param <- param.dcm(beta = 0.004, 
                      c = 90/365,
                      prev = 0.10,    
-                     #lambda = median(fit$param[,1]), #4.323494e-06
-                     lambda = 5.2e-06, 
+                     lambda = median(fit$param[,1]), 
+                     #lambda = fit$param[,1], 
                      epsilon = 0.3,
                      risk = median(fit$param[,2]))
 init <- init.dcm(Sp = 5000, Ip = 0,
                  Sv = 5000, Iv = 0,
-                 Sph = 1000, Iph = 0,    #placebo, high risk
-                 Spm = 3000, Ipm = 0,   #placebo, medium risk
-                 Spl = 6000, Ipl = 0,    #placebo, low risk
-                 Svh = 1000, Ivh = 0,    #vaccine
-                 Svm = 3000, Ivm = 0,    #vaccine
-                 Svl = 6000, Ivl = 0,    #vaccine
+                 Sph = 2500, Iph = 0,    #placebo, high risk
+                 Spm = 5000, Ipm = 0,   #placebo, medium risk
+                 Spl = 2500, Ipl = 0,    #placebo, low risk
+                 Svh = 2500, Ivh = 0,    #vaccine
+                 Svm = 5000, Ivm = 0,    #vaccine
+                 Svl = 2500, Ivl = 0,    #vaccine
                  SIp.flow = 0, SIv.flow = 0, 
                  SIph.flow = 0, SIpm.flow = 0, SIpl.flow = 0,
                  SIvh.flow = 0, SIvm.flow = 0, SIvl.flow = 0)
@@ -699,6 +628,7 @@ target.stats$placebo.incidence
 Better, kind of, but hardly any waning incidence yet. Let's try a larger low risk population.
 
 
+
 ```{r easyABC.input.model.2, eval=FALSE, include=TRUE}
 
 f <- function(x) {
@@ -706,19 +636,19 @@ f <- function(x) {
                      c = 90/365,
                      prev = 0.10,    
                      #lambda = beta*c*prev,
-                     #lambda = 3.3e-06,
-                     lambda = x[1], 
+                     lambda = 3.3e-06,
+                     #lambda = x[1], 
                      epsilon = 0.3,
                      #risk = 3)
                      risk = x[1])
   init <- init.dcm(Sp = 5000, Ip = 0,
                  Sv = 5000, Iv = 0,
-                 Sph = 2000, Iph = 0,    #placebo, high risk
-                 Spm = 5000, Ipm = 0,    #placebo, medium risk
-                 Spl = 3000, Ipl = 0,    #placebo, low risk
-                 Svh = 2000, Ivh = 0,    #vaccine
-                 Svm = 5000, Ivm = 0,    #vaccine
-                 Svl = 3000, Ivl = 0,    #vaccine
+                 Sph = 100, Iph = 0,    #placebo, high risk
+                 Spm = 6000, Ipm = 0,   #placebo, medium risk
+                 Spl = 2900, Ipl = 0,    #placebo, low risk
+                 Svh = 100, Ivh = 0,    #vaccine
+                 Svm = 6000, Ivm = 0,    #vaccine
+                 Svl = 2900, Ivl = 0,    #vaccine
                  SIp.flow = 0, SIv.flow = 0, 
                  SIph.flow = 0, SIpm.flow = 0, SIpl.flow = 0,
                  SIvh.flow = 0, SIvm.flow = 0, SIvl.flow = 0)
@@ -740,9 +670,9 @@ f <- function(x) {
 
 priors  <- list(#c("unif", 0.003, 0.008),      # beta
                 #c("unif", 60/365, 120/365))    # c 
-                c("unif", 0.0000005, 0.000005),  # lambda
+                #c("unif", 0.0000005, 0.000005),  # lambda
                 #c("unif", 0.01, 0.5))         # epsilon
-                c("unif", 5, 20))            # risk multiplier
+                c("unif", 3, 15))            # risk multiplier
                 #c("unif", 500, 2000))
 ```
 
@@ -750,7 +680,7 @@ priors  <- list(#c("unif", 0.003, 0.008),      # beta
 
 fit.rej <- ABC_rejection(model = f,
                      prior = priors,
-                     nb_simul = 1000,
+                     nb_simul = 2000,
                      summary_stat_target = target.stats$placebo.incidence,
                      tol = 0.25,
                      progress_bar = TRUE)
@@ -760,13 +690,7 @@ fit.rej <- ABC_rejection(model = f,
 
 fit <- fit.rej
 #par(mfrow = c(1, 2))
-plot(density(fit$param[, 1], from = 0.0000001,  to = 0.000005),
-     main = "lambda",
-     xlab = "lambda",
-     xlim = c(0.0000001, 0.000005),
-     #ylim = c(0, 10),
-     col=2)
-plot(density(fit$param[, 2], from = 5,  to = 15),
+plot(density(fit$param[, 1], from = 5,  to = 15),
      main = "risk",
      xlab = "risk multiplier",
      xlim = c(5, 15),
@@ -778,97 +702,10 @@ plot(density(fit$param[, 2], from = 5,  to = 15),
 #      lty = c(1, 2), col = 1:2, lwd = 2)
 ```
 
-How does this scenario fit to the target stats? (10000 total, 2000 in high risk group, 4k in both medium and low risk groups)
+How does this fit to the target stats?  
 
 ```{r}
 
-#(10000 total, 2000 in high risk group, 4k in both medium and low risk groups)
-
-f(12)
-# 0.3383124 0.3353720 0.3324564
+f(14)
 target.stats$placebo.incidence
-# 0.39 0.32 0.28
 ```
-
-### Cut to the chase
-
-Let's use our poorly calibrated RV144 model, with ~0.35% incidence, add our vaccine with epsilon ~30%, and then increase the `lambda` to 3.5% and see what VE is.
-
-```{r parameters}
-
-beta <- 0.004   #transmission rate (per contact)
-c <- 90/365    #contact rate (contacts per day)
-prev <- 0.10    #needs some consideration
-#prev <- 0.01
-lambda <- 5.5e-06
-#lambda <- 0.000008398975
-epsilon <- 0.30  #per contact vaccine efficacy
-risk <- 12   #risk multiplier
-```
-
-```{r EpiModel}
-
-param <- param.dcm(lambda = lambda, epsilon = epsilon, risk = risk)
-init <- init.dcm(Sp = 5000, Ip = 0,
-                 Sv = 5000, Iv = 0,
-                 Sph = 1000, Iph = 0,    #placebo, high risk
-                 Spm = 5000, Ipm = 0,   #placebo, medium risk
-                 Spl = 5000, Ipl = 0,    #placebo, low risk
-                 Svh = 1000, Ivh = 0,    #vaccine
-                 Svm = 5000, Ivm = 0,    #vaccine
-                 Svl = 5000, Ivl = 0,    #vaccine
-                 SIp.flow = 0, SIv.flow = 0, 
-                 SIph.flow = 0, SIpm.flow = 0, SIpl.flow = 0,
-                 SIvh.flow = 0, SIvm.flow = 0, SIvl.flow = 0)
-
-control <- control.dcm(nsteps = 365*3, new.mod = si_ode)
-mod <- dcm(param, init, control)
-mod
-
-mod <- mod.manipulate(mod)
-```
-
-```{r}
-par(mfrow = c(1, 1))
-plot(mod, y=c("rate.Placebo.het", "rate.Vaccine.het"),
-     alpha = 0.8,
-     ylim = c(0, 0.5),
-     main = "Hazard",
-     xlab = "days",
-     ylab = "infections per 100 person yrs",
-     legend = FALSE,
-     col = c("blue", "green"))
-legend("bottomright", legend = c("placebo", "vaccine"), col = c("blue", "green"), lwd = 2, cex = 0.9, bty = "n")
-```
-
-Vaccine now in the heterogeneous risk
-
-```{r}
-
-mod <- mod.manipulate(mod)
-
-plot(mod, y=c("rate.Placebo.het", "rate.Vaccine.het"),
-     alpha = 0.8,
-     ylim = c(0, 0.5),
-     main = "Hazard",
-     xlab = "days",
-     ylab = "infections per 100 person yrs",
-     legend = FALSE,
-     col = c("blue", "green"))
-legend("bottomright", legend = c("placebo, heterogeneous risk", "vaccine, heterogeneous risk"), col = c("blue", "green"), lwd = 2, cex = 0.9, bty = "n")
-```
-
-Now we can move to vaccine efficacy estimates. We use hazard (instantaneous incidence) rather than cumulative incidence.
-
-```{r}
-
-plot(mod, y=c("VE2.inst"),
-     alpha = 0.8,
-     main = "Vaccine efficacy",
-     legend = FALSE, 
-     xlab = "days",
-     ylab = "Vaccine efficacy",
-     col = c("blue", "red"))
-legend("topright", legend = c("VE, heterogeneous risk"), col = c("blue"), lwd = 2, cex = 0.9, bty = "n")
-```
-

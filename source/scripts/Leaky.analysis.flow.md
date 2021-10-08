@@ -224,7 +224,7 @@ removes the possibility of indirect effects from vaccination.
 
 We are, with this early iteration, including just three subgroups in the
 heterogeneous exposure population: high, medium, and low exposure. Right
-now we do not know the correct size of these subgroups (i.e. fraction of
+now we do not know the correct size of these subgroups (i.e. fraction of
 the population) or their relative contribution to overall incidence.
 First pass is 10% high risk, 80% medium risk, 10% low risk (and low risk
 is set at zero risk), as this, in combination with a 10% `risk`

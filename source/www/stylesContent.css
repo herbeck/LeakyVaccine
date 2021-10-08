@@ -1,0 +1,65 @@
+  
+  /* for content */
+  .definition {
+    display:inline-block;
+    //font-size: 20px;
+    min-width: 70px;
+  }
+  
+  /* for hiding the ghost tab */
+  .navbar-nav > li:first-child { display: none; }
+  
+  
+  .content {
+    max-width: 700px;
+    margin-right: auto;
+    margin-left: auto;
+  }
+  
+  
+  .code {
+    padding: 2px 10px;
+    //font-size: 90%;
+    color:cornflowerblue;
+    background-color:#efefef;
+    border-radius: 4px;
+    max-width:600px;
+    margin-right: auto;
+    margin-left: auto;
+    display:flex;
+    flex-direction: column;
+    //justify-content: center;
+    
+  }
+  
+  .flex {
+    display: flex;
+  }
+  
+  
+  @media (min-width: 0px) {
+    .plotPanel {
+      height:calc(100vh - 422px);
+      overflow-y:auto;
+    }
+  }
+  
+  @media (min-width: 768px) {
+    .plotPanel {
+      height:calc(100vh - 220px);
+      overflow-y:auto;
+    }
+  }
+  
+  @media (min-width: 973px) {
+    .plotPanel {
+      height:calc(100vh - 170px);
+      overflow-y:auto;
+    }
+  }
+  
+  .slider {
+    height:calc(100vh - 230px);
+    overflow-y: auto;
+  }
+  
