@@ -1,19 +1,19 @@
 Leaky vaccine 
 =============
 
-Modeling the effects of exposure heterogeneity on vaccine clinical efficacy
+Modeling the effects of exposure heterogeneity on vaccine clinical efficacy  
 
 IDM:  
 Josh Herbeck (jherbeck@idmod.org)  
-Adam Akullian (aakullian@idmod.org)  
+Adam Akullian (aakullian@idmod.org)    
 Allen Roberts  
 David Kong  
 Minerva Enriquez  
 
 FHCRC:  
-Paul Edlefsen  (pedlefse@fredhutch.org)
+Paul Edlefsen  (pedlefse@fredhutch.org)  
 
----
+---  
 
 ### Background  
 
@@ -31,8 +31,7 @@ Here we use epidemic models to simulate this process, within and across populati
 
 2. Can exposure heterogeneity explain waning efficacies seen in other HIV prevention trials (e.g. the AMP VRC01 bnAb trials and the different results seen in the sub-studies, 703 and 704).  
 
-3. In HIV cohort studies incidence often declines over the course of the study. How much of this effect may be due to frailty bias (i.e. individuals with high risk exposure or high exposure rates becoming infected early in the observation period, while individuals with lower risk become infected later)? 
-
+3. In HIV cohort studies incidence often declines over the course of the study. How much of this effect may be due to frailty bias (i.e. individuals with high risk exposure or high exposure rates becoming infected early in the observation period, while individuals with lower risk become infected later)?  
 
 ### Model setup  
 
@@ -51,7 +50,7 @@ The risk structure is controlled by the size of the high-, medium-, and low-risk
 `prev` = prevalence  (prevalence of viremic individuals)  
 `lambda = beta * c * prev`  
 `risk` = risk multiplier  
-`epsilon` = per-exposure vaccine efficacy; the vaccine-induced reduction in the risk of HIV infection from a single exposure
+`epsilon` = per-exposure vaccine efficacy; the vaccine-induced reduction in the risk of HIV infection from a single exposure  
 
 The model's basic equations are:  
 
@@ -72,8 +71,22 @@ Ivh = infected vaccinated high exposure
 Ivm = infected vaccinated medium exposure  
 Ivl = infected vaccinated low exposure  
 
+We use the EpiModel framework, http://www.epimodel.org/, from Sam Jenness (Emory University) to build the model.  
+
+### First model demonstration  
+
+Our first pass at the size of the high-, medium-, and low-risk subgroups are: 10% high risk, 80% medium risk, and 10% no (zero) risk. (This parameterization is tough:  Dimitrov et al 2015 even suggest that the MAJORITY of individuals in trials are NOT exposed; https://pubmed.ncbi.nlm.nih.gov/25569838/)  
+
+Sp = susceptible placebo  
+Ip = infected placebo  
+Sv = susceptible vaccinated  
+Iv = infected vaccinated  
+
+Svh = susceptible vaccinated high exposure  
+Svm = susceptible vaccinated medium exposure  
+SvL = susceptible vaccinated low exposure    
+Ivh = infected vaccinated high exposure  
+Ivm = infected vaccinated medium exposure  
+Ivl = infected vaccinated low exposure  
+
 We use the EpiModel framework, http://www.epimodel.org/, from Sam Jenness (Emory University) to build the model.
-
-### First model demonstration
-
-Our first pass at the size of the high-, medium-, and low-risk subgroups are: 10% high risk, 80% medium risk, and 10% no (zero) risk. (This parameterization is tough:  Dimitrov et al 2015 even suggest that the MAJORITY of individuals in trials are NOT exposed; https://pubmed.ncbi.nlm.nih.gov/25569838/)
