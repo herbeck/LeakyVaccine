@@ -13,7 +13,8 @@ calc_inc <- function(risk, inc, prop_high, lambda) {
 
 si_ode <- function(times, init, param){
   with(as.list(c(init, param)), {
-  
+    #browser()
+    
     # Flows
     # the number of people moving from S to I at each time step
     #Susceptible, Infected, placebo
@@ -36,6 +37,7 @@ si_ode <- function(times, init, param){
     # vaccine; homogeneous risk
     dSv <- -SIv.flow
     dIv <- SIv.flow  #lambda*epsilon*Sv
+    
     # placebo; heterogeneous risk
     dSph <- -SIph.flow
     dIph <- SIph.flow  #risk*lambda*Sph
@@ -80,6 +82,9 @@ mod.manipulate <- function(mod){
   mod <- mutate_epi(mod, cumul.Ip = Ip)
   mod <- mutate_epi(mod, cumul.Ivh.Ivl = total.Ivh.Ivl)
   mod <- mutate_epi(mod, cumul.Iph.Ipl = total.Iph.Ipl)
+  
+  n <- mod$param$n
+  
   mod <- mutate_epi(mod, cumul.rate.Vaccine = (cumul.Iv/n)*100)
   mod <- mutate_epi(mod, cumul.rate.Placebo = (cumul.Ip/n)*100)
   mod <- mutate_epi(mod, cumul.rate.Vaccine.het = (cumul.Ivh.Ivl/n)*100)
