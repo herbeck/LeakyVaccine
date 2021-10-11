@@ -66,7 +66,7 @@ Ivl = infected vaccinated low exposure (zero in this instance)
 
 ### Calibration, first step
 
-AT this stage we just eyeball-calibrated the incidence to ~3.5% per 100 person years, to be reasonably consistent with HVTN 702 in South Africa. (More quantitative ABC calibration is below.) We used an initial set of transmission parameters for sub-Saharan Africa borrowing from Alain Vandormael (2018):    
+We can do an initial qualitative calibration to incidence in sub-Saharan Africa using an initial set of transmission parameters borrowing from Alain Vandormael (2018):    
 
      "We used realistic parameter values for the SIR model, based on earlier HIV studies that have been undertaken in the sub-Saharan Africa context. To this extent, we varied `c` within the range of 50 to 120 sexual acts per year based on data collected from serodiscordant couples across eastern and southern African sites. Previous research has shown considerable heterogeneity in the probability of HIV transmission per sexual contact, largely due to factors associated with the viral load level, genital ulcer disease, stage of HIV progression, condom use, circumcision and use of ART. Following a systematic review of this topic by Boily et al., we selected values for `beta` within the range of 0.003–0.008. ... Here, we chose values for `v` within the range of 0.15–0.35, which are slightly conservative, but supported by population-based estimates from the sub-Saharan African context."
 
