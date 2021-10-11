@@ -4,7 +4,7 @@ Leaky vaccine
 Modeling the effects of exposure heterogeneity on vaccine clinical efficacy
 
 IDM:  
-Josh Herbeck (jherbeck@idmod.org)
+Josh Herbeck (jherbeck@idmod.org)  
 Adam Akullian (aakullian@idmod.org)  
 Allen Roberts  
 David Kong  
