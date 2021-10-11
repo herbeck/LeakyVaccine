@@ -171,16 +171,18 @@ pre code {
 <h1>Leaky vaccine</h1>
 <p>Modeling the effects of exposure heterogeneity on vaccine clinical efficacy</p>
 <p>IDM:<br />
-Josh Herbeck<br />
-Adam Akullian<br />
+Josh Herbeck (<a href="mailto:jherbeck@idmod.org" class="email">jherbeck@idmod.org</a>)<br />
+Adam Akullian (<a href="mailto:aakullian@idmod.org" class="email">aakullian@idmod.org</a>)<br />
 Allen Roberts<br />
 David Kong<br />
 Minerva Enriquez</p>
 <p>FHCRC:<br />
-Paul Edlefsen</p>
+Paul Edlefsen (<a href="mailto:pedlefse@fredhutch.org" class="email">pedlefse@fredhutch.org</a>)</p>
 <hr />
-<p>It has been hypothesized that exposure heterogeneity can affect estimates of clinical vaccine efficacy for leaky vaccines (e.g. Halloran et al., 1992; White et al., 2010; O’Hagan et al.,2013; Edlefsen, 2014; Coley et al., 2016; Gomes et al., 2016; Kahn et al., 2018; Langwig et al., 2019).</p>
-<p>Exposure heterogeneity can be broadly characterized as within- or across-population. Within-population heterogeneity is the variation in risk of HIV infection within a population: some individuals are at higher risk of infection, due to some combination of higher contact rate (e.g. number of sexual partners), higher per-exposure probability of transmission, or higher HIV prevalence in sexual partners. If this pattern exists within the vaccine and placebo arms of clinical trial, it can result in decreasing clinical vaccine efficacy over the course of the trial. This happens as high risk individuals in both arms are infected (and effectively removed from the susceptible population) at a higher rate than the low risk individuals; incidence declines over the course of this depletion, as the high-risk individuals get infected and only the lower risk individuals remain. If the vaccine at trial has some effect, this incidence decline occurs faster in the placebo arm, resulting in vaccine and placebo arms with unbalanced risk structure.</p>
+<div id="background" class="section level3">
+<h3>Background</h3>
+<p>It has been hypothesized that exposure heterogeneity can affect estimates of clinical vaccine efficacy for leaky vaccines (e.g. Halloran et al., 1992; White et al., 2010; O’Hagan et al.,2013; Edlefsen, 2014; Coley et al., 2016; Gomes et al., 2016; Kahn et al., 2018; Langwig et al., 2019). Exposure heterogeneity can be broadly characterized as within- or across-population heterogeneity in infection risk.</p>
+<p>Within-population heterogeneity is the variation in risk of HIV infection within a population: some individuals are at higher risk of infection, due to some combination of higher contact rate (e.g. number of sexual partners), higher per-exposure probability of transmission, or higher HIV prevalence in sexual partners. If this pattern exists within the vaccine and placebo arms of clinical trial, it can result in decreasing clinical vaccine efficacy over the course of the trial. This happens as high risk individuals in both arms are infected (and effectively removed from the susceptible population) at a higher rate than the low risk individuals; incidence declines over the course of this depletion, as the high-risk individuals get infected and only the lower risk individuals remain. If the vaccine at trial has some effect, this incidence decline occurs faster in the placebo arm, resulting in vaccine and placebo arms with unbalanced risk structure.</p>
 <p>Across-population heterogeneity describes a situation where two or more populations have different forces of infection (e.g. there is variation in the background incidence or exposure rate). For leaky vaccines, which in theory partially protect all individuals on a per-exposure basis, repeated exposures will lead to declining vaccine efficacy; in populations with high HIV risk, the cumulative effect of multiple exposures can end up lower than the per-exposure vaccine efficacy (how much protection the vaccine provides for a single exposure). This situation may describe HIV vaccine trials in South Africa and Thailand; even if the per-exposure efficacy of the vaccine is the same, would we expect substantial differences in clinical VE that are due to the different incidences in the trial settings?</p>
 <p>To quote from Gomes et al., 2016: “This effect is more pronounced in the control group as individuals within it experience higher rates of infection overall. Consequently, the ratio of disease rates in vaccinated over control groups increases, and vaccine efficacy, as measured by simple rate ratios, decreases as the trial progresses. Finally, the magnitude of this effect increases with the intensity of transmission.”</p>
 <p>Here we use epidemic models to simulate this process, within and across populations, in the context of HIV prevention trials or longitudinal studies. A key distinction for following our model and analyses is between the per-exposure (or per-contact) efficacy and the clinical efficacy (i.e. the trial outcome). Some initial questions that we address include:</p>
@@ -189,6 +191,7 @@ Paul Edlefsen</p>
 <li><p>Can exposure heterogeneity explain waning efficacies seen in other HIV prevention trials (e.g. the AMP VRC01 bnAb trials and the different results seen in the sub-studies, 703 and 704).</p></li>
 <li><p>In HIV cohort studies incidence often declines over the course of the study. How much of this effect may be due to frailty bias (i.e. individuals with high risk exposure or high exposure rates becoming infected early in the observation period, while individuals with lower risk become infected later)?</p></li>
 </ol>
+</div>
 <div id="model-setup" class="section level3">
 <h3>Model setup</h3>
 <p>Description of the SI compartmental model of an HIV trial</p>
@@ -205,7 +208,7 @@ Paul Edlefsen</p>
 <p>The model’s basic equations are:</p>
 <p><code>dS/dt = -lambda*S</code><br />
 <code>dI/dt = lambda*S</code></p>
-<p>And the basic compartments are:</p>
+<p>The basic compartments are:</p>
 <p>Sp = susceptible placebo<br />
 Ip = infected placebo<br />
 Sv = susceptible vaccinated<br />
