@@ -73,3 +73,7 @@ Ivm = infected vaccinated medium exposure
 Ivl = infected vaccinated low exposure  
 
 We use the EpiModel framework, http://www.epimodel.org/, from Sam Jenness (Emory University) to build the model.
+
+### First model demonstration
+
+Our first pass at the size of the high-, medium-, and low-risk subgroups are: 10% high risk, 80% medium risk, and 10% no (zero) risk. (This parameterization is tough:  Dimitrov et al 2015 even suggest that the MAJORITY of individuals in trials are NOT exposed; https://pubmed.ncbi.nlm.nih.gov/25569838/)
