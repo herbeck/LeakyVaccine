@@ -59,11 +59,14 @@ The model's basic equations are:
 
 The basic compartments are:  
 
+**Homogeneous exposure (risk) population**  
+Sp = susceptible placebo  
 Sp = susceptible placebo  
 Ip = infected placebo  
 Sv = susceptible vaccinated  
 Iv = infected vaccinated  
 
+**Hetergeneous exposure population**  
 Svh = susceptible vaccinated high exposure  
 Svm = susceptible vaccinated medium exposure  
 SvL = susceptible vaccinated low exposure    
@@ -71,22 +74,92 @@ Ivh = infected vaccinated high exposure
 Ivm = infected vaccinated medium exposure  
 Ivl = infected vaccinated low exposure  
 
-We use the EpiModel framework, http://www.epimodel.org/, from Sam Jenness (Emory University) to build the model.  
+We use the EpiModel (<http://www.epimodel.org/>) framework, from Sam Jenness (Emory University) to build the model.  
 
-### First model demonstration  
+``` r
+si_ode <- function(times, init, param){
+  with(as.list(c(init, param)), {
+    
+    # Flows (the number of people moving from S to I at each time step)
+    
+    # Homogeneous exposure population
+    SIp.flow <- lambda*Sp                   #placebo  
+    SIv.flow <- lambda*(1-epsilon)*Sv       #vaccine  
+    
+    # Heterogeneous exposure
+    # Placebo
+    SIph.flow <- risk*lambda*Sph            #placebo, high risk  
+    SIpm.flow <- lambda*Spm                 #placebo, medium risk
+    SIpl.flow <- 0*lambda*Spl               #placebo, low risk; 0 to give this group zero exposures
+    
+    # Vaccine
+    SIvh.flow <- risk*lambda*(1-epsilon)*Svh
+    SIvm.flow <- lambda*(1-epsilon)*Spm
+    SIvl.flow <- 0*lambda*(1-epsilon)*Svl 
+    
+    # ODEs
+    
+    # placebo; homogeneous risk
+    dSp <- -SIp.flow
+    dIp <- SIp.flow  #lambda*Sp
+    
+    # vaccine; homogeneous risk
+    dSv <- -SIv.flow
+    dIv <- SIv.flow  # lambda*(1-epsilon)*Sv, from Flows, above
+
+    # placebo; heterogeneous risk
+    dSph <- -SIph.flow
+    dIph <- SIph.flow  #risk*lambda*Sph
+    dSpm <- -SIpm.flow
+    dIpm <- SIpm.flow  #lambda*Spm
+    dSpl <- -SIpl.flow
+    dIpl <- SIpl.flow  #0*lambda*Spl
+    
+    # vaccine; heterogeneous risk
+    dSvh <- -SIvh.flow
+    dIvh <- SIvh.flow  #risk*lambda*(1-epsilon)*Svh
+    dSvm <- -SIvm.flow
+    dIvm <- SIvm.flow  #lambda*Svm
+    dSvl <- -SIvl.flow
+    dIvl <- SIvl.flow  #0*lambda*(1-epsilon)*Svl
+
+    #Output
+    list(c(dSp,dIp,
+           dSv,dIv,
+           dSph,dIph,
+           dSpm,dIpm,
+           dSpl,dIpl,
+           dSvh,dIvh,
+           dSvm,dIvm,
+           dSvl,dIvl,
+           SIp.flow,SIv.flow,
+           SIph.flow,SIpm.flow,SIpl.flow,
+           SIvh.flow,SIvm.flow,SIvl.flow))
+  })
+}
+```
+
+### Running the model
 
 Our first pass at the size of the high-, medium-, and low-risk subgroups are: 10% high risk, 80% medium risk, and 10% no (zero) risk. (This parameterization is tough:  Dimitrov et al 2015 even suggest that the MAJORITY of individuals in trials are NOT exposed; https://pubmed.ncbi.nlm.nih.gov/25569838/)  
 
-Sp = susceptible placebo  
-Ip = infected placebo  
-Sv = susceptible vaccinated  
-Iv = infected vaccinated  
+``` r  
+param <- param.dcm(lambda = lambda, epsilon = epsilon, risk = risk)
+init <- init.dcm(Sp = 5000, Ip = 0,
+                 Sv = 5000, Iv = 0,
+                 Sph = 1000, Iph = 0,    #placebo, high risk
+                 Spm = 6000, Ipm = 0,   #placebo, medium risk
+                 Spl = 3000, Ipl = 0,    #placebo, low risk
+                 Svh = 1000, Ivh = 0,    #vaccine, high
+                 Svm = 6000, Ivm = 0,   #vaccine, medium
+                 Svl = 3000, Ivl = 0,    #vaccine, low
+                 SIp.flow = 0, SIv.flow = 0, 
+                 SIph.flow = 0, SIpm.flow = 0, SIpl.flow = 0,
+                 SIvh.flow = 0, SIvm.flow = 0, SIvl.flow = 0)
 
-Svh = susceptible vaccinated high exposure  
-Svm = susceptible vaccinated medium exposure  
-SvL = susceptible vaccinated low exposure    
-Ivh = infected vaccinated high exposure  
-Ivm = infected vaccinated medium exposure  
-Ivl = infected vaccinated low exposure  
+control <- control.dcm(nsteps = 365*3, new.mod = si_ode)
 
-We use the EpiModel framework, http://www.epimodel.org/, from Sam Jenness (Emory University) to build the model.
+mod <- dcm(param, init, control)
+mod
+```
+
