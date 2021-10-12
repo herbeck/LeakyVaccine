@@ -35,7 +35,7 @@ Here we use epidemic models to simulate this process, within and across populati
 
 3. In HIV cohort studies incidence often declines over the course of the study. How much of this effect may be due to frailty bias (i.e. individuals with high risk exposure or high exposure rates becoming infected early in the observation period, while individuals with lower risk become infected later)?  
 
-### Model setup  
+### Description of model setup  
 
 To simulate an HIV vaccine trial we use a simple deterministic compartmental model. The model includes two compartments:  S, susceptible individuals; and I, infected individuals. Individuals start as S and move to I over the course of the trial if they get infected. We do not model infections back from I to S; we assume that changes in the size of I do not affect the infection rate of S.  
 
