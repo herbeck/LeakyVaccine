@@ -1,7 +1,11 @@
 Leaky vaccine 
 =============
 
+### About
+
 Modeling the effects of exposure heterogeneity on vaccine clinical efficacy  
+
+This repository includes a set of model-based explorations of the effect of HIV exposure heterogeneity on vaccine efficacy.
 
 IDM:  
 Josh Herbeck (jherbeck@idmod.org)  
@@ -35,7 +39,7 @@ Here we use epidemic models to simulate this process, within and across populati
 
 3. In HIV cohort studies incidence often declines over the course of the study. How much of this effect may be due to frailty bias (i.e. individuals with high risk exposure or high exposure rates becoming infected early in the observation period, while individuals with lower risk become infected later)?  
 
-### Description of model setup  
+### Description of model  
 
 To simulate an HIV vaccine trial we use a simple deterministic compartmental model. The model includes two compartments:  S, susceptible individuals; and I, infected individuals. Individuals start as S and move to I over the course of the trial if they get infected. We do not model infections back from I to S; we assume that changes in the size of I do not affect the infection rate of S.  
 
@@ -75,6 +79,14 @@ Ivm = infected vaccinated medium exposure
 Ivl = infected vaccinated low exposure  
 
 We use the EpiModel (<http://www.epimodel.org/>) framework, from Sam Jenness (Emory University) to build the model.  
+
+``` r
+library(EpiModel)
+library(deSolve)
+library(tidyverse)
+library(survival)
+library(EasyABC)
+```  
 
 ``` r
 si_ode <- function(times, init, param){
@@ -139,9 +151,37 @@ si_ode <- function(times, init, param){
 }
 ```
 
-### Running the model
+### Initial parameter settings
+
+``` r
+beta <- 0.004   #transmission rate (per contact)
+c <- 90/365    #contact rate (contacts per day)
+prev <- 0.10    #needs some more consideration
+lambda <- beta*c*prev
+epsilon <- 0.30  #per contact vaccine efficacy
+risk <- 10.0   #risk multiplier
+```  
+
+We eyeball-calibrated the incidence to \~3.5% per 100 person years, to
+be reasonably consistent with HVTN 702 in South Africa. (This is as of
+right now, with more rigorous ABC calibration to come.) We used an
+initial set of transmission parameters for sub-Saharan Africa borrowing
+from Alain Vandormael (2018):
+
+``` 
+ "We used realistic parameter values for the SIR model, based on earlier HIV studies that have been undertaken in the sub-Saharan Africa context. To this extent, we varied `c` within the range of 50 to 120 sexual acts per year based on data collected from serodiscordant couples across eastern and southern African sites. Previous research has shown considerable heterogeneity in the probability of HIV transmission per sexual contact, largely due to factors associated with the viral load level, genital ulcer disease, stage of HIV progression, condom use, circumcision and use of ART. Following a systematic review of this topic by Boily et al., we selected values for `beta` within the range of 0.003–0.008. ... Here, we chose values for `v` within the range of 0.15–0.35, which are slightly conservative, but supported by population-based estimates from the sub-Saharan African context."
+```
+
+`c` varies from 50 to 120 per year  
+`beta` varies from 0.003 to 0.008  
+`prev`, which here is population prevalence of unsuppressed VL, varies from 0.15 to 0.35  
+`epsilon` could be parameterized using the RV144 Thai Trial results: VE = 61% at 12 months, 31% at 42 months, but below we start with 30% and not waning. Duration is not needed because we are only modeling a 3 year trial without boosters.  
+
+### Running the model  
 
 Our first pass at the size of the high-, medium-, and low-risk subgroups are: 10% high risk, 80% medium risk, and 10% no (zero) risk. (This parameterization is tough:  Dimitrov et al 2015 even suggest that the MAJORITY of individuals in trials are NOT exposed; https://pubmed.ncbi.nlm.nih.gov/25569838/)  
+
+The following sets up and runs the model.  
 
 ``` r  
 param <- param.dcm(lambda = lambda, epsilon = epsilon, risk = risk)
@@ -163,3 +203,46 @@ mod <- dcm(param, init, control)
 mod
 ```
 
+### Function for output data manipulation  
+
+This function (`mod.maniputate()`) just takes the model output (an Epimodel `mod` file) and uses the data to create other data (e.g. incidence and clinical vaccine efficacy estimates) for plotting or downstream analyses, including calibration or parameter optimization analyses.  
+
+``` 
+mod.manipulate <- function(mod){
+  
+mod <- mutate_epi(mod, total.Svh.Svm.Svl = Svh + Svm + Svl) #all susceptible in heterogeneous risk vaccine pop
+mod <- mutate_epi(mod, total.Sph.Spm.Spl = Sph + Spm + Spl) #all susceptible in heterogeneous risk placebo pop
+mod <- mutate_epi(mod, total.Ivh.Ivm.Ivl = Ivh + Ivm + Ivl) #all infected in heterogeneous risk vaccine pop
+mod <- mutate_epi(mod, total.Iph.Ipm.Ipl = Iph + Ipm + Ipl) #all infected in heterogeneous risk placebo pop
+mod <- mutate_epi(mod, total.SIvh.SIvm.SIvl.flow = SIvh.flow + SIvm.flow + SIvl.flow) #all infections per day in heterogeneous risk vaccine pop
+mod <- mutate_epi(mod, total.SIph.SIpm.SIpl.flow = SIph.flow + SIpm.flow + SIpl.flow) #all infections in heterogeneous risk placebo pop
+
+#Instantaneous ncidence (hazard) estimates, per 100 person years
+#Instantaneous incidence / hazard
+mod <- mutate_epi(mod, rate.Vaccine = (SIv.flow/Sv)*365*100)
+mod <- mutate_epi(mod, rate.Placebo = (SIp.flow/Sp)*365*100)
+mod <- mutate_epi(mod, rate.Vaccine.het = (total.SIvh.SIvm.SIvl.flow/total.Svh.Svm.Svl)*365*100)
+mod <- mutate_epi(mod, rate.Placebo.het = (total.SIph.SIpm.SIpl.flow/total.Sph.Spm.Spl)*365*100)
+
+#Cumulative incidence
+mod <- mutate_epi(mod, cumul.Sv = cumsum(Sv))
+mod <- mutate_epi(mod, cumul.Sp = cumsum(Sp))
+mod <- mutate_epi(mod, cumul.Svh.Svm.Svl = cumsum(total.Svh.Svm.Svl))
+mod <- mutate_epi(mod, cumul.Sph.Spm.Spl = cumsum(total.Sph.Spm.Spl))
+mod <- mutate_epi(mod, cumul.rate.Vaccine = (Iv/cumul.Sv)*365*100)
+mod <- mutate_epi(mod, cumul.rate.Placebo = (Ip/cumul.Sp)*365*100)
+mod <- mutate_epi(mod, cumul.rate.Vaccine.het = (total.Ivh.Ivm.Ivl/cumul.Svh.Svm.Svl)*365*100)
+mod <- mutate_epi(mod, cumul.rate.Placebo.het = (total.Iph.Ipm.Ipl/cumul.Sph.Spm.Spl)*365*100)
+
+#Vaccine efficacy (VE) estimates
+#VE <- 1 - Relative Risk; this is clinical VE for hazard
+mod <- mutate_epi(mod, VE1.inst = 1 - rate.Vaccine/rate.Placebo)
+mod <- mutate_epi(mod, VE2.inst = 1 - rate.Vaccine.het/rate.Placebo.het)
+
+#VE <- 1 - Relative Risk; this is clincial VE from cumulative incidence
+mod <- mutate_epi(mod, VE1.cumul = 1 - cumul.rate.Vaccine/cumul.rate.Placebo)
+mod <- mutate_epi(mod, VE2.cumul = 1 - cumul.rate.Vaccine.het/cumul.rate.Placebo.het)
+
+return(mod)
+}
+```  
