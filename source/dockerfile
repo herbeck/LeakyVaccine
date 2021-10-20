@@ -21,7 +21,7 @@ RUN R -q -e "install.packages('plotly',repos='http://cran.rstudio.com/')" && \
     R -q -e "install.packages('viridis',repos='http://cran.rstudio.com/')" 
     
 
-ADD ./source /srv/shiny-server/shiny
+ADD . /srv/shiny-server/shiny
 
 # run app
 #CMD ["/usr/bin/shiny-server"]
