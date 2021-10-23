@@ -169,7 +169,11 @@ pre code {
 
 <div id="leaky-vaccine" class="section level1">
 <h1>Leaky vaccine</h1>
-<p>Modeling the effects of exposure heterogeneity on vaccine clinical efficacy</p>
+<div id="about" class="section level2">
+<h2>About</h2>
+<div id="modeling-the-effects-of-exposure-heterogeneity-on-vaccine-efficacy" class="section level3">
+<h3>Modeling the effects of exposure heterogeneity on vaccine efficacy</h3>
+<p>This repository includes a set of model-based explorations of the effect of HIV exposure/risk heterogeneity on vaccine efficacy.</p>
 <p>IDM:<br />
 Josh Herbeck (<a href="mailto:jherbeck@idmod.org" class="email">jherbeck@idmod.org</a>)<br />
 Adam Akullian (<a href="mailto:aakullian@idmod.org" class="email">aakullian@idmod.org</a>)<br />
@@ -179,24 +183,26 @@ Minerva Enriquez</p>
 <p>FHCRC:<br />
 Paul Edlefsen (<a href="mailto:pedlefse@fredhutch.org" class="email">pedlefse@fredhutch.org</a>)</p>
 <hr />
-<div id="background" class="section level3">
-<h3>Background</h3>
-<p>It has been hypothesized that exposure heterogeneity can affect estimates of clinical vaccine efficacy for leaky vaccines (e.g. Halloran et al., 1992; White et al., 2010; O’Hagan et al.,2013; Edlefsen, 2014; Coley et al., 2016; Gomes et al., 2016; Kahn et al., 2018; Langwig et al., 2019). Exposure heterogeneity can be broadly characterized as within- or across-population heterogeneity in infection risk.</p>
-<p>Within-population heterogeneity is the variation in risk of HIV infection within a population: some individuals are at higher risk of infection, due to some combination of higher contact rate (e.g. number of sexual partners), higher per-exposure probability of transmission, or higher HIV prevalence in sexual partners. If this pattern exists within the vaccine and placebo arms of clinical trial, it can result in decreasing clinical vaccine efficacy over the course of the trial. This happens as high risk individuals in both arms are infected (and effectively removed from the susceptible population) at a higher rate than the low risk individuals; incidence declines over the course of this depletion, as the high-risk individuals get infected and only the lower risk individuals remain. If the vaccine at trial has some effect, this incidence decline occurs faster in the placebo arm, resulting in vaccine and placebo arms with unbalanced risk structure.</p>
-<p>Across-population heterogeneity describes a situation where two or more populations have different forces of infection (e.g. there is variation in the background incidence or exposure rate). For leaky vaccines, which in theory partially protect all individuals on a per-exposure basis, repeated exposures will lead to declining vaccine efficacy; in populations with high HIV risk, the cumulative effect of multiple exposures can end up lower than the per-exposure vaccine efficacy (how much protection the vaccine provides for a single exposure). This situation may describe HIV vaccine trials in South Africa and Thailand; even if the per-exposure efficacy of the vaccine is the same, would we expect substantial differences in clinical VE that are due to the different incidences in the trial settings?</p>
+</div>
+</div>
+<div id="background" class="section level2">
+<h2>Background</h2>
+<p>It has been hypothesized that exposure or risk heterogeneity can affect estimates of vaccine efficacy for leaky vaccines (e.g. Halloran et al., 1992; White et al., 2010; O’Hagan et al.,2013; Edlefsen, 2014; Coley et al., 2016; Gomes et al., 2016; Kahn et al., 2018; Langwig et al., 2019). The potential outcome is that the vaccine efficacy measured from the trial (we call this “<em>clinical efficacy</em>”) is lower than the biological vaccine efficacy (we call this the “<em>per-exposure</em>” or “<em>per-contact vaccine efficacy</em>”).</p>
+<p>We choose to characterize exposure heterogeneity as within- or across-population. <em>Within-population heterogeneity</em> is the variation in risk of HIV infection within a single (trial) population: a portion of individuals are at higher risk of infection, due to a combination of higher contact rate (e.g. number of sexual partners), higher per-exposure probability of transmission, or higher HIV prevalence in sexual partners. If this pattern exists within the vaccine and placebo arms of clinical trial, it can result in decreasing clinical vaccine efficacy over the course of the trial. This happens as high risk individuals in both arms are infected (and effectively removed from the susceptible population) at a higher rate than the low risk individuals; incidence declines over the course of this depletion, as the high-risk individuals get infected and only the lower risk individuals remain. If the vaccine at trial has some effect, this incidence decline occurs faster in the placebo arm, resulting in vaccine and placebo arms with unbalanced risk structure.</p>
+<p><em>Across-population heterogeneity</em> describes a situation where two or more populations have different forces of infection (e.g. there is variation in the population incidence or exposure rate). For leaky vaccines, which in theory partially protect all vaccinated individuals on a per-exposure basis, repeated exposures will lead to lower vaccine efficacy: in populations with high HIV risk, the cumulative effect of multiple exposures can result in clinical efficacy lower than the per-exposure vaccine efficacy. This situation may describe HIV vaccine trials in South Africa and Thailand; even if the per-exposure efficacy of the vaccine is the same, would we expect substantial differences in clinical VE that are due to the different incidences in the trial settings?</p>
 <p>To quote from Gomes et al., 2016: “This effect is more pronounced in the control group as individuals within it experience higher rates of infection overall. Consequently, the ratio of disease rates in vaccinated over control groups increases, and vaccine efficacy, as measured by simple rate ratios, decreases as the trial progresses. Finally, the magnitude of this effect increases with the intensity of transmission.”</p>
 </div>
-<div id="our-goal" class="section level3">
-<h3>Our goal</h3>
-<p>Here we use epidemic models to simulate this process, within and across populations, in the context of HIV prevention trials or longitudinal studies. A key distinction for following our model and analyses is between the per-exposure (or per-contact) efficacy and the clinical efficacy (i.e. the trial outcome). Some initial questions that we address include:</p>
+<div id="our-goal" class="section level2">
+<h2>Our goal</h2>
+<p>Here we use epidemic models to simulate this process, within and across populations, in the context of HIV prevention trials or longitudinal studies. Some initial questions that we address include:</p>
 <ol style="list-style-type: decimal">
 <li><p>Did exposure heterogeneity contribute to the differences between the RV144 and HVTN 702 HIV vaccine trial outcomes?</p></li>
 <li><p>Can exposure heterogeneity explain waning efficacies seen in other HIV prevention trials (e.g. the AMP VRC01 bnAb trials and the different results seen in the sub-studies, 703 and 704).</p></li>
-<li><p>In HIV cohort studies incidence often declines over the course of the study. How much of this effect may be due to frailty bias (i.e. individuals with high risk exposure or high exposure rates becoming infected early in the observation period, while individuals with lower risk become infected later)?</p></li>
+<li><p>In HIV cohort studies, the incidence rate often declines over the course of the study. How much of this effect may be due to frailty bias (i.e. individuals with high risk exposure or high exposure rates becoming infected early in the observation period, while individuals with lower risk become infected later)?</p></li>
 </ol>
 </div>
-<div id="model-setup" class="section level3">
-<h3>Model setup</h3>
+<div id="description-of-model" class="section level2">
+<h2>Description of model</h2>
 <p>To simulate an HIV vaccine trial we use a simple deterministic compartmental model. The model includes two compartments: S, susceptible individuals; and I, infected individuals. Individuals start as S and move to I over the course of the trial if they get infected. We do not model infections back from I to S; we assume that changes in the size of I do not affect the infection rate of S.</p>
 <p>The infection rate of individuals in S is based on: <code>prev</code>, the population prevalence (of viremic individuals); <code>c</code>, the exposure rate (serodiscordant sexual contacts per time); and <code>p</code>, the per-exposure transmission probability.</p>
 <p>The per-exposure (i.e. per-contact) effect of vaccination is <code>epsilon</code>, and with this iteration of the model <code>epsilon</code> is: 1) not time-varying (the per contact vaccine effect does not decay over time); and 2) assumes a homogeneous effect (does not vary by mark / viral genotype). This model structure also removes the possibility of indirect effects from vaccination.</p>
@@ -224,7 +230,18 @@ SvL = susceptible vaccinated low exposure<br />
 Ivh = infected vaccinated high exposure<br />
 Ivm = infected vaccinated medium exposure<br />
 Ivl = infected vaccinated low exposure</p>
+</div>
+<div id="model-r-code" class="section level2">
+<h2>Model R code</h2>
+<p>David, Jen, This is where I start to need help with organization, i.e. right where the code starts to appear, and people can start to see how I have set up the model and get some prelim results (or run the model themselves).</p>
 <p>We use the EpiModel (<a href="http://www.epimodel.org/" class="uri">http://www.epimodel.org/</a>) framework, from Sam Jenness (Emory University) to build the model.</p>
+<pre class="r"><code>library(EpiModel)
+library(deSolve)
+library(tidyverse)
+library(survival)
+library(EasyABC)</code></pre>
+<div id="default-model-function" class="section level3">
+<h3>Default model function</h3>
 <pre class="r"><code>si_ode &lt;- function(times, init, param){
   with(as.list(c(init, param)), {
     
@@ -286,9 +303,25 @@ Ivl = infected vaccinated low exposure</p>
   })
 }</code></pre>
 </div>
+<div id="initial-parameter-settings" class="section level3">
+<h3>Initial parameter settings</h3>
+<pre class="r"><code>beta &lt;- 0.004   #transmission rate (per contact)
+c &lt;- 90/365    #contact rate (contacts per day)
+prev &lt;- 0.10    #needs some more consideration
+lambda &lt;- beta*c*prev
+epsilon &lt;- 0.30  #per contact vaccine efficacy
+risk &lt;- 10.0   #risk multiplier</code></pre>
+<p>We eyeball-calibrated the incidence to ~3.5% per 100 person years, to be reasonably consistent with HVTN 702 in South Africa. (This is as of right now, with more rigorous ABC calibration to come.) We used an initial set of transmission parameters for sub-Saharan Africa borrowing from Alain Vandormael (2018):</p>
+<pre><code> &quot;We used realistic parameter values for the SIR model, based on earlier HIV studies that have been undertaken in the sub-Saharan Africa context. To this extent, we varied `c` within the range of 50 to 120 sexual acts per year based on data collected from serodiscordant couples across eastern and southern African sites. Previous research has shown considerable heterogeneity in the probability of HIV transmission per sexual contact, largely due to factors associated with the viral load level, genital ulcer disease, stage of HIV progression, condom use, circumcision and use of ART. Following a systematic review of this topic by Boily et al., we selected values for `beta` within the range of 0.003–0.008. ... Here, we chose values for `v` within the range of 0.15–0.35, which are slightly conservative, but supported by population-based estimates from the sub-Saharan African context.&quot;</code></pre>
+<p><code>c</code> varies from 50 to 120 per year<br />
+<code>beta</code> varies from 0.003 to 0.008<br />
+<code>prev</code>, which here is population prevalence of unsuppressed VL, varies from 0.15 to 0.35<br />
+<code>epsilon</code> could be parameterized using the RV144 Thai Trial results: VE = 61% at 12 months, 31% at 42 months, but below we start with 30% and not waning. Duration is not needed because we are only modeling a 3 year trial without boosters.</p>
+</div>
 <div id="running-the-model" class="section level3">
 <h3>Running the model</h3>
 <p>Our first pass at the size of the high-, medium-, and low-risk subgroups are: 10% high risk, 80% medium risk, and 10% no (zero) risk. (This parameterization is tough: Dimitrov et al 2015 even suggest that the MAJORITY of individuals in trials are NOT exposed; <a href="https://pubmed.ncbi.nlm.nih.gov/25569838/" class="uri">https://pubmed.ncbi.nlm.nih.gov/25569838/</a>)</p>
+<p>The following sets up and runs the model.</p>
 <pre class="r"><code>param &lt;- param.dcm(lambda = lambda, epsilon = epsilon, risk = risk)
 init &lt;- init.dcm(Sp = 5000, Ip = 0,
                  Sv = 5000, Iv = 0,
@@ -306,6 +339,62 @@ control &lt;- control.dcm(nsteps = 365*3, new.mod = si_ode)
 
 mod &lt;- dcm(param, init, control)
 mod</code></pre>
+</div>
+<div id="function-for-output-data-manipulation" class="section level3">
+<h3>Function for output data manipulation</h3>
+<p>This function (<code>mod.maniputate()</code>) just takes the model output (an Epimodel <code>mod</code> file) and uses the data to create other data (e.g. incidence and clinical vaccine efficacy estimates) for plotting or downstream analyses, including calibration or parameter optimization analyses.</p>
+<pre><code>mod.manipulate &lt;- function(mod){
+  
+mod &lt;- mutate_epi(mod, total.Svh.Svm.Svl = Svh + Svm + Svl) #all susceptible in heterogeneous risk vaccine pop
+mod &lt;- mutate_epi(mod, total.Sph.Spm.Spl = Sph + Spm + Spl) #all susceptible in heterogeneous risk placebo pop
+mod &lt;- mutate_epi(mod, total.Ivh.Ivm.Ivl = Ivh + Ivm + Ivl) #all infected in heterogeneous risk vaccine pop
+mod &lt;- mutate_epi(mod, total.Iph.Ipm.Ipl = Iph + Ipm + Ipl) #all infected in heterogeneous risk placebo pop
+mod &lt;- mutate_epi(mod, total.SIvh.SIvm.SIvl.flow = SIvh.flow + SIvm.flow + SIvl.flow) #all infections per day in heterogeneous risk vaccine pop
+mod &lt;- mutate_epi(mod, total.SIph.SIpm.SIpl.flow = SIph.flow + SIpm.flow + SIpl.flow) #all infections in heterogeneous risk placebo pop
+
+#Instantaneous ncidence (hazard) estimates, per 100 person years
+#Instantaneous incidence / hazard
+mod &lt;- mutate_epi(mod, rate.Vaccine = (SIv.flow/Sv)*365*100)
+mod &lt;- mutate_epi(mod, rate.Placebo = (SIp.flow/Sp)*365*100)
+mod &lt;- mutate_epi(mod, rate.Vaccine.het = (total.SIvh.SIvm.SIvl.flow/total.Svh.Svm.Svl)*365*100)
+mod &lt;- mutate_epi(mod, rate.Placebo.het = (total.SIph.SIpm.SIpl.flow/total.Sph.Spm.Spl)*365*100)
+
+#Cumulative incidence
+mod &lt;- mutate_epi(mod, cumul.Sv = cumsum(Sv))
+mod &lt;- mutate_epi(mod, cumul.Sp = cumsum(Sp))
+mod &lt;- mutate_epi(mod, cumul.Svh.Svm.Svl = cumsum(total.Svh.Svm.Svl))
+mod &lt;- mutate_epi(mod, cumul.Sph.Spm.Spl = cumsum(total.Sph.Spm.Spl))
+mod &lt;- mutate_epi(mod, cumul.rate.Vaccine = (Iv/cumul.Sv)*365*100)
+mod &lt;- mutate_epi(mod, cumul.rate.Placebo = (Ip/cumul.Sp)*365*100)
+mod &lt;- mutate_epi(mod, cumul.rate.Vaccine.het = (total.Ivh.Ivm.Ivl/cumul.Svh.Svm.Svl)*365*100)
+mod &lt;- mutate_epi(mod, cumul.rate.Placebo.het = (total.Iph.Ipm.Ipl/cumul.Sph.Spm.Spl)*365*100)
+
+#Vaccine efficacy (VE) estimates
+#VE &lt;- 1 - Relative Risk; this is clinical VE for hazard
+mod &lt;- mutate_epi(mod, VE1.inst = 1 - rate.Vaccine/rate.Placebo)
+mod &lt;- mutate_epi(mod, VE2.inst = 1 - rate.Vaccine.het/rate.Placebo.het)
+
+#VE &lt;- 1 - Relative Risk; this is clincial VE from cumulative incidence
+mod &lt;- mutate_epi(mod, VE1.cumul = 1 - cumul.rate.Vaccine/cumul.rate.Placebo)
+mod &lt;- mutate_epi(mod, VE2.cumul = 1 - cumul.rate.Vaccine.het/cumul.rate.Placebo.het)
+
+return(mod)
+}</code></pre>
+</div>
+</div>
+<div id="plots" class="section level2">
+<h2>Plots</h2>
+<p>First we can plot hazard/instantaneous incidence in the homogeneous and heterogeneous risk populations.</p>
+<pre class="r"><code>mod &lt;- mod.manipulate(mod)
+plot(mod, y=c(&quot;rate.Placebo&quot;, &quot;rate.Placebo.het&quot;),
+     alpha = 0.8,
+     ylim = c(0, 4.5),
+     main = &quot;Hazard&quot;,
+     xlab = &quot;days&quot;,
+     ylab = &quot;infections per 100 person yrs&quot;,
+     legend = FALSE,
+     col = c(&quot;blue&quot;, &quot;red&quot;))
+legend(&quot;bottomright&quot;, legend = c(&quot;homogeneous risk&quot;, &quot;heterogeneous risk&quot;), col = c(&quot;blue&quot;, &quot;red&quot;), lwd = 2, cex = 0.9, bty = &quot;n&quot;)</code></pre>
 </div>
 </div>
 
