@@ -82,7 +82,7 @@ Ivl = infected vaccinated low exposure
 
 David, Jen, This is where I start to need help with organization, i.e. right where the code starts to appear, and people can start to see how I have set up the model and get some prelim results (or run the model themselves).
 
-We use the EpiModel (<http://www.epimodel.org/>) framework, from Sam Jenness (Emory University) to build the model.  
+We use the EpiModel (<http://www.epimodel.org/>, Sam Jenness et al., Emory University) framework to build the model.  
 
 ``` r
 library(EpiModel)
