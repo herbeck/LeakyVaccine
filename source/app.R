@@ -22,7 +22,7 @@ server <- function(input, output, session) {
   
   updateTabsetPanel(session, "page-nav", "Introduction")
   #--------------
-  # for old model
+  # for old model (parameter sliders for "Initial Example Plots" tab)
   #--------------
   reacOld <- reactiveValues()
   
@@ -80,10 +80,10 @@ ui <- navbarPage(
   theme = shinytheme("cerulean"),
   
   #tabs
-  getIntroContent(),
-  getModelSetupContent(),
-  getCalibrationContent(),
-  getSimplePlotContent(),
+  getAboutContent(),
+  getModelDescriptionContent(),
+  #getCalibrationContent(),
+  getInitialExamplePlotsContent(),
   getParameterSweepContent(),
   getTestTab()
   

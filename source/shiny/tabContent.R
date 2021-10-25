@@ -4,11 +4,12 @@
 #------------------------------------------------------------------------------
 # for creating Intro tab content
 #------------------------------------------------------------------------------
-getIntroContent <- function() {
-  return (tabPanel("Introduction",
+getAboutContent <- function() {
+  return (tabPanel("About this tool",
                    
     HTML("<div class='mainPanel main'>"),
     h3("Using models to assess the impact of HIV exposure heterogeneity on trial vaccine efficacy measures"),
+    p("Add text from Background and Our goal on this tab, here"),
     p("It is hypothesized that exposure heterogeneity (i.e. infection risk heterogeneity) can affect efficacy estimation for leaky vaccines (e.g. Halloran et al., 1992; White et al., 2010; O'Hagan et al.,2013; Edlefsen, 2014; Coley et al., 2016; Gomes et al., 2016; Kahn et al., 2018)."),
     p("From Gomes et al., 2016:  \"This effect is more pronounced in the control group as individuals within it experience higher rates of infection overall. Consequently, the ratio of disease rates in vaccinated over control groups increases, and vaccine efficacy, as measured by simple rate ratios, decreases as the trial progresses. Finally, the magnitude of this effect increases with the intensity of transmission.\"  "),
     p("Here we use epidemic models to simulate this process, within and across populations, in the context of HIV prevention trials or longitudinal studies. Our goals were to:"),
@@ -28,9 +29,9 @@ getIntroContent <- function() {
 #------------------------------------------------------------------------------
 # for creating Model setup tab content
 #------------------------------------------------------------------------------
-getModelSetupContent <- function() {
+getModelDescriptionContent <- function() {
   
-  return(tabPanel("Model setup",
+  return(tabPanel("Model description",
            HTML("<div class='mainPanel main'>"),
            p(paste("We are modeling a vaccine trial using an SI deterministic compartmental model.", 
                    "We are not modeling infections from the I to S compartments but rather only infections from the outside (non-trial) population, ", 
@@ -101,19 +102,19 @@ getCalibrationContent <- function() {
 #------------------------------------------------------------------------------
 # for creating simple Plot tab content
 #------------------------------------------------------------------------------
-getSimplePlotContent <- function() {
-  tabPanel("Simple plots", 
+getInitialExamplePlotsContent <- function() {
+  tabPanel("Initial example plots", 
            HTML("<div class='mainPanel'>"),
              sidebarPanel(  
-               sliderInput('beta', 'Beta:', min=0, max=0.01,
+               sliderInput('beta', 'Beta (per-contact transmission probability):', min=0, max=0.01,
                            value=0.004, step=0.001, round=-4),
-               sliderInput('contactRate', 'Contacts rate:', min=0, max=1,
+               sliderInput('contactRate', 'Contact rate (number of sexual partners per timestep):', min=0, max=1,
                            value=25/365, step=0.01, round=FALSE),
-               sliderInput('prev', 'prev:', min=0, max=1,
+               sliderInput('prev', 'Prevalence (of individuals with unsuppressed viral load):', min=0, max=1,
                            value=0.1, step=0.1, round=FALSE),
-               sliderInput('epsilon', 'epsilon:', min=0, max=1,
+               sliderInput('epsilon', 'epsilon (per-contact vaccine efficacy):', min=0, max=1,
                            value=0.3, step=0.1, round=FALSE),
-               sliderInput('risk', 'risk:', min=0, max=20,
+               sliderInput('risk', 'Risk multiplier (Relative force of infection for high risk subgroup):', min=0, max=20,
                            value=10, step=1, round=FALSE)
                
              ),
