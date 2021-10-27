@@ -11,7 +11,6 @@ library(EasyABC)
 library(shinythemes)
 library(shinycssloaders)
 
-
 source("model/ve_sim.R")
 source("model/sim_fns.R")
 source("shiny/tabContent.R")
@@ -22,7 +21,7 @@ server <- function(input, output, session) {
   
   updateTabsetPanel(session, "page-nav", "Introduction")
   #--------------
-  # for old model
+  # for the Parameter Sweeps tab
   #--------------
   reacOld <- reactiveValues()
   
@@ -40,7 +39,7 @@ server <- function(input, output, session) {
   output$plotOld3  <-  renderPlotly(runSimByEpsilon(reacOld))
   
   #------------------
-  # end for old model
+  # for the Initial Example Plots tab
   #------------------
   
   reac <- reactiveValues()
@@ -81,9 +80,9 @@ ui <- navbarPage(
   
   #tabs
   getIntroContent(),
-  getModelSetupContent(),
-  getCalibrationContent(),
-  getSimplePlotContent(),
+  getModelDescriptionContent(),
+  #getCalibrationContent(),
+  getInitialExamplePlotContent(),
   getParameterSweepContent(),
   getTestTab()
   

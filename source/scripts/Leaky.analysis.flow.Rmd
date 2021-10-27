@@ -311,7 +311,7 @@ plot(mod, y=c("cumul.rate.Placebo", "cumul.rate.Vaccine", "cumul.rate.Placebo.he
 legend("bottomright", legend = c("placebo, homogeneous risk", "vaccine, homogeneous risk", "placebo, heterogeneous risk", "vaccine, heterogeneous risk"), col = c("blue", "green", "red", "orange"), lwd = 2, cex = 0.9, bty = "n")
 ```
 
-Instantaneous incidence / hazard, for the same comparison
+Instantaneous incidence / hazard, for homogeneous risk, for placebo and vaccine arms
 
 ```{r}
 #mod <- mod.manipulate(mod)

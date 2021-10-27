@@ -54,7 +54,7 @@ The risk structure is controlled by the size of the high-, medium-, and low-risk
 `prev` = prevalence  (prevalence of viremic individuals)  
 `lambda = beta * c * prev`  
 `risk` = risk multiplier  
-`epsilon` = per-exposure vaccine efficacy; the vaccine-induced reduction in the risk of HIV infection from a single exposure  
+`epsilon` = per-exposure (i.e. per-contact) vaccine efficacy; the vaccine-induced reduction in the risk of HIV infection from a single exposure  
 
 The model's basic equations are:  
 
