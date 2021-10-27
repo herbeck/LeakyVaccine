@@ -54,7 +54,7 @@ server <- function(input, output, session) {
   observe({reac$riskTest = input$riskTest}) 
   observe({reac$numExecution = input$numExecution}) 
   
-  #createCInfectionPlot(output, reac)
+  createCInfectionPlot(output, reac)
   createPlaceboRiskPlot(output,reac)
   createCIncidencePlot(output, reac)
   createPlaceboVaccinePlot(output,reac)
@@ -79,10 +79,10 @@ ui <- navbarPage(
   theme = shinytheme("cerulean"),
   
   #tabs
-  getIntroContent(),
+  getAboutContent(),
   getModelDescriptionContent(),
   #getCalibrationContent(),
-  getInitialExamplePlotContent(),
+  getInitialExamplePlotsContent(),
   getParameterSweepContent(),
   getTestTab()
   
