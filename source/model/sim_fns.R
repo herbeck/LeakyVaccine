@@ -89,12 +89,12 @@ runSim <- function(param) {
                      risk = param$risk)
   init <- init.dcm(Sp = 10000, Ip = 0,
                    Sv = 10000, Iv = 0,
-                   Sph = 1000, Iph = 0,    #placebo, high risk
-                   Spm = 7000, Ipm = 0,    #placebo, medium risk
-                   Spl = 2500, Ipl = 0,    #placebo, low risk
-                   Svh = 1000, Ivh = 0,    #vaccine, high risk
-                   Svm = 7000, Ivm = 0,    #vaccine, medium risk
-                   Svl = 2500, Ivl = 0,    #vaccine, low risk
+                   Sph = 500, Iph = 0,    #placebo, high risk
+                   Spm = 5500, Ipm = 0,    #placebo, medium risk
+                   Spl = 4000, Ipl = 0,    #placebo, low risk
+                   Svh = 500, Ivh = 0,    #vaccine, high risk
+                   Svm = 5500, Ivm = 0,    #vaccine, medium risk
+                   Svl = 4000, Ivl = 0,    #vaccine, low risk
                    SIp.flow = 0, SIv.flow = 0, 
                    SIph.flow = 0, SIpm.flow = 0, SIpl.flow = 0,
                    SIvh.flow = 0, SIvm.flow = 0, SIvl.flow = 0)
@@ -119,9 +119,9 @@ mod.manipulate_simple <- function(mod){
   mod <- mutate_epi(mod, total.Ivh.Ivm.Ivl = Ivh + Ivm + Ivl) #all infected in heterogeneous risk vaccine pop
   mod <- mutate_epi(mod, total.Iph.Ipm.Ipl = Iph + Ipm + Ipl) #all infected in heterogeneous risk placebo pop
   mod <- mutate_epi(mod, total.SIvh.SIvm.SIvl.flow = SIvh.flow + SIvm.flow + SIvl.flow) #all infections per day in heterogeneous risk vaccine pop
-  mod <- mutate_epi(mod, total.SIph.SIpm.SIpl.flow = SIph.flow + SIpm.flow + SIpl.flow) #all infections in heterogeneous risk placebo pop
+  mod <- mutate_epi(mod, total.SIph.SIpm.SIpl.flow = SIph.flow + SIpm.flow + SIpl.flow) #all infections per day in heterogeneous risk placebo pop
 
-  #Instantaneous ncidence (hazard) estimates, per 100 person years
+  #Instantaneous incidence (hazard) estimates, per 100 person years
   #Instantaneous incidence / hazard
   mod <- mutate_epi(mod, rate.Vaccine = (SIv.flow/Sv)*365*100)
   mod <- mutate_epi(mod, rate.Placebo = (SIp.flow/Sp)*365*100)

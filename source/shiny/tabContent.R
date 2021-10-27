@@ -125,7 +125,7 @@ getInitialExamplePlotContent <- function() {
               p("Figure 3. ..."),
               plotOutput("VEPlot") %>% withSpinner(color="#0dc5c1"),
               p("Figure 4. ..."),
-s              class = "plotPanel"
+              class = "plotPanel"
              ),
            HTML("</div>"),
            titlePanel(htmlTemplate("template.html"))

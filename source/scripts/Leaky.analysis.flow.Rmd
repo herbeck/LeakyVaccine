@@ -221,12 +221,12 @@ First pass at the size of these risk subpopulations are 10% high risk, 80% mediu
 param <- param.dcm(lambda = lambda, epsilon = epsilon, risk = risk)
 init <- init.dcm(Sp = 10000, Ip = 0,
                  Sv = 10000, Iv = 0,
-                 Sph = 1000, Iph = 0,    #placebo, high risk
+                 Sph = 500, Iph = 0,    #placebo, high risk
                  Spm = 5500, Ipm = 0,    #placebo, medium risk
-                 Spl = 3500, Ipl = 0,    #placebo, low risk
-                 Svh = 1000, Ivh = 0,    #vaccine, high risk
+                 Spl = 4000, Ipl = 0,    #placebo, low risk
+                 Svh = 500, Ivh = 0,    #vaccine, high risk
                  Svm = 5500, Ivm = 0,    #vaccine, medium risk
-                 Svl = 3500, Ivl = 0,    #vaccine, low risk
+                 Svl = 4000, Ivl = 0,    #vaccine, low risk
                  SIp.flow = 0, SIv.flow = 0, 
                  SIph.flow = 0, SIpm.flow = 0, SIpl.flow = 0,
                  SIvh.flow = 0, SIvm.flow = 0, SIvl.flow = 0)
