@@ -217,12 +217,12 @@ First pass at the size of these risk subpopulations are 10% high risk, 60% mediu
 param <- param.dcm(lambda = lambda, epsilon = epsilon, risk = risk)
 init <- init.dcm(Sp = 10000, Ip = 0,
                  Sv = 10000, Iv = 0,
-                 Sph = 1000, Iph = 0,    #placebo, high risk
-                 Spm = 6000, Ipm = 0,    #placebo, medium risk
-                 Spl = 3000, Ipl = 0,    #placebo, low risk
-                 Svh = 1000, Ivh = 0,    #vaccine, high risk
-                 Svm = 6000, Ivm = 0,    #vaccine, medium risk
-                 Svl = 3000, Ivl = 0,    #vaccine, low risk
+                 Sph = 500, Iph = 0,    #placebo, high risk
+                 Spm = 5500, Ipm = 0,    #placebo, medium risk
+                 Spl = 4000, Ipl = 0,    #placebo, low risk
+                 Svh = 500, Ivh = 0,    #vaccine, high risk
+                 Svm = 5500, Ivm = 0,    #vaccine, medium risk
+                 Svl = 4000, Ivl = 0,    #vaccine, low risk
                  SIp.flow = 0, SIv.flow = 0, 
                  SIph.flow = 0, SIpm.flow = 0, SIpl.flow = 0,
                  SIvh.flow = 0, SIvm.flow = 0, SIvl.flow = 0)
@@ -262,8 +262,8 @@ Let's just plot hazard/instantaneous incidence in these two populations.
 
 plot(mod, y=c("rate.Placebo", "rate.Placebo.het"),
      alpha = 0.8,
-     ylim = c(0, 4.5),
-     main = "Hazard",
+     ylim = c(0, 6),
+     main = "Instantaneous incidence",
      xlab = "days",
      ylab = "infections per 100 person yrs",
      legend = FALSE,
@@ -307,7 +307,7 @@ plot(mod, y=c("cumul.rate.Placebo", "cumul.rate.Vaccine", "cumul.rate.Placebo.he
 legend("bottomright", legend = c("placebo, homogeneous risk", "vaccine, homogeneous risk", "placebo, heterogeneous risk", "vaccine, heterogeneous risk"), col = c("blue", "green", "red", "orange"), lwd = 2, cex = 0.9, bty = "n")
 ```
 
-Instantaneous incidence / hazard, for the same comparison
+Instantaneous incidence / hazard, for homogeneous risk, for placebo and vaccine arms
 
 ```{r}
 mod <- mod.manipulate(mod)

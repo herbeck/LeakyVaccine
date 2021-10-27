@@ -1,8 +1,8 @@
 #------------------------------------------------------------------------------
-# for creating cumulative infection plot
+# for creating cumulative infections plot
 #------------------------------------------------------------------------------
-createCInfectionPlot <- function(output, reac) {
-  output$plotCInfect <- renderPlot({
+createCumulativeInfectionsPlot <- function(output, reac) {
+  output$CumulativeInfections <- renderPlot({
     
     mod <- runSim(reac)
     
@@ -13,24 +13,22 @@ createCInfectionPlot <- function(output, reac) {
          ylab = "infected",
          xlab = "days",
          col = c("blue", "red"))
-    
-    legend("bottomright", legend = c("homogeneous risk", "heterogeneous risk"), 
-           col = c("blue", "red"), lwd = 2, cex = 0.9, bty = "n")
-  })
+    legend("bottomright", legend = c("homogeneous risk", "heterogeneous risk"), col = c("blue", "red"), lwd = 2, cex = 0.9, bty = "n")
+    })
 }
 
 #------------------------------------------------------------------------------
-# for creating placebo risk plot
+# for creating placebo incidence plot
 #------------------------------------------------------------------------------
 createPlaceboRiskPlot <- function(output, reac) {
-  output$plot2 <- renderPlot({
+  output$PlaceboRiskPlot <- renderPlot({
     
     mod <- runSim(reac)
     
     plot(mod, y=c("rate.Placebo", "rate.Placebo.het"),
          alpha = 0.8,
-         ylim = c(0, 4.5),
-         main = "Hazard",
+         ylim = c(0, 6.0),
+         main = "Incidence in the placebo arm",
          xlab = "days",
          ylab = "infections per 100 person yrs",
          legend = FALSE,
@@ -42,55 +40,14 @@ createPlaceboRiskPlot <- function(output, reac) {
 }
 
 #------------------------------------------------------------------------------
-# for creating cumulative incidence plot
-#------------------------------------------------------------------------------
-createCIncidencePlot <- function(output, reac) {
-  output$plot3 <- renderPlot({
-    
-    mod <- runSim(reac)
-    
-    #mod <- mod.manipulate(mod)
-    
-    plot(mod, y=c("cumul.rate.Placebo", "cumul.rate.Vaccine"),
-         alpha = 0.8,
-         ylim = c(0, 4.5),
-         main = "Cumulative incidence",
-         xlab = "days",
-         ylab = "infections per 100 person yrs",
-         legend = FALSE,
-         col = c("blue", "green"))
-    legend("bottomright", legend = c("placebo", "vaccine"), col = c("blue", "green"), lwd = 2, cex = 0.9, bty = "n")
-  })
-}
-
-#------------------------------------------------------------------------------
-# for creating placebo vs vaccine plot
-#------------------------------------------------------------------------------
-createPlaceboVaccinePlot <- function(output, reac) {
-  output$plot4 <- renderPlot({
-    mod <- runSim(reac)
-    
-    plot(mod, y=c("rate.Placebo", "rate.Vaccine"),
-         alpha = 0.8,
-         ylim = c(0, 4.5),
-         main = "Hazard",
-         xlab = "days",
-         ylab = "infections per 100 person yrs",
-         legend = FALSE,
-         col = c("blue", "green"))
-    legend("bottomright", legend = c("placebo", "vaccine"), col = c("blue", "green"), lwd = 2, cex = 0.9, bty = "n")
-  })
-}
-
-#------------------------------------------------------------------------------
 # for creating placebo vaccine risk plot
 #------------------------------------------------------------------------------
 createPlaceboVaccineRiskPlot <- function(output, reac) {
-  output$plot5 <- renderPlot({
+  output$PlaceboVaccineRiskPlot <- renderPlot({
     mod <- runSim(reac)
     plot(mod, y=c("rate.Placebo", "rate.Vaccine", "rate.Placebo.het", "rate.Vaccine.het"),
          alpha = 0.8,
-         ylim = c(0, 4.5),
+         ylim = c(0, 6.0),
          main = "Hazard",
          xlab = "days",
          ylab = "infections per 100 person yrs",
@@ -106,7 +63,7 @@ createPlaceboVaccineRiskPlot <- function(output, reac) {
 # for creating vaccine efficacy plot
 #------------------------------------------------------------------------------
 createVEPlot <- function(output, reac) {
-  output$plot5 <- renderPlot({
+  output$VEPlot <- renderPlot({
     mod <- runSim(reac)
     plot(mod, y=c("VE1.inst", "VE2.inst"),
        alpha = 0.8,
@@ -119,3 +76,4 @@ createVEPlot <- function(output, reac) {
   })
   
 }
+

@@ -1,21 +1,21 @@
 Leaky vaccine 
 =============
 
-## About
+### About
 
-### Modeling the effects of exposure heterogeneity on vaccine efficacy  
+Modeling the effects of exposure heterogeneity on vaccine clinical efficacy  
 
-This repository includes a set of model-based explorations of the effect of HIV exposure/risk heterogeneity on vaccine efficacy.
+This repository includes a set of model-based explorations of the effect of HIV exposure heterogeneity on vaccine efficacy.
 
 IDM:  
-Josh Herbeck (<jherbeck@idmod.org>)  
+Josh Herbeck (jherbeck@idmod.org)  
 Adam Akullian (<aakullian@idmod.org>)    
 Allen Roberts  
 David Kong  
 Minerva Enriquez  
 
-FHCRC:  
-Paul Edlefsen  (<pedlefse@fredhutch.org>)  
+FHCRC: 
+Paul Edlefsen  (pedlefse@fredhutch.org)  
 
 ---  
 
@@ -37,9 +37,9 @@ Here we use epidemic models to simulate this process, within and across populati
 
 2. Can exposure heterogeneity explain waning efficacies seen in other HIV prevention trials (e.g. the AMP VRC01 bnAb trials and the different results seen in the sub-studies, 703 and 704).  
 
-3. In HIV cohort studies, the incidence rate often declines over the course of the study. How much of this effect may be due to frailty bias (i.e. individuals with high risk exposure or high exposure rates becoming infected early in the observation period, while individuals with lower risk become infected later)?  
+3. In HIV cohort studies incidence often declines over the course of the study. How much of this effect may be due to frailty bias (i.e. individuals with high risk exposure or high exposure rates becoming infected early in the observation period, while individuals with lower risk become infected later)?  
 
-## Description of model  
+### Description of model  
 
 To simulate an HIV vaccine trial we use a simple deterministic compartmental model. The model includes two compartments:  S, susceptible individuals; and I, infected individuals. Individuals start as S and move to I over the course of the trial if they get infected. We do not model infections back from I to S; we assume that changes in the size of I do not affect the infection rate of S.  
 
@@ -80,8 +80,6 @@ Ivl = infected vaccinated low exposure
 
 ## Model R code
 
-David, Jen, This is where I start to need help with organization, i.e. right where the code starts to appear, and people can start to see how I have set up the model and get some prelim results (or run the model themselves).
-
 We use the EpiModel (<http://www.epimodel.org/>, Sam Jenness et al., Emory University) framework to build the model.  
 
 ``` r
@@ -92,6 +90,7 @@ library(survival)
 library(EasyABC)
 ```  
 
+=======
 ### Default model function
 
 ``` r
@@ -221,7 +220,7 @@ mod <- mutate_epi(mod, total.Sph.Spm.Spl = Sph + Spm + Spl) #all susceptible in 
 mod <- mutate_epi(mod, total.Ivh.Ivm.Ivl = Ivh + Ivm + Ivl) #all infected in heterogeneous risk vaccine pop
 mod <- mutate_epi(mod, total.Iph.Ipm.Ipl = Iph + Ipm + Ipl) #all infected in heterogeneous risk placebo pop
 mod <- mutate_epi(mod, total.SIvh.SIvm.SIvl.flow = SIvh.flow + SIvm.flow + SIvl.flow) #all infections per day in heterogeneous risk vaccine pop
-mod <- mutate_epi(mod, total.SIph.SIpm.SIpl.flow = SIph.flow + SIpm.flow + SIpl.flow) #all infections in heterogeneous risk placebo pop
+mod <- mutate_epi(mod, total.SIph.SIpm.SIpl.flow = SIph.flow + SIpm.flow + SIpl.flow) #all infections in heterogeneous risk placebo pop  
 
 #Instantaneous ncidence (hazard) estimates, per 100 person years
 #Instantaneous incidence / hazard
@@ -269,6 +268,4 @@ plot(mod, y=c("rate.Placebo", "rate.Placebo.het"),
      col = c("blue", "red"))
 legend("bottomright", legend = c("homogeneous risk", "heterogeneous risk"), col = c("blue", "red"), lwd = 2, cex = 0.9, bty = "n")
 ```  
-
-
 

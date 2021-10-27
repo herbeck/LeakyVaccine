@@ -27,11 +27,11 @@ getAboutContent <- function() {
 
 
 #------------------------------------------------------------------------------
-# for creating Model setup tab content
+# for creating Model Description tab content
 #------------------------------------------------------------------------------
 getModelDescriptionContent <- function() {
-  
-  return(tabPanel("Model description",
+  return(tabPanel("Model Description",
+
            HTML("<div class='mainPanel main'>"),
            p(paste("We are modeling a vaccine trial using an SI deterministic compartmental model.", 
                    "We are not modeling infections from the I to S compartments but rather only infections from the outside (non-trial) population, ", 
@@ -100,35 +100,33 @@ getCalibrationContent <- function() {
 
 
 #------------------------------------------------------------------------------
-# for creating simple Plot tab content
+# for creating Initial Example Plots tab content
 #------------------------------------------------------------------------------
-getInitialExamplePlotsContent <- function() {
-  tabPanel("Initial example plots", 
+
+getInitialExamplePlotContent <- function() {
+  tabPanel("Initial Example Plots", 
            HTML("<div class='mainPanel'>"),
              sidebarPanel(  
-               sliderInput('beta', 'Beta (per-contact transmission probability):', min=0, max=0.01,
-                           value=0.004, step=0.001, round=-4),
-               sliderInput('contactRate', 'Contact rate (number of sexual partners per timestep):', min=0, max=1,
-                           value=25/365, step=0.01, round=FALSE),
-               sliderInput('prev', 'Prevalence (of individuals with unsuppressed viral load):', min=0, max=1,
-                           value=0.1, step=0.1, round=FALSE),
-               sliderInput('epsilon', 'epsilon (per-contact vaccine efficacy):', min=0, max=1,
-                           value=0.3, step=0.1, round=FALSE),
-               sliderInput('risk', 'Risk multiplier (Relative force of infection for high risk subgroup):', min=0, max=20,
-                           value=10, step=1, round=FALSE)
-               
+               sliderInput('beta', 'beta (per-contact transmission probability):', min=0, max=0.01,
+                           value=0.005, step=0.001, round=-4),
+               sliderInput('contactRate', 'c (sexual contacts per day):', min=0, max=1,
+                           value=90/365, step=0.01, round=FALSE),
+               sliderInput('prev', 'prev (population prevalence of viremic individuals):', min=0, max=1,
+                           value=0.10, step=0.1, round=FALSE),
+               sliderInput('epsilon', 'epsilon (per-exposure vaccine efficacy):', min=0, max=1,
+                           value=0.5, step=0.1, round=FALSE),
+               sliderInput('risk', 'risk (risk multiplier; relative force of infection for high risk group):', min=0, max=25,
+                           value=15, step=1, round=FALSE) 
              ),
              mainPanel(
-              p("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque fringilla aliquam ex, vitae scelerisque felis semper quis. Aenean nec pharetra ligula. Mauris vulputate purus ante, id faucibus leo facilisis sit amet. Fusce vestibulum justo eu enim commodo consectetur. Fusce nisi urna, ultrices at purus at, imperdiet efficitur ligula. Curabitur quis sapien ligula. Ut non orci ullamcorper, pulvinar nibh vel, molestie velit. Morbi vulputate hendrerit mi, a mollis risus blandit eget. Cras lacinia eget massa condimentum finibus. Morbi porta lorem augue, in sagittis orci vehicula vel. Sed ipsum nisi, scelerisque quis luctus at, efficitur sed erat. Nam aliquet hendrerit laoreet. Nulla rutrum, nisi pulvinar placerat eleifend, lacus metus ornare dolor, at iaculis augue mi sit amet lorem. Aliquam sit amet turpis nec quam aliquet pretium. Maecenas leo lectus, efficitur in magna ut, gravida iaculis felis."),
-              plotOutput("plotCInfect")  %>% withSpinner(color="#0dc5c1"),
-              p("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque fringilla aliquam ex, vitae scelerisque felis semper quis. Aenean nec pharetra ligula. Mauris vulputate purus ante, id faucibus leo facilisis sit amet. Fusce vestibulum justo eu enim commodo consectetur. Fusce nisi urna, ultrices at purus at, imperdiet efficitur ligula. Curabitur quis sapien ligula. Ut non orci ullamcorper, pulvinar nibh vel, molestie velit. Morbi vulputate hendrerit mi, a mollis risus blandit eget. Cras lacinia eget massa condimentum finibus. Morbi porta lorem augue, in sagittis orci vehicula vel. Sed ipsum nisi, scelerisque quis luctus at, efficitur sed erat. Nam aliquet hendrerit laoreet. Nulla rutrum, nisi pulvinar placerat eleifend, lacus metus ornare dolor, at iaculis augue mi sit amet lorem. Aliquam sit amet turpis nec quam aliquet pretium. Maecenas leo lectus, efficitur in magna ut, gravida iaculis felis."),
-              plotOutput("plot2") %>% withSpinner(color="#0dc5c1"),
-              p("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque fringilla aliquam ex, vitae scelerisque felis semper quis. Aenean nec pharetra ligula. Mauris vulputate purus ante, id faucibus leo facilisis sit amet. Fusce vestibulum justo eu enim commodo consectetur. Fusce nisi urna, ultrices at purus at, imperdiet efficitur ligula. Curabitur quis sapien ligula. Ut non orci ullamcorper, pulvinar nibh vel, molestie velit. Morbi vulputate hendrerit mi, a mollis risus blandit eget. Cras lacinia eget massa condimentum finibus. Morbi porta lorem augue, in sagittis orci vehicula vel. Sed ipsum nisi, scelerisque quis luctus at, efficitur sed erat. Nam aliquet hendrerit laoreet. Nulla rutrum, nisi pulvinar placerat eleifend, lacus metus ornare dolor, at iaculis augue mi sit amet lorem. Aliquam sit amet turpis nec quam aliquet pretium. Maecenas leo lectus, efficitur in magna ut, gravida iaculis felis."),
-              plotOutput("plot3") %>% withSpinner(color="#0dc5c1"),
-              p("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque fringilla aliquam ex, vitae scelerisque felis semper quis. Aenean nec pharetra ligula. Mauris vulputate purus ante, id faucibus leo facilisis sit amet. Fusce vestibulum justo eu enim commodo consectetur. Fusce nisi urna, ultrices at purus at, imperdiet efficitur ligula. Curabitur quis sapien ligula. Ut non orci ullamcorper, pulvinar nibh vel, molestie velit. Morbi vulputate hendrerit mi, a mollis risus blandit eget. Cras lacinia eget massa condimentum finibus. Morbi porta lorem augue, in sagittis orci vehicula vel. Sed ipsum nisi, scelerisque quis luctus at, efficitur sed erat. Nam aliquet hendrerit laoreet. Nulla rutrum, nisi pulvinar placerat eleifend, lacus metus ornare dolor, at iaculis augue mi sit amet lorem. Aliquam sit amet turpis nec quam aliquet pretium. Maecenas leo lectus, efficitur in magna ut, gravida iaculis felis."),
-              plotOutput("plot4") %>% withSpinner(color="#0dc5c1"),
-              p("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque fringilla aliquam ex, vitae scelerisque felis semper quis. Aenean nec pharetra ligula. Mauris vulputate purus ante, id faucibus leo facilisis sit amet. Fusce vestibulum justo eu enim commodo consectetur. Fusce nisi urna, ultrices at purus at, imperdiet efficitur ligula. Curabitur quis sapien ligula. Ut non orci ullamcorper, pulvinar nibh vel, molestie velit. Morbi vulputate hendrerit mi, a mollis risus blandit eget. Cras lacinia eget massa condimentum finibus. Morbi porta lorem augue, in sagittis orci vehicula vel. Sed ipsum nisi, scelerisque quis luctus at, efficitur sed erat. Nam aliquet hendrerit laoreet. Nulla rutrum, nisi pulvinar placerat eleifend, lacus metus ornare dolor, at iaculis augue mi sit amet lorem. Aliquam sit amet turpis nec quam aliquet pretium. Maecenas leo lectus, efficitur in magna ut, gravida iaculis felis."),
-              plotOutput("plot5") %>% withSpinner(color="#0dc5c1"),
+              plotOutput("CumulativeInfectionsPlot") %>% withSpinner(color="#0dc5c1"),
+              p("Figure 1. Cumulative infections in the placebo arms of a vaccine trial, for populations with homogeneous risk and heterogeneous risk. Note that the infections in the heterogeneous risk population accumulate faster early in the trial, as the high risk individuals are infected."),
+              plotOutput("PlaceboRiskPlot") %>% withSpinner(color="#0dc5c1"),
+              p("Figure 2. Incidence in the placebo arms of a vaccine trial. As expected from the cumulative infections plot above, the incidence in the heterogeneous risk population decreases over the course of the trial."),
+              plotOutput("PlaceboVaccineRiskPlot") %>% withSpinner(color="#0dc5c1"),
+              p("Figure 3. ..."),
+              plotOutput("VEPlot") %>% withSpinner(color="#0dc5c1"),
+              p("Figure 4. ..."),
               class = "plotPanel"
              ),
            HTML("</div>"),
@@ -146,21 +144,19 @@ getParameterSweepContent <- function() {
   tabPanel("Parameter sweeps", 
            HTML("<div class='mainPanel'>"),
              sidebarPanel(  
-               sliderInput('betaOld', 'beta (per contact transmission rate):', min=0, max=0.01,
+               sliderInput('betaOld', 'beta (per-contact transmission probability):', min=0, max=0.01,
                            value=0.004, step=0.001, round=-4),
-               sliderInput('contactRateOld', 'Contact rate:', min=0, max=1,
-                           value=25/365, step=0.01, round=FALSE),
-               sliderInput('prevOld', 'Prevalence of viremia:', min=0, max=1,
+               sliderInput('contactRateOld', 'c (sexual contacts per day):', min=0, max=1,
+                           value=90/365, step=0.01, round=FALSE),
+               sliderInput('prevOld', 'prev (population prevalence of viremic individuals):', min=0, max=1,
                            value=0.1, step=0.1, round=FALSE),
-               sliderInput('epsilonOld', 'Epsilon (per-contact vaccine efficacy):', min=0, max=1,
+               sliderInput('epsilonOld', 'epsilon (per-exposure vaccine efficacy):', min=0, max=1,
                            value=0.3, step=0.1, round=FALSE),
-               #sliderInput('sizeOld', 'sample size:', min=0, max=10000,
-               #value=5000, step=500, round=FALSE),
-               sliderInput('incOld', 'inc (cumulative incidence, per 100 person years):', min=0, max=1,
+              sliderInput('incOld', 'inc (cumulative incidence, per 100 person years):', min=0, max=1,
                            value=0.04, step=0.01, round=-3),
                sliderInput('sampleSizeOld', 'sample size (population size):', min=0, max=10000,
                            value=5000, step=500, round=FALSE),
-               sliderInput('nstepsOld', 'nsteps:', min=0, max=3650,
+               sliderInput('nstepsOld', 'nsteps (number of times steps):', min=0, max=3650,
                            value=365*3, step=100, round=FALSE),
                class = "slider"
              ),
@@ -184,11 +180,11 @@ getTestTab <- function() {
   tabPanel("Test", 
            HTML("<div class='mainPanel'>"),
            sidebarPanel(  
-             sliderInput('lambdaTest', 'Lambda:', min=0.000005, max=0.0001,
+             sliderInput('lambdaTest', 'lambda:', min=0.000005, max=0.0001,
                          value=0.000028, step=0.000001, round=FALSE),
-             sliderInput('epsilonTest', 'Epilson:', min=0.0, max=0.01,
-                         value=0.004, step=0.001, round=FALSE),
-             sliderInput('riskTest', 'Risk:', min=0, max=20,
+             sliderInput('epsilonTest', 'epilson:', min=0.0, max=1.0,
+                         value=0.40, step=0.05, round=FALSE),
+             sliderInput('riskTest', 'risk:', min=0, max=30,
                          value=10.0, step=1, round=FALSE),
              sliderInput('numExecution', '# of execution:', min=0, max=1000,
                          value=100, step=50, round=FALSE),
