@@ -14,7 +14,7 @@ createCumulativeInfectionsPlot <- function(output, reac) {
          xlab = "days",
          col = c("blue", "red"))
     legend("bottomright", legend = c("homogeneous risk", "heterogeneous risk"), col = c("blue", "red"), lwd = 2, cex = 0.9, bty = "n")
-  })
+    })
 }
 
 #------------------------------------------------------------------------------
@@ -28,7 +28,7 @@ createPlaceboRiskPlot <- function(output, reac) {
     plot(mod, y=c("rate.Placebo", "rate.Placebo.het"),
          alpha = 0.8,
          ylim = c(0, 6.0),
-         main = "Instantaneous incidence in the placebo arm",
+         main = "Incidence in the placebo arm",
          xlab = "days",
          ylab = "infections per 100 person yrs",
          legend = FALSE,
