@@ -26,7 +26,7 @@ getIntroContent <- function() {
 
 
 #------------------------------------------------------------------------------
-# for creating Model setup tab content
+# for creating Model Description tab content
 #------------------------------------------------------------------------------
 getModelDescriptionContent <- function() {
   
@@ -105,27 +105,27 @@ getInitialExamplePlotContent <- function() {
            HTML("<div class='mainPanel'>"),
              sidebarPanel(  
                sliderInput('beta', 'beta (per-contact transmission probability):', min=0, max=0.01,
-                           value=0.004, step=0.001, round=-4),
+                           value=0.005, step=0.001, round=-4),
                sliderInput('contactRate', 'c (sexual contacts per day):', min=0, max=1,
                            value=90/365, step=0.01, round=FALSE),
                sliderInput('prev', 'prev (population prevalence of viremic individuals):', min=0, max=1,
-                           value=0.1, step=0.1, round=FALSE),
+                           value=0.10, step=0.1, round=FALSE),
                sliderInput('epsilon', 'epsilon (per-exposure vaccine efficacy):', min=0, max=1,
-                           value=0.3, step=0.1, round=FALSE),
-               sliderInput('risk', 'risk (risk multiplier; relative force of infection for high risk group):', min=0, max=20,
-                           value=10, step=1, round=FALSE)
+                           value=0.5, step=0.1, round=FALSE),
+               sliderInput('risk', 'risk (risk multiplier; relative force of infection for high risk group):', min=0, max=25,
+                           value=15, step=1, round=FALSE)
                
              ),
              mainPanel(
-              p("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque fringilla aliquam ex, vitae scelerisque felis semper quis. Aenean nec pharetra ligula. Mauris vulputate purus ante, id faucibus leo facilisis sit amet. Fusce vestibulum justo eu enim commodo consectetur. Fusce nisi urna, ultrices at purus at, imperdiet efficitur ligula. Curabitur quis sapien ligula. Ut non orci ullamcorper, pulvinar nibh vel, molestie velit. Morbi vulputate hendrerit mi, a mollis risus blandit eget. Cras lacinia eget massa condimentum finibus. Morbi porta lorem augue, in sagittis orci vehicula vel. Sed ipsum nisi, scelerisque quis luctus at, efficitur sed erat. Nam aliquet hendrerit laoreet. Nulla rutrum, nisi pulvinar placerat eleifend, lacus metus ornare dolor, at iaculis augue mi sit amet lorem. Aliquam sit amet turpis nec quam aliquet pretium. Maecenas leo lectus, efficitur in magna ut, gravida iaculis felis."),
               plotOutput("CumulativeInfectionsPlot") %>% withSpinner(color="#0dc5c1"),
-              p("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque fringilla aliquam ex, vitae scelerisque felis semper quis. Aenean nec pharetra ligula. Mauris vulputate purus ante, id faucibus leo facilisis sit amet. Fusce vestibulum justo eu enim commodo consectetur. Fusce nisi urna, ultrices at purus at, imperdiet efficitur ligula. Curabitur quis sapien ligula. Ut non orci ullamcorper, pulvinar nibh vel, molestie velit. Morbi vulputate hendrerit mi, a mollis risus blandit eget. Cras lacinia eget massa condimentum finibus. Morbi porta lorem augue, in sagittis orci vehicula vel. Sed ipsum nisi, scelerisque quis luctus at, efficitur sed erat. Nam aliquet hendrerit laoreet. Nulla rutrum, nisi pulvinar placerat eleifend, lacus metus ornare dolor, at iaculis augue mi sit amet lorem. Aliquam sit amet turpis nec quam aliquet pretium. Maecenas leo lectus, efficitur in magna ut, gravida iaculis felis."),
+              p("Figure 1. Cumulative infections in the placebo arms of a vaccine trial, for populations with homogeneous risk and heterogeneous risk. Note that the infections in the heterogeneous risk population accumulate faster early in the trial, as the high risk individuals are infected."),
               plotOutput("PlaceboRiskPlot") %>% withSpinner(color="#0dc5c1"),
-              p("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque fringilla aliquam ex, vitae scelerisque felis semper quis. Aenean nec pharetra ligula. Mauris vulputate purus ante, id faucibus leo facilisis sit amet. Fusce vestibulum justo eu enim commodo consectetur. Fusce nisi urna, ultrices at purus at, imperdiet efficitur ligula. Curabitur quis sapien ligula. Ut non orci ullamcorper, pulvinar nibh vel, molestie velit. Morbi vulputate hendrerit mi, a mollis risus blandit eget. Cras lacinia eget massa condimentum finibus. Morbi porta lorem augue, in sagittis orci vehicula vel. Sed ipsum nisi, scelerisque quis luctus at, efficitur sed erat. Nam aliquet hendrerit laoreet. Nulla rutrum, nisi pulvinar placerat eleifend, lacus metus ornare dolor, at iaculis augue mi sit amet lorem. Aliquam sit amet turpis nec quam aliquet pretium. Maecenas leo lectus, efficitur in magna ut, gravida iaculis felis."),
+              p("Figure 2. Incidence in the placebo arms of a vaccine trial. As expected from the cumulative infections plot above, the incidence in the heterogeneous risk population decreases over the course of the trial."),
               plotOutput("PlaceboVaccineRiskPlot") %>% withSpinner(color="#0dc5c1"),
-              p("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque fringilla aliquam ex, vitae scelerisque felis semper quis. Aenean nec pharetra ligula. Mauris vulputate purus ante, id faucibus leo facilisis sit amet. Fusce vestibulum justo eu enim commodo consectetur. Fusce nisi urna, ultrices at purus at, imperdiet efficitur ligula. Curabitur quis sapien ligula. Ut non orci ullamcorper, pulvinar nibh vel, molestie velit. Morbi vulputate hendrerit mi, a mollis risus blandit eget. Cras lacinia eget massa condimentum finibus. Morbi porta lorem augue, in sagittis orci vehicula vel. Sed ipsum nisi, scelerisque quis luctus at, efficitur sed erat. Nam aliquet hendrerit laoreet. Nulla rutrum, nisi pulvinar placerat eleifend, lacus metus ornare dolor, at iaculis augue mi sit amet lorem. Aliquam sit amet turpis nec quam aliquet pretium. Maecenas leo lectus, efficitur in magna ut, gravida iaculis felis."),
+              p("Figure 3. ..."),
               plotOutput("VEPlot") %>% withSpinner(color="#0dc5c1"),
-              class = "plotPanel"
+              p("Figure 4. ..."),
+s              class = "plotPanel"
              ),
            HTML("</div>"),
            titlePanel(htmlTemplate("template.html"))
