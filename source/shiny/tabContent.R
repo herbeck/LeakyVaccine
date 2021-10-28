@@ -103,7 +103,7 @@ getCalibrationContent <- function() {
 # for creating Initial Example Plots tab content
 #------------------------------------------------------------------------------
 
-getInitialExamplePlotContent <- function() {
+getInitialExamplePlotsContent <- function() {
   tabPanel("Initial Example Plots", 
            HTML("<div class='mainPanel'>"),
              sidebarPanel(  
