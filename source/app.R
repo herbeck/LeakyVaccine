@@ -19,7 +19,7 @@ source("shiny/Paul-visualization.R")
 
 server <- function(input, output, session) {
   
-  updateTabsetPanel(session, "page-nav", "Introduction")
+  updateTabsetPanel(session, "page-nav", "About this tool")
   #--------------
   # for the Parameter Sweeps tab
   #--------------
