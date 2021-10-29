@@ -56,7 +56,6 @@ server <- function(input, output, session) {
   
   createCumulativeInfectionsPlot(output, reac)
   createPlaceboRiskPlot(output,reac)
-  createCIncidencePlot(output, reac)
   createPlaceboVaccinePlot(output,reac)
   createPlaceboVaccineRiskPlot(output,reac)
   createVEPlot(output,reac)
