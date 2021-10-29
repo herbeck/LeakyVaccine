@@ -2,8 +2,7 @@
 # for creating cumulative infections plot
 #------------------------------------------------------------------------------
 createCumulativeInfectionsPlot <- function(output, reac) {
-  output$CumulativeInfections <- renderPlot({
-    
+  output$CumulativeInfectionsPlot <- renderPlot({
     mod <- runSim(reac)
     
     plot(mod, y = c("Ip", "total.Iph.Ipm.Ipl"), 
@@ -22,7 +21,6 @@ createCumulativeInfectionsPlot <- function(output, reac) {
 #------------------------------------------------------------------------------
 createPlaceboRiskPlot <- function(output, reac) {
   output$PlaceboRiskPlot <- renderPlot({
-    
     mod <- runSim(reac)
     
     plot(mod, y=c("rate.Placebo", "rate.Placebo.het"),
