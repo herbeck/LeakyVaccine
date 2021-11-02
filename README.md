@@ -8,14 +8,14 @@ Modeling the effects of exposure heterogeneity on vaccine clinical efficacy
 This repository includes a set of model-based explorations of the effect of HIV exposure heterogeneity on vaccine efficacy.
 
 IDM:  
-Josh Herbeck (jherbeck@idmod.org)  
+Josh Herbeck (<jherbeck@idmod.org>)  
 Adam Akullian (<aakullian@idmod.org>)    
 Allen Roberts  
 David Kong  
 Minerva Enriquez  
 
 FHCRC: 
-Paul Edlefsen  (pedlefse@fredhutch.org)  
+Paul Edlefsen  (<pedlefse@fredhutch.org>)  
 
 ---  
 
