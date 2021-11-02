@@ -1,7 +1,3 @@
----
-output: html_document
-runtime: shiny
----
 
 library(shiny)
 library(ggplot2)
