@@ -80,7 +80,7 @@ ui <- navbarPage(
   #tabs
   getAboutContent(),
   getModelDescriptionContent(),
-  #getCalibrationContent(),
+  getCalibrationContent(),
   getInitialExamplePlotsContent(),
   getParameterSweepContent(),
   getTestTab()
