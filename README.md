@@ -8,22 +8,22 @@ Modeling the effects of exposure heterogeneity on vaccine clinical efficacy
 This repository includes a set of model-based explorations of the effect of HIV exposure heterogeneity on vaccine efficacy.
 
 IDM:  
-Josh Herbeck (jherbeck@idmod.org)  
+Josh Herbeck (<jherbeck@idmod.org>)  
 Adam Akullian (<aakullian@idmod.org>)    
 Allen Roberts  
 David Kong  
 Minerva Enriquez  
 
 FHCRC: 
-Paul Edlefsen  (pedlefse@fredhutch.org)  
+Paul Edlefsen  (<pedlefse@fredhutch.org>)  
 
 ---  
 
 ## Background  
 
-It has been hypothesized that exposure or risk heterogeneity can affect estimates of vaccine efficacy for leaky vaccines (e.g. Halloran et al., 1992; White et al., 2010; O'Hagan et al.,2013; Edlefsen, 2014; Coley et al., 2016; Gomes et al., 2016; Kahn et al., 2018; Langwig et al., 2019). The potential outcome is that the vaccine efficacy measured from the trial (we call this "*clinical efficacy*") is lower than the biological vaccine efficacy (we call this the "*per-exposure*" or "*per-contact vaccine efficacy*").
+It has been hypothesized that exposure or risk heterogeneity can affect estimates of vaccine efficacy for leaky vaccines (e.g. Halloran et al., 1992; White et al., 2010; O'Hagan et al.,2013; Edlefsen, 2014; Coley et al., 2016; Gomes et al., 2016; Kahn et al., 2018; Langwig et al., 2019). The potential outcome is that the vaccine efficacy measured from the trial (i.e. the "*clinical efficacy*") is lower than the biological vaccine efficacy (i.e. the "*per-exposure*" or "*per-contact vaccine efficacy*"). This distinction is important and is a main focus of this work:  the per-exposure vaccine efficacy is not necessarily equal to the clinical efficacy or the population effectiveness of the same vaccine.
 
-We choose to characterize exposure heterogeneity as within- or across-population. *Within-population heterogeneity* is the variation in risk of HIV infection within a single (trial) population:  a portion of individuals are at higher risk of infection, due to a combination of higher contact rate (e.g. number of sexual partners), higher per-exposure probability of transmission, or higher HIV prevalence in sexual partners. If this pattern exists within the vaccine and placebo arms of clinical trial, it can result in decreasing clinical vaccine efficacy over the course of the trial. This happens as high risk individuals in both arms are infected (and effectively removed from the susceptible population) at a higher rate than the low risk individuals; incidence declines over the course of this depletion, as the high-risk individuals get infected and only the lower risk individuals remain. If the vaccine at trial has some effect, this incidence decline occurs faster in the placebo arm, resulting in vaccine and placebo arms with unbalanced risk structure.
+Let's start with one approach to thinking about this issues. We can choose to characterize exposure heterogeneity as within- or across-population. *Within-population heterogeneity* is the variation in risk of HIV infection within a single (trial) population:  a portion of individuals are at higher risk of infection, due to a combination of higher contact rate (e.g. number of sexual partners), higher per-exposure probability of transmission, or higher HIV prevalence in sexual partners. If this pattern exists within the vaccine and placebo arms of clinical trial, it can result in decreasing clinical vaccine efficacy over the course of the trial. This happens as high risk individuals in both arms are infected (and effectively removed from the susceptible population) at a higher rate than the low risk individuals; incidence declines over the course of this depletion, as the high-risk individuals get infected and only the lower risk individuals remain. If the vaccine at trial has some effect, this incidence decline occurs faster in the placebo arm, resulting in vaccine and placebo arms with unbalanced risk structure.
 
 *Across-population heterogeneity* describes a situation where two or more populations have different forces of infection (e.g. there is variation in the population incidence or exposure rate). For leaky vaccines, which in theory partially protect all vaccinated individuals on a per-exposure basis, repeated exposures will lead to lower vaccine efficacy:  in populations with high HIV risk, the cumulative effect of multiple exposures can result in clinical efficacy lower than the per-exposure vaccine efficacy. This situation may describe HIV vaccine trials in South Africa and Thailand; even if the per-exposure efficacy of the vaccine is the same, would we expect substantial differences in clinical VE that are due to the different incidences in the trial settings?
 
@@ -91,6 +91,7 @@ library(EasyABC)
 ```  
 
 =======
+
 ### Default model function
 
 ``` r
