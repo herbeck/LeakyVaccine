@@ -175,7 +175,6 @@ getCalibrationContent <- function() {
              Following a systematic review of this topic by Boily et al., we selected values for `beta` within the range of 0.003–0.008. 
              Here, we chose values for `v` within the range of 0.15–0.35, which are slightly conservative, but supported by population-based estimates from the 
              sub-Saharan African context."),
-           
            HTML(paste("<div class='code'>", 
                       "<div class='flex'><div class='definition'>c</div><div>varies from 50 to 120 per year</div></div>",
                       "<div class='flex'><div class='definition'>beta</div><div>varies from 0.003 to 0.008</div></div>",
@@ -194,6 +193,7 @@ getCalibrationContent <- function() {
 
 getTestTab <- function() {
   tabPanel("Model fitting", 
+           
            HTML("<div class='mainPanel'>"),
            sidebarPanel(  
              sliderInput('lambdaTest', 'lambda:', min=0.000005, max=0.0001,
