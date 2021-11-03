@@ -1,6 +1,4 @@
 
-
-
 #------------------------------------------------------------------------------
 # for creating Intro tab content
 #------------------------------------------------------------------------------
@@ -10,7 +8,7 @@ getAboutContent <- function() {
     HTML("<div class='mainPanel main'>"),
     h3("Using models to assess the impact of HIV exposure heterogeneity on trial vaccine efficacy measures"),
     p("It is hypothesized that exposure heterogeneity (i.e. infection risk heterogeneity) can affect estimates of vaccine efficacy for leaky vaccines (e.g. Halloran et al., 1992; White et al., 2010; O'Hagan et al.,2013; Edlefsen, 2014; Coley et al., 2016; Gomes et al., 2016; Kahn et al., 2018."), 
-    p("A potential outcome is that vaccine efficacy measured from a trial (i.e. the clinical efficacy) is lower than the biological vaccine efficacy (i.e. the per-exposure or per-contact vaccine efficacy). This distinction is important: the per-exposure vaccine efficacy is not necessarily equal to the clinical efficacy or the population effectiveness of the same vaccine."),
+    p("A potential outcome of exposure heterogeneity (i.e. risk structure in a population) is that vaccine efficacy measured from a trial (i.e. the clinical efficacy) is lower than the biological vaccine efficacy (i.e. the per-exposure or per-contact vaccine efficacy). This distinction is important: the per-exposure vaccine efficacy is not necessarily equal to the clinical efficacy or the population effectiveness of the same vaccine."),
     p("From Gomes et al., 2016:  \"This effect is more pronounced in the control group as individuals within it experience higher rates of infection overall. Consequently, the ratio of disease rates in vaccinated over control groups increases, and vaccine efficacy, as measured by simple rate ratios, decreases as the trial progresses. Finally, the magnitude of this effect increases with the intensity of transmission.\"  "),
     p("Here we use epidemic models to simulate this process, within and across populations, in the context of HIV prevention trials or longitudinal studies. Our goals are to:"),
     HTML("<ol type='1'>"),
@@ -38,17 +36,22 @@ getAboutContent <- function() {
 getModelDescriptionContent <- function() {
   return(tabPanel("Model description",
 
-           HTML("<div class='mainPanel main'>"),
-           p(paste("We are modeling a vaccine trial using an SI deterministic compartmental model.", 
-                   "We are not modeling infections from the I to S compartments but rather only infections from the outside (non-trial) population, ", 
-                   "with the infection rate based on the population prevalence `prev` (of viremic individuals), the exposure rate ",         "with the infection rate based on the population prevalence `prev` (of viremic individuals), the exposure rate ",
-                   "(serodiscordant sexual contacts per time) `c`, and the transmission rate (per contact) `p`. The per contact ",
-                   "effect of vaccination is `epsilon`, and with this iteration of the model `epsilon` is: ")),
-           HTML("<ol type='1'><li> not time-varying (the per contact vaccine effect does not decay over time) and</li>  <li>assumes a homogeneous effect (does not vary by mark / viral genotype).</li></ol>"),
-           p("This model structure also removes the possibility of indirect effects from vaccination.  "),
-           p("We are, with this early iteration, including just three subgroups in the heterogeneous exposure population: high, medium, and low exposure. Right now we do not know the correct size of these subgroups (i.e. fraction of the population) or their relative contribution to overall incidence. First pass is 10% high risk, 80% medium risk, 10% low risk (and low risk is set at zero risk), as this, in combination with a 10% `risk` multiplier, results in 3.5% incidence in a putative population with no vaccine (placebo arm) and no exposure heterogeneity. "),
+    HTML("<div class='mainPanel main'>"),
+    h3("Model structure"),
+    p("We are modeling a vaccine trial using an SI deterministic compartmental model; this is a simple epidemic model that has two populations, the Susceptible (S) and the Infected (I). 
+    We start the epidemic model with all trial individuals in the S group; over time S individuals move into the I group as they become infected.", 
+    p("We are not modeling infections from the I to S compartments but rather only infections from the outside (non-trial) population."),  
+    p("This model structure also removes the possibility of indirect effects from vaccination.  "),
+    h3("Parameters"),
+    p("The infection rate per time step is a combination of population prevalence `prev` (of viremic individuals), the exposure rate
+    (serodiscordant sexual contacts per time) `c`, and the transmission rate (per contact) `p`. The per contact
+    effect of vaccination is `epsilon`."),
+    HTML("<ol type='1'><li> not time-varying (the per contact vaccine effect does not decay over time) and</li>  <li>assumes a homogeneous effect (does not vary by mark / viral genotype).</li></ol>"),
+    p("We are including three subgroups in the heterogeneous exposure population: high, medium, and low exposure. 
+    In reality we do not know the correct size of risk subgroups (i.e. fraction of the population) or their relative contribution to overall incidence. 
+    But for our first pass we set the size of these groups at 10% high risk, 80% medium risk, 10% low risk (and low risk is set at zero risk)."),
            
-           HTML(paste("<div class='code'>", 
+     HTML(paste("<div class='code'>", 
                       "<div class='flex'><div class='definition'>beta</div><div>transmission rate (per contact)</div></div>",
                       "<div class='flex'><div class='definition'>c</div><div>exposure rate (serodiscordant sexual contacts per time)</div></div>",
                       "<div class='flex'><div class='definition'>prev</div><div>prevalence  (prevalence of viremic individuals)</div></div>",
@@ -56,27 +59,13 @@ getModelDescriptionContent <- function() {
                       "<div class='flex'><div class='definition'>risk</div><div>risk multiplier</div></div>",
                       "<div class='flex'><div class='definition'>epsilon</div><div>per contact vaccine efficacy; vaccine-induced reduction in the risk of HIV infection from a single exposure</div></div>",
                       "</div><br/>")),
-           HTML("<p>The risk multiplier is an amalgam of increases in transmission risk that could be due to:</p>"),
-           HTML("<ol type='1'>"),
-           HTML("<li>higher per contact transmission risk</li>"),
-           HTML("<li>higher exposure rate (number of contacts)</li>"),
-           HTML("<li>higher prevalence of HIV viremia in partners.</li></ol>"),
-           HTML("<p>Individual risk of infection can vary for these separately or in combination.</p>"),
-           h4("Key for our model functions:"),
-           HTML(paste("<div class='code'>", 
-                      "<div class='flex'><div class='definition'>sp</div><div>susceptible placebo</div></div>",
-                      "<div class='flex'><div class='definition'>Ip</div><div>infected placebo</div></div>",
-                      "<div class='flex'><div class='definition'>Sv</div><div>susceptible vaccinated</div></div>",
-                      "<div class='flex'><div class='definition'>Iv</div><div>infected vaccinated</div></div>",
-                      "<div class='flex'><div class='definition'>Svh</div><div>susceptible vaccinated high exposure</div></div>",
-                      "<div class='flex'><div class='definition'>Svm</div><div>susceptible vaccinated medium exposure</div></div>",
-                      "<div class='flex'><div class='definition'>SvL</div><div>susceptible vaccinated low exposure (zero in this instance)</div></div>",
-                      "<div class='flex'><div class='definition'>Ivh</div><div>infected vaccinated high exposure</div></div>",
-                      "<div class='flex'><div class='definition'>Ivm</div><div>infected vaccinated medium exposure</div></div>",
-                      "<div class='flex'><div class='definition'>Ivl</div><div>infected vaccinated low exposure (zero in this instance)</div></div>",
-                      "</div><br/>")),
-           HTML("</div>"),
-           titlePanel(htmlTemplate("template.html"))
+     HTML("<p>The risk multiplier is an amalgam of increases in transmission risk that could be due to:</p>"),
+     HTML("<ol type='1'>"),
+     HTML("<li>higher per contact transmission risk</li>"),
+     HTML("<li>higher exposure rate (number of contacts)</li>"),
+     HTML("<li>higher prevalence of HIV viremia in partners.</li></ol>"),
+     HTML("<p>Individual risk of infection can vary for these separately or in combination.</p>"),
+     titlePanel(htmlTemplate("template.html"))
            
   ))
   
@@ -110,7 +99,7 @@ getInitialExamplePlotsContent <- function() {
               plotOutput("PlaceboVaccineRiskPlot") %>% withSpinner(color="#0dc5c1"),
               p("Figure 3. Incidence in the placebo and vaccine arms of a trial, for populations with homogeneous risk and heterogeneous risk."),
               plotOutput("VEPlot") %>% withSpinner(color="#0dc5c1"),
-              p("Figure 4. ..."),
+              p("Figure 4. Clinical vaccine efficacy over time in two vaccine trial population trials, one with homogeneous risk and the other with heterogeneous risk."),
               class = "plotPanel"
              ),
            HTML("</div>"),
